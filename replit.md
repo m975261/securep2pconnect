@@ -4,6 +4,9 @@ SECURE.LINK is an end-to-end encrypted peer-to-peer communication application th
 
 ## Recent Updates (November 20, 2025)
 
+- **Peer Nicknames**: Users enter nicknames before joining/creating rooms, displayed in chat and room header
+- **Dynamic Password Setting**: Room creators can add/update passwords without leaving the room via "SET PASSWORD" button
+- **Creator Privileges with Persistence**: Room creators bypass password authentication and maintain creator status across page refreshes via localStorage (persists for 24-hour room lifetime on same device/browser)
 - **TURN Server Integration**: Added relay servers on port 443 (HTTPS) to ensure connections work through restrictive firewalls
 - **Admin Panel**: Secure admin dashboard with 2FA support for monitoring peer connections
 - **Password Protection on Shared Links**: Direct room links now require password verification before allowing access
@@ -79,6 +82,9 @@ Preferred communication style: Simple, everyday language.
 
 **Room Protection**
 - Optional password protection for rooms
+- Room creator bypass: Creators skip password authentication (validated server-side)
+- Dynamic password setting: Creators can add/update passwords via secure API endpoint
+- Creator identity persistence: peerId stored in localStorage to maintain creator status across page refreshes (same device/browser only)
 - Failed attempt tracking with progressive penalties
 - IP-based banning after multiple failed attempts (configurable hours)
 - Automatic room expiration (24-hour default TTL)
@@ -103,11 +109,21 @@ Preferred communication style: Simple, everyday language.
 **rooms**
 - `id`: Unique room identifier (varchar, primary key)
 - `password`: Optional bcrypt-hashed password (text, nullable)
+- `createdBy`: Creator's peer identifier for authorization (text, nullable)
 - `createdAt`: Room creation timestamp
 - `expiresAt`: Automatic expiration timestamp (24 hours default)
 - `peer1`: First connected peer identifier (text, nullable)
 - `peer2`: Second connected peer identifier (text, nullable)
 - `isActive`: Room availability status (boolean, default true)
+
+**peer_connections**
+- `id`: UUID identifier (generated)
+- `roomId`: Associated room reference
+- `peerId`: Peer identifier
+- `nickname`: Display name for the peer (text, nullable)
+- `ipAddress`: Client IP address
+- `userAgent`: Browser user agent string
+- `connectedAt`: Connection timestamp
 
 **failedAttempts**
 - `id`: UUID identifier (generated)

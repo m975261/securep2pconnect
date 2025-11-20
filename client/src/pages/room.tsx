@@ -30,6 +30,7 @@ export default function Room() {
     const stored = localStorage.getItem(`creator_${roomId}`);
     if (stored) return stored;
     const newId = Math.random().toString(36).substring(7);
+    localStorage.setItem(`creator_${roomId}`, newId);
     return newId;
   });
   const [nickname] = useState(nicknameFromUrl);
