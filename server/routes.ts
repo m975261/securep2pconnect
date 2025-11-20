@@ -112,6 +112,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/rooms/:id/password", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { createdBy } = req.body;
+
+      const room = await storage.getRoom(id);
+      if (!room) {
+        return res.status(404).json({ error: "Room not found" });
+      }
+
+      if (!room.createdBy || room.createdBy !== createdBy) {
+        return res.status(403).json({ error: "Unauthorized: Only room creator can remove password" });
+      }
+
+      await storage.updateRoomPassword(id, null);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing room password:", error);
+      res.status(500).json({ error: "Failed to remove password" });
+    }
+  });
+
   app.post("/api/rooms/:id/join", async (req, res) => {
     try {
       const { id } = req.params;

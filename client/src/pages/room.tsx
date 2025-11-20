@@ -47,6 +47,7 @@ export default function Room() {
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [isCreator, setIsCreator] = useState(false);
+  const [hasPassword, setHasPassword] = useState(false);
 
   useEffect(() => {
     const checkRoomPassword = async () => {
@@ -78,6 +79,7 @@ export default function Room() {
         if (data.isCreator) {
           setIsCreator(true);
         }
+        setHasPassword(data.hasPassword || false);
         
         setPasswordVerified(true);
         setCheckingPassword(false);
@@ -195,6 +197,7 @@ export default function Room() {
 
       if (response.ok) {
         toast.success('Password set successfully!');
+        setHasPassword(true);
         setShowPasswordDialog(false);
         setNewPassword('');
       } else {
@@ -203,6 +206,29 @@ export default function Room() {
       }
     } catch (error) {
       toast.error('Failed to set password');
+    }
+  };
+
+  const handleRemovePassword = async () => {
+    try {
+      const response = await fetch(`/api/rooms/${roomId}/password`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          createdBy: peerId,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('Password removed successfully!');
+        setHasPassword(false);
+        setShowPasswordDialog(false);
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Failed to remove password');
+      }
+    } catch (error) {
+      toast.error('Failed to remove password');
     }
   };
 
@@ -318,34 +344,87 @@ export default function Room() {
           {isCreator && (
             <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
               <DialogTrigger asChild>
-                <Button size="sm" variant="outline" className="border-white/10 bg-white/5 hover:bg-white/10 gap-2" data-testid="button-set-password">
-                  <Lock className="w-4 h-4" />
-                  <span className="hidden sm:inline">SET PASSWORD</span>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className={`border-white/10 gap-2 ${hasPassword ? 'bg-primary/10 hover:bg-primary/20 border-primary/30' : 'bg-white/5 hover:bg-white/10'}`}
+                  data-testid="button-password-toggle"
+                >
+                  <Lock className={`w-4 h-4 ${hasPassword ? 'text-primary' : ''}`} />
+                  <span className="hidden sm:inline">{hasPassword ? 'PASSWORD ENABLED' : 'NO PASSWORD'}</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="bg-card border-white/10 sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle className="font-mono">PROTECT THIS ROOM</DialogTitle>
+                  <DialogTitle className="font-mono">ROOM PASSWORD</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">New Password</label>
-                    <Input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Enter password"
-                      className="bg-black/20 border-white/10 focus:border-primary/50"
-                      data-testid="input-new-password"
-                    />
+                  <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/10">
+                    <div className="flex items-center gap-3">
+                      <Lock className={`w-5 h-5 ${hasPassword ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <div>
+                        <p className="text-sm font-medium">Password Protection</p>
+                        <p className="text-xs text-muted-foreground">
+                          {hasPassword ? 'Room is password protected' : 'Room is not protected'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`w-2 h-2 rounded-full ${hasPassword ? 'bg-primary shadow-[0_0_10px_rgba(0,255,157,0.5)]' : 'bg-muted-foreground'}`} />
                   </div>
-                  <Button
-                    onClick={handleSetPassword}
-                    className="w-full bg-primary hover:bg-primary/90 text-black font-bold"
-                    data-testid="button-save-password"
-                  >
-                    Save Password
-                  </Button>
+                  
+                  {hasPassword ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Change Password</label>
+                        <Input
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Enter new password"
+                          className="bg-black/20 border-white/10 focus:border-primary/50"
+                          data-testid="input-new-password"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleSetPassword}
+                          className="flex-1 bg-primary hover:bg-primary/90 text-black font-bold"
+                          data-testid="button-update-password"
+                        >
+                          Update Password
+                        </Button>
+                        <Button
+                          onClick={handleRemovePassword}
+                          variant="destructive"
+                          className="flex-1"
+                          data-testid="button-remove-password"
+                        >
+                          Remove Password
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Set Password</label>
+                        <Input
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Enter password"
+                          className="bg-black/20 border-white/10 focus:border-primary/50"
+                          data-testid="input-new-password"
+                        />
+                      </div>
+                      <Button
+                        onClick={handleSetPassword}
+                        className="w-full bg-primary hover:bg-primary/90 text-black font-bold"
+                        data-testid="button-save-password"
+                      >
+                        Enable Password Protection
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </DialogContent>
             </Dialog>
