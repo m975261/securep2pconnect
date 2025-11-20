@@ -160,7 +160,7 @@ export default function AdminDashboard() {
                   {twoFAEnabled ? "2FA Enabled" : "Enable 2FA"}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-gray-900 border-cyan-500/20 w-[95vw] max-w-md mx-auto">
+              <DialogContent className="bg-gray-900 border-cyan-500/20 w-[95vw] max-w-md mx-auto max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="text-cyan-400 text-sm sm:text-base">Setup Two-Factor Authentication</DialogTitle>
                   <DialogDescription className="text-gray-400 text-xs sm:text-sm">

@@ -232,19 +232,25 @@ export function useWebRTC(config: WebRTCConfig) {
         event.channel.onmessage = (msgEvent) => {
           if (typeof msgEvent.data === 'string') {
             if (msgEvent.data === 'EOF') {
-              const blob = new Blob(fileChunks);
-              const reader = new FileReader();
-              reader.onload = () => {
-                config.onFileReceive?.({
-                  name: fileMetadata.name,
-                  data: reader.result as ArrayBuffer,
-                });
-              };
-              reader.readAsArrayBuffer(blob);
-              fileChunks = [];
-              fileMetadata = null;
+              if (fileMetadata) {
+                const blob = new Blob(fileChunks);
+                const reader = new FileReader();
+                reader.onload = () => {
+                  config.onFileReceive?.({
+                    name: fileMetadata.name,
+                    data: reader.result as ArrayBuffer,
+                  });
+                };
+                reader.readAsArrayBuffer(blob);
+                fileChunks = [];
+                fileMetadata = null;
+              }
             } else {
-              fileMetadata = JSON.parse(msgEvent.data);
+              try {
+                fileMetadata = JSON.parse(msgEvent.data);
+              } catch (error) {
+                console.error('Error parsing file metadata:', error);
+              }
             }
           } else {
             fileChunks.push(msgEvent.data);

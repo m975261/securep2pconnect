@@ -291,9 +291,9 @@ export default function Room() {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-md"
+          className="w-full max-w-md max-h-[90vh] overflow-y-auto"
         >
-          <div className="bg-card/50 backdrop-blur-md border border-white/10 rounded-lg p-8">
+          <div className="bg-card/50 backdrop-blur-md border border-white/10 rounded-lg p-4 sm:p-8">
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -389,7 +389,7 @@ export default function Room() {
                   <span className="hidden sm:inline">{hasPassword ? 'PASSWORD ENABLED' : 'NO PASSWORD'}</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-card border-white/10 w-[95vw] max-w-md mx-auto">
+              <DialogContent className="bg-card border-white/10 w-[95vw] max-w-md mx-auto max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="font-mono text-sm sm:text-base">ROOM PASSWORD</DialogTitle>
                 </DialogHeader>
@@ -472,26 +472,32 @@ export default function Room() {
                 <span className="hidden sm:inline">INVITE PEER</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-white/10 w-[95vw] max-w-md mx-auto">
+            <DialogContent className="bg-card border-white/10 w-[95vw] max-w-md mx-auto max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="font-mono text-sm sm:text-base">SESSION ACCESS KEYS</DialogTitle>
               </DialogHeader>
-              <div className="flex flex-col items-center gap-4 sm:gap-6 py-2 sm:py-4">
-                <div className="p-3 sm:p-4 bg-white rounded-lg">
+              <div className="flex flex-col items-center gap-3 sm:gap-4 py-2 sm:py-4">
+                <div className="p-2 sm:p-3 bg-white rounded-lg">
                   <QRCode 
                     value={window.location.href} 
-                    size={Math.min(180, window.innerWidth - 120)}
-                    className="w-full h-auto max-w-[180px]"
+                    size={Math.min(160, window.innerWidth - 100)}
+                    className="w-full h-auto max-w-[160px]"
                   />
                 </div>
                 <div className="w-full space-y-2">
                   <label className="text-xs text-muted-foreground font-mono">SHARED SECRET LINK</label>
                   <div className="flex gap-2">
-                    <div className="flex-1 p-2 bg-black/30 border border-white/10 rounded font-mono text-[10px] sm:text-xs truncate overflow-hidden">
+                    <div className="flex-1 p-2 bg-black/30 border border-white/10 rounded font-mono text-[10px] sm:text-xs truncate overflow-hidden break-all">
                       {window.location.href}
                     </div>
-                    <Button size="icon" variant="outline" onClick={copyLink} className="shrink-0">
-                      {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+                    <Button 
+                      size="icon" 
+                      variant="outline" 
+                      onClick={copyLink} 
+                      className="shrink-0 h-auto w-auto px-2 sm:px-3"
+                      data-testid="button-copy-link"
+                    >
+                      {copied ? <Check className="w-3 h-3 sm:w-4 sm:h-4 text-primary" /> : <Copy className="w-3 h-3 sm:w-4 sm:h-4" />}
                     </Button>
                   </div>
                 </div>
