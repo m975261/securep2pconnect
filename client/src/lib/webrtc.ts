@@ -89,7 +89,19 @@ export function useWebRTC(config: WebRTCConfig) {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
+        {
+          urls: [
+            'turn:openrelay.metered.ca:80',
+            'turn:openrelay.metered.ca:443',
+            'turn:openrelay.metered.ca:443?transport=tcp',
+            'turns:openrelay.metered.ca:443?transport=tcp'
+          ],
+          username: 'openrelayproject',
+          credential: 'openrelayproject',
+        },
       ],
+      iceTransportPolicy: 'all',
+      iceCandidatePoolSize: 10,
     });
     pcRef.current = pc;
 
@@ -138,11 +150,28 @@ export function useWebRTC(config: WebRTCConfig) {
     };
 
     pc.onicecandidate = (event) => {
-      if (event.candidate && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: 'ice-candidate',
-          data: event.candidate,
-        }));
+      if (event.candidate) {
+        console.log('ICE candidate:', event.candidate.type, event.candidate.protocol, event.candidate.address);
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'ice-candidate',
+            data: event.candidate,
+          }));
+        }
+      } else {
+        console.log('ICE gathering complete');
+      }
+    };
+
+    pc.onicegatheringstatechange = () => {
+      console.log('ICE gathering state:', pc.iceGatheringState);
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      console.log('ICE connection state:', pc.iceConnectionState);
+      if (pc.iceConnectionState === 'failed') {
+        console.error('ICE connection failed - trying ICE restart');
+        pc.restartIce();
       }
     };
 
