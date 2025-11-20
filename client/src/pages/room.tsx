@@ -619,7 +619,12 @@ export default function Room() {
                    exit={{ opacity: 0, x: -20 }}
                    className="h-full"
                  >
-                   <ChatInterface messages={messages} onSendMessage={handleSendMessage} />
+                   <ChatInterface 
+                     messages={messages} 
+                     onSendMessage={handleSendMessage}
+                     peerNickname={peerNickname}
+                     connectionState={connectionState}
+                   />
                  </motion.div>
                ) : (
                  <motion.div 
