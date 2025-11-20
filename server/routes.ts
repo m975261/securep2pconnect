@@ -45,10 +45,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
 
-  await storage.cleanExpiredRooms();
+  storage.cleanExpiredRooms().catch(console.error);
 
   setInterval(() => {
-    storage.cleanExpiredRooms();
+    storage.cleanExpiredRooms().catch(console.error);
   }, 60000);
 
   app.post("/api/rooms", async (req, res) => {

@@ -7,26 +7,45 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
+import { toast } from "sonner";
 
 export default function CreateRoom() {
   const [_, setLocation] = useLocation();
   const [loading, setLoading] = useState(false);
   const [passwordEnabled, setPasswordEnabled] = useState(false);
+  const [password, setPassword] = useState("");
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate room creation delay
-    setTimeout(() => {
-      setLocation("/room/secure-8x92");
-    }, 1500);
+
+    try {
+      const response = await fetch('/api/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          password: passwordEnabled && password ? password : undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create room');
+      }
+
+      const data = await response.json();
+      setLocation(`/room/${data.roomId}`);
+    } catch (error) {
+      console.error('Error creating room:', error);
+      toast.error('Failed to create room. Please try again.');
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 relative">
       <div className="absolute top-4 left-4">
         <Link href="/">
-          <Button variant="ghost" className="text-muted-foreground hover:text-white gap-2">
+          <Button variant="ghost" className="text-muted-foreground hover:text-white gap-2" data-testid="button-back">
             <Home className="w-4 h-4" />
             BACK TO HOME
           </Button>
@@ -55,6 +74,7 @@ export default function CreateRoom() {
                 <Switch 
                   checked={passwordEnabled}
                   onCheckedChange={setPasswordEnabled}
+                  data-testid="switch-password"
                 />
               </div>
 
@@ -68,8 +88,11 @@ export default function CreateRoom() {
                     <KeyRound className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input 
                       type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter session password"
                       className="pl-9 bg-black/20 border-white/10 focus:border-primary/50 font-mono"
+                      data-testid="input-password"
                     />
                   </div>
                 </motion.div>
@@ -81,6 +104,7 @@ export default function CreateRoom() {
                 type="submit" 
                 disabled={loading}
                 className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-bold tracking-wide"
+                data-testid="button-create"
               >
                 {loading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />

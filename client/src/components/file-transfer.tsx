@@ -3,10 +3,14 @@ import { Upload, File as FileIcon, X, Check } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export function FileTransfer() {
+interface FileTransferProps {
+  onSendFile: (file: File) => Promise<void>;
+}
+
+export function FileTransfer({ onSendFile }: FileTransferProps) {
   const [files, setFiles] = useState<Array<{ name: string; size: string; progress: number; status: 'uploading' | 'completed' }>>([]);
 
-  const onDrop = (acceptedFiles: File[]) => {
+  const onDrop = async (acceptedFiles: File[]) => {
     const newFiles = acceptedFiles.map(file => ({
       name: file.name,
       size: (file.size / 1024 / 1024).toFixed(2) + " MB",
@@ -16,35 +20,41 @@ export function FileTransfer() {
 
     setFiles(prev => [...prev, ...newFiles]);
 
-    // Simulate upload
-    newFiles.forEach((_, index) => {
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += Math.random() * 10;
-        if (progress >= 100) {
-          progress = 100;
-          clearInterval(interval);
+    for (let i = 0; i < acceptedFiles.length; i++) {
+      const file = acceptedFiles[i];
+      const fileIndex = files.length + i;
+
+      try {
+        let progress = 0;
+        const interval = setInterval(() => {
+          progress += 10;
+          if (progress >= 100) {
+            clearInterval(interval);
+          }
           setFiles(prev => {
             const updated = [...prev];
-            const targetIndex = prev.length - newFiles.length + index;
-            if (updated[targetIndex]) {
-              updated[targetIndex].status = 'completed';
-              updated[targetIndex].progress = 100;
+            if (updated[fileIndex]) {
+              updated[fileIndex].progress = Math.min(progress, 100);
             }
             return updated;
           });
-        } else {
-          setFiles(prev => {
-            const updated = [...prev];
-            const targetIndex = prev.length - newFiles.length + index;
-            if (updated[targetIndex]) {
-              updated[targetIndex].progress = progress;
-            }
-            return updated;
-          });
-        }
-      }, 200);
-    });
+        }, 100);
+
+        await onSendFile(file);
+        
+        clearInterval(interval);
+        setFiles(prev => {
+          const updated = [...prev];
+          if (updated[fileIndex]) {
+            updated[fileIndex].status = 'completed';
+            updated[fileIndex].progress = 100;
+          }
+          return updated;
+        });
+      } catch (error) {
+        console.error('Error sending file:', error);
+      }
+    }
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
@@ -60,6 +70,7 @@ export function FileTransfer() {
             : "border-white/10 hover:border-white/20 text-muted-foreground"
           }
         `}
+        data-testid="dropzone-files"
       >
         <input {...getInputProps()} />
         <Upload className={`w-8 h-8 mb-2 ${isDragActive ? "animate-bounce" : ""}`} />
@@ -81,7 +92,7 @@ export function FileTransfer() {
                     <FileIcon className="w-3 h-3 text-accent" />
                   </div>
                   <div className="truncate">
-                    <div className="text-xs font-mono truncate text-white/90">{file.name}</div>
+                    <div className="text-xs font-mono truncate text-white/90" data-testid={`text-filename-${idx}`}>{file.name}</div>
                     <div className="text-[10px] text-muted-foreground">{file.size}</div>
                   </div>
                 </div>
