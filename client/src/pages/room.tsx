@@ -50,6 +50,13 @@ export default function Room() {
   const [hasPassword, setHasPassword] = useState(false);
 
   useEffect(() => {
+    if (!nicknameFromUrl && roomId) {
+      setLocation(`/join?room=${roomId}`);
+      return;
+    }
+  }, [nicknameFromUrl, roomId, setLocation]);
+
+  useEffect(() => {
     const checkRoomPassword = async () => {
       try {
         const response = await fetch(`/api/rooms/${roomId}/join`, {

@@ -13,7 +13,9 @@ export default function JoinRoom() {
   const [_, setLocation] = useLocation();
   const [loading, setLoading] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
-  const [code, setCode] = useState("");
+  const searchParams = new URLSearchParams(window.location.search);
+  const roomFromUrl = searchParams.get('room') || '';
+  const [code, setCode] = useState(roomFromUrl);
   const [nickname, setNickname] = useState("");
   const [needsPassword, setNeedsPassword] = useState(false);
   const [password, setPassword] = useState("");
