@@ -257,11 +257,11 @@ export default function AdminDashboard() {
                   <table className="w-full" data-testid="table-peers">
                     <thead>
                       <tr className="border-b border-gray-800">
+                        <th className="text-left p-3 text-cyan-400 font-['Space_Grotesk']">Nickname</th>
                         <th className="text-left p-3 text-cyan-400 font-['Space_Grotesk']">Room ID</th>
+                        <th className="text-left p-3 text-cyan-400 font-['Space_Grotesk']">Location</th>
                         <th className="text-left p-3 text-cyan-400 font-['Space_Grotesk']">IP Address</th>
                         <th className="text-left p-3 text-cyan-400 font-['Space_Grotesk']">Device</th>
-                        <th className="text-left p-3 text-cyan-400 font-['Space_Grotesk']">OS</th>
-                        <th className="text-left p-3 text-cyan-400 font-['Space_Grotesk']">Browser</th>
                         <th className="text-left p-3 text-cyan-400 font-['Space_Grotesk']">Connected</th>
                       </tr>
                     </thead>
@@ -273,12 +273,36 @@ export default function AdminDashboard() {
                           className="border-b border-gray-800/50 hover:bg-gray-800/30"
                         >
                           <td className="p-3">
+                            <span className="text-primary font-medium" data-testid={`text-nickname-${peer.id}`}>
+                              {peer.nickname || 'Anonymous'}
+                            </span>
+                          </td>
+                          <td className="p-3">
                             <code className="text-cyan-400 font-mono text-sm">{peer.roomId}</code>
                           </td>
+                          <td className="p-3">
+                            <div className="text-gray-300">
+                              {peer.city && peer.country ? (
+                                <div>
+                                  <div className="font-medium">{peer.city}, {peer.country}</div>
+                                  {peer.latitude && peer.longitude && (
+                                    <div className="text-xs text-gray-500">
+                                      {parseFloat(peer.latitude).toFixed(4)}, {parseFloat(peer.longitude).toFixed(4)}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-gray-500">Unknown</span>
+                              )}
+                            </div>
+                          </td>
                           <td className="p-3 text-gray-300 font-mono text-sm">{peer.ipAddress}</td>
-                          <td className="p-3 text-gray-300 capitalize">{peer.deviceType}</td>
-                          <td className="p-3 text-gray-300">{peer.os}</td>
-                          <td className="p-3 text-gray-300">{peer.browser}</td>
+                          <td className="p-3 text-gray-300">
+                            <div className="text-sm">
+                              <div>{peer.os}</div>
+                              <div className="text-xs text-gray-500">{peer.browser} • {peer.deviceType}</div>
+                            </div>
+                          </td>
                           <td className="p-3">
                             <span className="flex items-center text-green-400">
                               <Wifi className="h-4 w-4 mr-1" />
@@ -310,9 +334,12 @@ export default function AdminDashboard() {
                   className="flex justify-between items-center p-3 bg-gray-800/30 rounded"
                 >
                   <div>
-                    <code className="text-cyan-400 font-mono text-sm">{peer.roomId}</code>
-                    <span className="text-gray-500 text-sm ml-4">
-                      {peer.ipAddress} • {peer.os} • {peer.browser}
+                    <div className="mb-1">
+                      <span className="text-primary font-medium">{peer.nickname || 'Anonymous'}</span>
+                      <code className="text-cyan-400 font-mono text-sm ml-3">{peer.roomId}</code>
+                    </div>
+                    <span className="text-gray-500 text-sm">
+                      {peer.city && peer.country ? `${peer.city}, ${peer.country}` : peer.ipAddress} • {peer.os} • {peer.browser}
                     </span>
                   </div>
                   <span className="flex items-center text-red-400 text-sm">

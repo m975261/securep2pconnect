@@ -44,6 +44,10 @@ export const peerConnections = pgTable("peer_connections", {
   deviceType: text("device_type"),
   os: text("os"),
   browser: text("browser"),
+  country: text("country"),
+  city: text("city"),
+  latitude: text("latitude"),
+  longitude: text("longitude"),
   connectedAt: timestamp("connected_at").notNull().defaultNow(),
   disconnectedAt: timestamp("disconnected_at"),
 });

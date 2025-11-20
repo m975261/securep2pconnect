@@ -52,6 +52,38 @@ function getClientIP(req: Request): string {
   return req.socket.remoteAddress || 'unknown';
 }
 
+async function fetchLocationFromIP(ip: string): Promise<{
+  country: string | null;
+  city: string | null;
+  latitude: string | null;
+  longitude: string | null;
+}> {
+  if (ip === 'unknown' || ip.startsWith('127.') || ip === '::1') {
+    return { country: null, city: null, latitude: null, longitude: null };
+  }
+
+  try {
+    const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,city,lat,lon`);
+    if (!response.ok) {
+      return { country: null, city: null, latitude: null, longitude: null };
+    }
+    
+    const data = await response.json();
+    if (data.status === 'success') {
+      return {
+        country: data.country || null,
+        city: data.city || null,
+        latitude: data.lat ? data.lat.toString() : null,
+        longitude: data.lon ? data.lon.toString() : null,
+      };
+    }
+  } catch (error) {
+    console.error('Failed to fetch location from IP:', error);
+  }
+  
+  return { country: null, city: null, latitude: null, longitude: null };
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
@@ -239,6 +271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.updateRoomPeer(message.roomId, message.peerId);
           
           const deviceInfo = parseUserAgent(userAgent);
+          const locationData = await fetchLocationFromIP(ipAddress);
           await storage.trackPeerConnection({
             peerId: message.peerId,
             roomId: message.roomId,
@@ -248,6 +281,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             deviceType: deviceInfo.deviceType,
             os: deviceInfo.os,
             browser: deviceInfo.browser,
+            country: locationData.country,
+            city: locationData.city,
+            latitude: locationData.latitude,
+            longitude: locationData.longitude,
             disconnectedAt: null,
           });
 
