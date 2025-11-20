@@ -160,49 +160,54 @@ export default function AdminDashboard() {
                   {twoFAEnabled ? "2FA Enabled" : "Enable 2FA"}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-gray-900 border-cyan-500/20">
+              <DialogContent className="bg-gray-900 border-cyan-500/20 w-[95vw] max-w-md mx-auto">
                 <DialogHeader>
-                  <DialogTitle className="text-cyan-400">Setup Two-Factor Authentication</DialogTitle>
-                  <DialogDescription className="text-gray-400">
+                  <DialogTitle className="text-cyan-400 text-sm sm:text-base">Setup Two-Factor Authentication</DialogTitle>
+                  <DialogDescription className="text-gray-400 text-xs sm:text-sm">
                     {!qrCode ? "Enter your password to generate a QR code" : "Scan the QR code with Google Authenticator"}
                   </DialogDescription>
                 </DialogHeader>
 
                 {!qrCode ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     <div>
-                      <Label htmlFor="password" className="text-gray-300">Password</Label>
+                      <Label htmlFor="password" className="text-gray-300 text-xs sm:text-sm">Password</Label>
                       <Input
                         id="password"
                         data-testid="input-2fa-password"
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="bg-gray-800/50 border-gray-700 text-white"
+                        className="bg-gray-800/50 border-gray-700 text-white text-sm"
                       />
                     </div>
                     <Button
                       data-testid="button-generate-qr"
                       onClick={handleEnable2FA}
                       disabled={loading}
-                      className="w-full bg-cyan-500 hover:bg-cyan-600 text-gray-900"
+                      className="w-full bg-cyan-500 hover:bg-cyan-600 text-gray-900 text-xs sm:text-sm"
                     >
                       Generate QR Code
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="flex justify-center p-4 bg-white rounded">
-                      <img src={qrCode} alt="QR Code" data-testid="img-qr-code" />
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="flex justify-center p-3 sm:p-4 bg-white rounded">
+                      <img 
+                        src={qrCode} 
+                        alt="QR Code" 
+                        data-testid="img-qr-code"
+                        className="w-full h-auto max-w-[200px]"
+                      />
                     </div>
                     <div>
-                      <Label className="text-gray-300">Or enter this code manually:</Label>
-                      <code className="block mt-2 p-2 bg-gray-800 rounded text-cyan-400 text-sm">
+                      <Label className="text-gray-300 text-xs sm:text-sm">Or enter this code manually:</Label>
+                      <code className="block mt-2 p-2 bg-gray-800 rounded text-cyan-400 text-[10px] sm:text-sm break-all">
                         {secret}
                       </code>
                     </div>
                     <div>
-                      <Label htmlFor="totp" className="text-gray-300">Enter 6-digit code</Label>
+                      <Label htmlFor="totp" className="text-gray-300 text-xs sm:text-sm">Enter 6-digit code</Label>
                       <Input
                         id="totp"
                         data-testid="input-verify-2fa"
@@ -211,14 +216,14 @@ export default function AdminDashboard() {
                         onChange={(e) => setTotpCode(e.target.value)}
                         placeholder="000000"
                         maxLength={6}
-                        className="bg-gray-800/50 border-gray-700 text-white"
+                        className="bg-gray-800/50 border-gray-700 text-white text-sm"
                       />
                     </div>
                     <Button
                       data-testid="button-verify-2fa"
                       onClick={handleVerify2FA}
                       disabled={loading}
-                      className="w-full bg-cyan-500 hover:bg-cyan-600 text-gray-900"
+                      className="w-full bg-cyan-500 hover:bg-cyan-600 text-gray-900 text-xs sm:text-sm"
                     >
                       Verify & Enable
                     </Button>

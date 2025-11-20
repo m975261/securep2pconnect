@@ -354,17 +354,17 @@ export default function Room() {
                   <span className="hidden sm:inline">{hasPassword ? 'PASSWORD ENABLED' : 'NO PASSWORD'}</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-card border-white/10 sm:max-w-md">
+              <DialogContent className="bg-card border-white/10 w-[95vw] max-w-md mx-auto">
                 <DialogHeader>
-                  <DialogTitle className="font-mono">ROOM PASSWORD</DialogTitle>
+                  <DialogTitle className="font-mono text-sm sm:text-base">ROOM PASSWORD</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <Lock className={`w-5 h-5 ${hasPassword ? 'text-primary' : 'text-muted-foreground'}`} />
+                <div className="space-y-3 sm:space-y-4 py-2 sm:py-4">
+                  <div className="flex items-center justify-between p-2 sm:p-3 bg-black/20 rounded-lg border border-white/10">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <Lock className={`w-4 h-4 sm:w-5 sm:h-5 ${hasPassword ? 'text-primary' : 'text-muted-foreground'}`} />
                       <div>
-                        <p className="text-sm font-medium">Password Protection</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs sm:text-sm font-medium">Password Protection</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">
                           {hasPassword ? 'Room is password protected' : 'Room is not protected'}
                         </p>
                       </div>
@@ -375,20 +375,20 @@ export default function Room() {
                   {hasPassword ? (
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-sm font-medium mb-2">Change Password</label>
+                        <label className="block text-xs sm:text-sm font-medium mb-2">Change Password</label>
                         <Input
                           type="password"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
                           placeholder="Enter new password"
-                          className="bg-black/20 border-white/10 focus:border-primary/50"
+                          className="bg-black/20 border-white/10 focus:border-primary/50 text-sm"
                           data-testid="input-new-password"
                         />
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <Button
                           onClick={handleSetPassword}
-                          className="flex-1 bg-primary hover:bg-primary/90 text-black font-bold"
+                          className="flex-1 bg-primary hover:bg-primary/90 text-black font-bold text-xs sm:text-sm"
                           data-testid="button-update-password"
                         >
                           Update Password
@@ -396,7 +396,7 @@ export default function Room() {
                         <Button
                           onClick={handleRemovePassword}
                           variant="destructive"
-                          className="flex-1"
+                          className="flex-1 text-xs sm:text-sm"
                           data-testid="button-remove-password"
                         >
                           Remove Password
@@ -406,19 +406,19 @@ export default function Room() {
                   ) : (
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-sm font-medium mb-2">Set Password</label>
+                        <label className="block text-xs sm:text-sm font-medium mb-2">Set Password</label>
                         <Input
                           type="password"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
                           placeholder="Enter password"
-                          className="bg-black/20 border-white/10 focus:border-primary/50"
+                          className="bg-black/20 border-white/10 focus:border-primary/50 text-sm"
                           data-testid="input-new-password"
                         />
                       </div>
                       <Button
                         onClick={handleSetPassword}
-                        className="w-full bg-primary hover:bg-primary/90 text-black font-bold"
+                        className="w-full bg-primary hover:bg-primary/90 text-black font-bold text-xs sm:text-sm"
                         data-testid="button-save-password"
                       >
                         Enable Password Protection
@@ -437,21 +437,25 @@ export default function Room() {
                 <span className="hidden sm:inline">INVITE PEER</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-white/10 sm:max-w-md">
+            <DialogContent className="bg-card border-white/10 w-[95vw] max-w-md mx-auto">
               <DialogHeader>
-                <DialogTitle className="font-mono">SESSION ACCESS KEYS</DialogTitle>
+                <DialogTitle className="font-mono text-sm sm:text-base">SESSION ACCESS KEYS</DialogTitle>
               </DialogHeader>
-              <div className="flex flex-col items-center gap-6 py-4">
-                <div className="p-4 bg-white rounded-lg">
-                  <QRCode value={window.location.href} size={180} />
+              <div className="flex flex-col items-center gap-4 sm:gap-6 py-2 sm:py-4">
+                <div className="p-3 sm:p-4 bg-white rounded-lg">
+                  <QRCode 
+                    value={window.location.href} 
+                    size={Math.min(180, window.innerWidth - 120)}
+                    className="w-full h-auto max-w-[180px]"
+                  />
                 </div>
                 <div className="w-full space-y-2">
                   <label className="text-xs text-muted-foreground font-mono">SHARED SECRET LINK</label>
                   <div className="flex gap-2">
-                    <div className="flex-1 p-2 bg-black/30 border border-white/10 rounded font-mono text-xs truncate">
+                    <div className="flex-1 p-2 bg-black/30 border border-white/10 rounded font-mono text-[10px] sm:text-xs truncate overflow-hidden">
                       {window.location.href}
                     </div>
-                    <Button size="icon" variant="outline" onClick={copyLink}>
+                    <Button size="icon" variant="outline" onClick={copyLink} className="shrink-0">
                       {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
                     </Button>
                   </div>
