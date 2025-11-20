@@ -167,11 +167,22 @@ export function useWebRTC(config: WebRTCConfig) {
       console.log('ICE gathering state:', pc.iceGatheringState);
     };
 
-    pc.oniceconnectionstatechange = () => {
+    pc.oniceconnectionstatechange = async () => {
       console.log('ICE connection state:', pc.iceConnectionState);
       if (pc.iceConnectionState === 'failed') {
-        console.error('ICE connection failed - trying ICE restart');
-        pc.restartIce();
+        console.error('ICE connection failed - attempting ICE restart');
+        try {
+          const offer = await pc.createOffer({ iceRestart: true });
+          await pc.setLocalDescription(offer);
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              type: 'offer',
+              data: offer,
+            }));
+          }
+        } catch (error) {
+          console.error('Failed to restart ICE:', error);
+        }
       }
     };
 
