@@ -29,11 +29,76 @@ export default function Room() {
   const [copied, setCopied] = useState(false);
   const [messages, setMessages] = useState<Array<{id: string; text: string; sender: 'me' | 'peer'; timestamp: Date}>>([]);
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
+  const [passwordRequired, setPasswordRequired] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordVerified, setPasswordVerified] = useState(false);
+  const [checkingPassword, setCheckingPassword] = useState(true);
 
-  const { connectionState, sendMessage, sendFile, startVoiceChat, stopVoiceChat } = useWebRTC({
+  useEffect(() => {
+    const checkRoomPassword = async () => {
+      try {
+        const response = await fetch(`/api/rooms/${roomId}`);
+        if (!response.ok) {
+          toast.error("Room not found");
+          setLocation("/");
+          return;
+        }
+        
+        const data = await response.json();
+        if (data.hasPassword) {
+          setPasswordRequired(true);
+          setCheckingPassword(false);
+        } else {
+          setPasswordVerified(true);
+          setCheckingPassword(false);
+        }
+      } catch (error) {
+        console.error("Error checking room:", error);
+        toast.error("Failed to check room");
+        setLocation("/");
+      }
+    };
+    
+    if (roomId) {
+      checkRoomPassword();
+    }
+  }, [roomId, setLocation]);
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const response = await fetch(`/api/rooms/${roomId}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          toast.error(data.error);
+        } else if (response.status === 401) {
+          toast.error(data.error + (data.attemptsRemaining ? ` (${data.attemptsRemaining} attempts remaining)` : ''));
+        } else {
+          toast.error('Invalid password');
+        }
+        return;
+      }
+
+      setPasswordVerified(true);
+      toast.success('Password verified');
+    } catch (error) {
+      console.error('Error verifying password:', error);
+      toast.error('Failed to verify password');
+    }
+  };
+
+  const webrtcConfig = passwordVerified ? {
     roomId,
     peerId,
-    onMessage: (message) => {
+    onMessage: (message: any) => {
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         text: message.text,
@@ -41,7 +106,7 @@ export default function Room() {
         timestamp: new Date(),
       }]);
     },
-    onFileReceive: (file) => {
+    onFileReceive: (file: any) => {
       toast.success(`Received file: ${file.name}`);
       const blob = new Blob([file.data]);
       const url = URL.createObjectURL(blob);
@@ -56,7 +121,14 @@ export default function Room() {
     onPeerDisconnected: () => {
       toast.error('Peer disconnected');
     },
-  });
+  } : null;
+
+  const { connectionState, sendMessage, sendFile, startVoiceChat, stopVoiceChat } = useWebRTC(
+    webrtcConfig || {
+      roomId: '',
+      peerId: '',
+    }
+  );
 
   const handleSendMessage = (text: string) => {
     sendMessage({ text });
@@ -92,6 +164,72 @@ export default function Room() {
     setTimeout(() => setCopied(false), 2000);
     toast.success('Link copied to clipboard!');
   };
+
+  if (checkingPassword) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Checking room...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (passwordRequired && !passwordVerified) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-md"
+        >
+          <div className="bg-card/50 backdrop-blur-md border border-white/10 rounded-lg p-8">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold mb-2">Password Required</h2>
+              <p className="text-muted-foreground text-sm">This room is protected. Enter the password to join.</p>
+            </div>
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Room Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono"
+                  data-testid="input-room-password"
+                  autoFocus
+                  required
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full bg-primary hover:bg-primary/90 text-black font-bold"
+                data-testid="button-verify-password"
+              >
+                Unlock Room
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-white/10 hover:bg-white/5"
+                onClick={() => setLocation("/")}
+                data-testid="button-cancel"
+              >
+                Cancel
+              </Button>
+            </form>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">

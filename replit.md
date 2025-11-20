@@ -2,6 +2,13 @@
 
 SECURE.LINK is an end-to-end encrypted peer-to-peer communication application that enables secure, temporary connections between two users without server-side data storage. The system facilitates real-time text messaging, voice chat, and file transfers through WebRTC technology, with optional password protection and automatic room expiration.
 
+## Recent Updates (November 20, 2025)
+
+- **TURN Server Integration**: Added relay servers on port 443 (HTTPS) to ensure connections work through restrictive firewalls
+- **Admin Panel**: Secure admin dashboard with 2FA support for monitoring peer connections
+- **Password Protection on Shared Links**: Direct room links now require password verification before allowing access
+- **Peer Tracking**: Real-time device information (IP, OS, browser, device type) tracking for admin monitoring
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
