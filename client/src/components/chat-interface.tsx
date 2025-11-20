@@ -69,11 +69,11 @@ export function ChatInterface({ messages, onSendMessage, peerNickname, connectio
             animate={{ opacity: 1, y: 0 }}
             className={`flex flex-col ${msg.sender === "me" ? "items-end" : "items-start"}`}
           >
-            <div className={`text-[10px] font-mono mb-1 px-1 ${
-              msg.sender === "me" ? "text-primary/70" : "text-white/50"
-            }`}>
+            <span className={`text-[10px] font-mono font-semibold mb-1 px-1 ${
+              msg.sender === "me" ? "text-primary" : "text-white/70"
+            }`} data-testid={`label-${msg.sender}-nickname`}>
               {msg.senderName || (msg.sender === "me" ? "You" : "Peer")}
-            </div>
+            </span>
             <div
               className={`max-w-[80%] p-3 rounded-lg text-sm font-mono ${
                 msg.sender === "me"
