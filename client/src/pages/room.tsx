@@ -1,11 +1,12 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Mic, MicOff, PhoneOff, 
-  Share2, MessageSquare, FileText, Copy, Check
+  Share2, MessageSquare, FileText, Copy, Check, Lock
 } from "lucide-react";
 import { useLocation, useRoute } from "wouter";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import QRCode from "react-qr-code";
 import { ChatInterface } from "@/components/chat-interface";
 import { FileTransfer } from "@/components/file-transfer";
@@ -285,9 +286,50 @@ export default function Room() {
               {connectionState === 'connected' ? 'SECURE_LINK_ACTIVE' : 'HANDSHAKE_INIT...'}
             </span>
           </div>
+          {peerNickname && (
+            <span className="text-sm text-muted-foreground" data-testid="text-peer-nickname">
+              Connected with: <span className="text-primary font-medium">{peerNickname}</span>
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
+          {isCreator && (
+            <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline" className="border-white/10 bg-white/5 hover:bg-white/10 gap-2" data-testid="button-set-password">
+                  <Lock className="w-4 h-4" />
+                  <span className="hidden sm:inline">SET PASSWORD</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-card border-white/10 sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="font-mono">PROTECT THIS ROOM</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">New Password</label>
+                    <Input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter password"
+                      className="bg-black/20 border-white/10 focus:border-primary/50"
+                      data-testid="input-new-password"
+                    />
+                  </div>
+                  <Button
+                    onClick={handleSetPassword}
+                    className="w-full bg-primary hover:bg-primary/90 text-black font-bold"
+                    data-testid="button-save-password"
+                  >
+                    Save Password
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+          
           <Dialog>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline" className="border-white/10 bg-white/5 hover:bg-white/10 gap-2" data-testid="button-invite">
