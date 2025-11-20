@@ -204,6 +204,55 @@ export function useWebRTC(config: WebRTCConfig) {
       }
     };
 
+    pc.ondatachannel = (event) => {
+      console.log('Received data channel:', event.channel.label);
+      
+      if (event.channel.label === 'chat') {
+        chatChannelRef.current = event.channel;
+        
+        event.channel.onopen = () => {
+          console.log('Remote chat channel opened');
+        };
+        
+        event.channel.onmessage = (msgEvent) => {
+          try {
+            const message = JSON.parse(msgEvent.data);
+            console.log('Received chat message:', message);
+            config.onMessage?.(message);
+          } catch (error) {
+            console.error('Error parsing chat message:', error);
+          }
+        };
+      } else if (event.channel.label === 'files') {
+        fileChannelRef.current = event.channel;
+        
+        let fileMetadata: any = null;
+        let fileChunks: ArrayBuffer[] = [];
+        
+        event.channel.onmessage = (msgEvent) => {
+          if (typeof msgEvent.data === 'string') {
+            if (msgEvent.data === 'EOF') {
+              const blob = new Blob(fileChunks);
+              const reader = new FileReader();
+              reader.onload = () => {
+                config.onFileReceive?.({
+                  name: fileMetadata.name,
+                  data: reader.result as ArrayBuffer,
+                });
+              };
+              reader.readAsArrayBuffer(blob);
+              fileChunks = [];
+              fileMetadata = null;
+            } else {
+              fileMetadata = JSON.parse(msgEvent.data);
+            }
+          } else {
+            fileChunks.push(msgEvent.data);
+          }
+        };
+      }
+    };
+
     ws.onopen = () => {
       ws.send(JSON.stringify({
         type: 'join',
