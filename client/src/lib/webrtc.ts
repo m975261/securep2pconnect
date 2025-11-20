@@ -3,9 +3,10 @@ import { useEffect, useRef, useState, useCallback } from "react";
 interface WebRTCConfig {
   roomId: string;
   peerId: string;
+  nickname?: string;
   onMessage?: (message: any) => void;
   onFileReceive?: (file: { name: string; data: ArrayBuffer }) => void;
-  onPeerConnected?: () => void;
+  onPeerConnected?: (peerInfo?: { nickname?: string }) => void;
   onPeerDisconnected?: () => void;
 }
 
@@ -208,6 +209,7 @@ export function useWebRTC(config: WebRTCConfig) {
         type: 'join',
         roomId: config.roomId,
         peerId: config.peerId,
+        nickname: config.nickname,
       }));
     };
 
@@ -217,6 +219,7 @@ export function useWebRTC(config: WebRTCConfig) {
       if (message.type === 'joined') {
         console.log('Joined room, existing peers:', message.existingPeers);
         if (message.existingPeers.length > 0) {
+          config.onPeerConnected?.({ nickname: message.existingPeers[0]?.nickname });
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
           ws.send(JSON.stringify({
@@ -225,7 +228,8 @@ export function useWebRTC(config: WebRTCConfig) {
           }));
         }
       } else if (message.type === 'peer-joined') {
-        console.log('Peer joined:', message.peerId);
+        console.log('Peer joined:', message.peerId, message.nickname);
+        config.onPeerConnected?.({ nickname: message.nickname });
       } else if (message.type === 'offer') {
         await pc.setRemoteDescription(new RTCSessionDescription(message.data));
         const answer = await pc.createAnswer();
@@ -253,7 +257,7 @@ export function useWebRTC(config: WebRTCConfig) {
       ws.close();
       stopVoiceChat();
     };
-  }, [config.roomId, config.peerId]);
+  }, [config.roomId, config.peerId, config.nickname]);
 
   return {
     isConnected,

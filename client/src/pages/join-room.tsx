@@ -14,13 +14,19 @@ export default function JoinRoom() {
   const [loading, setLoading] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [code, setCode] = useState("");
+  const [nickname, setNickname] = useState("");
   const [needsPassword, setNeedsPassword] = useState(false);
   const [password, setPassword] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code) return;
+    if (!code || !nickname.trim()) {
+      if (!nickname.trim()) {
+        toast.error('Please enter your nickname');
+      }
+      return;
+    }
     
     setLoading(true);
 
@@ -30,6 +36,7 @@ export default function JoinRoom() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           password: password || undefined,
+          nickname: nickname.trim(),
         }),
       });
 
@@ -56,7 +63,7 @@ export default function JoinRoom() {
         return;
       }
 
-      setLocation(`/room/${code}`);
+      setLocation(`/room/${code}?nickname=${encodeURIComponent(nickname.trim())}`);
     } catch (error) {
       console.error('Error joining room:', error);
       toast.error('Failed to join room. Please try again.');
@@ -143,6 +150,18 @@ export default function JoinRoom() {
                 />
               </div>
 
+              <div className="relative">
+                <Input 
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="Your nickname"
+                  className="bg-black/20 border-white/10 focus:border-accent/50"
+                  data-testid="input-nickname"
+                  maxLength={20}
+                  required
+                />
+              </div>
+
               {needsPassword && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
@@ -165,7 +184,7 @@ export default function JoinRoom() {
 
               <Button 
                 type="submit" 
-                disabled={loading || !code}
+                disabled={loading || !code || !nickname.trim()}
                 className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-bold"
                 data-testid="button-connect"
               >

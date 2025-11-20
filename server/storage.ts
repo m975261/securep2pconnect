@@ -23,6 +23,7 @@ export interface IStorage {
   createRoom(room: InsertRoom): Promise<Room>;
   getRoom(id: string): Promise<Room | undefined>;
   updateRoomPeer(roomId: string, peerId: string): Promise<void>;
+  updateRoomPassword(roomId: string, password: string): Promise<void>;
   deleteRoom(id: string): Promise<void>;
   
   recordFailedAttempt(roomId: string, ipAddress: string): Promise<FailedAttempt>;
@@ -67,6 +68,10 @@ export class DbStorage implements IStorage {
     } else if (!room.peer2 && room.peer1 !== peerId) {
       await db.update(rooms).set({ peer2: peerId }).where(eq(rooms.id, roomId));
     }
+  }
+
+  async updateRoomPassword(roomId: string, password: string): Promise<void> {
+    await db.update(rooms).set({ password }).where(eq(rooms.id, roomId));
   }
 
   async deleteRoom(id: string): Promise<void> {

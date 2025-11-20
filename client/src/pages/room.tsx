@@ -23,19 +23,36 @@ export default function Room() {
   const [_, setLocation] = useLocation();
   const [match, params] = useRoute("/room/:id");
   const roomId = params?.id || "";
+  const searchParams = new URLSearchParams(window.location.search);
+  const nicknameFromUrl = searchParams.get('nickname') || '';
   const [peerId] = useState(() => Math.random().toString(36).substring(7));
+  const [nickname] = useState(nicknameFromUrl);
+  const [peerNickname, setPeerNickname] = useState<string>("");
   const [isMicOn, setIsMicOn] = useState(false);
   const [activeTab, setActiveTab] = useState<'chat' | 'files'>('chat');
   const [copied, setCopied] = useState(false);
-  const [messages, setMessages] = useState<Array<{id: string; text: string; sender: 'me' | 'peer'; timestamp: Date}>>([]);
+  const [messages, setMessages] = useState<Array<{id: string; text: string; sender: 'me' | 'peer'; timestamp: Date; senderName?: string}>>([]);
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
   const [passwordRequired, setPasswordRequired] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordVerified, setPasswordVerified] = useState(false);
   const [checkingPassword, setCheckingPassword] = useState(true);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [isCreator, setIsCreator] = useState(false);
 
   useEffect(() => {
     const checkRoomPassword = async () => {
+      const isCreatorParam = searchParams.get('creator') === 'true';
+      setIsCreator(isCreatorParam);
+      
+      if (isCreatorParam) {
+        setPasswordRequired(false);
+        setPasswordVerified(true);
+        setCheckingPassword(false);
+        return;
+      }
+
       try {
         const response = await fetch(`/api/rooms/${roomId}`);
         if (!response.ok) {
@@ -95,15 +112,17 @@ export default function Room() {
     }
   };
 
-  const webrtcConfig = passwordVerified ? {
-    roomId,
-    peerId,
+  const { connectionState, sendMessage, sendFile, startVoiceChat, stopVoiceChat } = useWebRTC({
+    roomId: passwordVerified ? roomId : '',
+    peerId: passwordVerified ? peerId : '',
+    nickname: passwordVerified ? nickname : '',
     onMessage: (message: any) => {
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         text: message.text,
         sender: 'peer',
         timestamp: new Date(),
+        senderName: peerNickname || 'Peer',
       }]);
     },
     onFileReceive: (file: any) => {
@@ -115,20 +134,19 @@ export default function Room() {
       a.download = file.name;
       a.click();
     },
-    onPeerConnected: () => {
-      toast.success('Peer connected!');
+    onPeerConnected: (peerInfo?: { nickname?: string }) => {
+      if (peerInfo?.nickname) {
+        setPeerNickname(peerInfo.nickname);
+        toast.success(`${peerInfo.nickname} connected!`);
+      } else {
+        toast.success('Peer connected!');
+      }
     },
     onPeerDisconnected: () => {
       toast.error('Peer disconnected');
+      setPeerNickname('');
     },
-  } : null;
-
-  const { connectionState, sendMessage, sendFile, startVoiceChat, stopVoiceChat } = useWebRTC(
-    webrtcConfig || {
-      roomId: '',
-      peerId: '',
-    }
-  );
+  });
 
   const handleSendMessage = (text: string) => {
     sendMessage({ text });
@@ -137,7 +155,33 @@ export default function Room() {
       text,
       sender: 'me',
       timestamp: new Date(),
+      senderName: nickname || 'You',
     }]);
+  };
+
+  const handleSetPassword = async () => {
+    if (!newPassword.trim()) {
+      toast.error('Please enter a password');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/rooms/${roomId}/password`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: newPassword }),
+      });
+
+      if (response.ok) {
+        toast.success('Password set successfully!');
+        setShowPasswordDialog(false);
+        setNewPassword('');
+      } else {
+        toast.error('Failed to set password');
+      }
+    } catch (error) {
+      toast.error('Failed to set password');
+    }
   };
 
   const handleToggleMic = async () => {

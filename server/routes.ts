@@ -8,10 +8,16 @@ import { registerAdminRoutes, initializeDefaultAdmin, parseUserAgent } from "./a
 
 const createRoomSchema = z.object({
   password: z.string().optional(),
+  createdBy: z.string().optional(),
 });
 
 const joinRoomSchema = z.object({
   password: z.string().optional(),
+  nickname: z.string().optional(),
+});
+
+const updateRoomPasswordSchema = z.object({
+  password: z.string().min(1),
 });
 
 interface WebRTCMessage {
@@ -19,12 +25,14 @@ interface WebRTCMessage {
   roomId?: string;
   data?: any;
   peerId?: string;
+  nickname?: string;
 }
 
 interface RoomPeer {
   ws: WebSocket;
   peerId: string;
   roomId: string;
+  nickname?: string;
 }
 
 const activePeers = new Map<string, RoomPeer>();
@@ -67,6 +75,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const room = await storage.createRoom({
         id: roomId,
         password: body.password || null,
+        createdBy: body.createdBy || null,
         expiresAt,
         peer1: null,
         peer2: null,
@@ -76,6 +85,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating room:", error);
       res.status(500).json({ error: "Failed to create room" });
+    }
+  });
+
+  app.patch("/api/rooms/:id/password", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const body = updateRoomPasswordSchema.parse(req.body);
+
+      const room = await storage.getRoom(id);
+      if (!room) {
+        return res.status(404).json({ error: "Room not found" });
+      }
+
+      await storage.updateRoomPassword(id, body.password);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating room password:", error);
+      res.status(500).json({ error: "Failed to update password" });
     }
   });
 
@@ -172,6 +199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ws,
             peerId: message.peerId,
             roomId: message.roomId,
+            nickname: message.nickname,
           };
 
           activePeers.set(message.peerId, currentPeer);
@@ -184,6 +212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.trackPeerConnection({
             peerId: message.peerId,
             roomId: message.roomId,
+            nickname: message.nickname || null,
             ipAddress,
             userAgent,
             deviceType: deviceInfo.deviceType,
@@ -199,15 +228,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 peer.ws.send(JSON.stringify({
                   type: "peer-joined",
                   peerId: message.peerId,
+                  nickname: message.nickname,
                 }));
               }
             }
           });
 
+          const existingPeersWithNicknames = Array.from(peers)
+            .filter(id => id !== message.peerId)
+            .map(id => ({
+              peerId: id,
+              nickname: activePeers.get(id)?.nickname,
+            }));
+
           ws.send(JSON.stringify({
             type: "joined",
             peerId: message.peerId,
-            existingPeers: Array.from(peers).filter(id => id !== message.peerId),
+            existingPeers: existingPeersWithNicknames,
           }));
         } else if (currentPeer && (message.type === "offer" || message.type === "answer" || message.type === "ice-candidate")) {
           const peers = roomPeers.get(currentPeer.roomId);

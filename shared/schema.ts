@@ -6,6 +6,7 @@ import { z } from "zod";
 export const rooms = pgTable("rooms", {
   id: varchar("id").primaryKey(),
   password: text("password"),
+  createdBy: text("created_by"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   expiresAt: timestamp("expires_at").notNull(),
   peer1: text("peer1"),
@@ -37,6 +38,7 @@ export const peerConnections = pgTable("peer_connections", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   peerId: text("peer_id").notNull(),
   roomId: varchar("room_id").notNull(),
+  nickname: text("nickname"),
   ipAddress: text("ip_address").notNull(),
   userAgent: text("user_agent"),
   deviceType: text("device_type"),
