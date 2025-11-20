@@ -33,7 +33,7 @@ export default function Room() {
     localStorage.setItem(`creator_${roomId}`, newId);
     return newId;
   });
-  const [nickname] = useState(nicknameFromUrl);
+  const [nickname, setNickname] = useState(nicknameFromUrl);
   const [peerNickname, setPeerNickname] = useState<string>("");
   const [isMicOn, setIsMicOn] = useState(false);
   const [activeTab, setActiveTab] = useState<'chat' | 'files'>('chat');
@@ -48,13 +48,8 @@ export default function Room() {
   const [newPassword, setNewPassword] = useState("");
   const [isCreator, setIsCreator] = useState(false);
   const [hasPassword, setHasPassword] = useState(false);
+  const [needsNickname, setNeedsNickname] = useState(!nicknameFromUrl);
 
-  useEffect(() => {
-    if (!nicknameFromUrl && roomId) {
-      setLocation(`/join?room=${roomId}`);
-      return;
-    }
-  }, [nicknameFromUrl, roomId, setLocation]);
 
   useEffect(() => {
     const checkRoomPassword = async () => {
@@ -88,7 +83,10 @@ export default function Room() {
         }
         setHasPassword(data.hasPassword || false);
         
-        setPasswordVerified(true);
+        // Only set passwordVerified to true if we already have a nickname
+        if (!needsNickname) {
+          setPasswordVerified(true);
+        }
         setCheckingPassword(false);
       } catch (error) {
         console.error("Error checking room:", error);
@@ -100,17 +98,23 @@ export default function Room() {
     if (roomId) {
       checkRoomPassword();
     }
-  }, [roomId, peerId, setLocation]);
+  }, [roomId, peerId, setLocation, needsNickname]);
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!nickname.trim()) {
+      toast.error('Please enter your nickname');
+      return;
+    }
     
     try {
       const response = await fetch(`/api/rooms/${roomId}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          password,
+          password: passwordRequired ? password : undefined,
+          nickname: nickname.trim(),
           createdBy: peerId,
         }),
       });
@@ -129,10 +133,16 @@ export default function Room() {
       }
 
       setPasswordVerified(true);
+      setNeedsNickname(false);
       if (data.isCreator) {
         setIsCreator(true);
       }
-      toast.success('Password verified');
+      
+      // Update URL with nickname
+      const newUrl = `/room/${roomId}?nickname=${encodeURIComponent(nickname.trim())}`;
+      window.history.replaceState({}, '', newUrl);
+      
+      toast.success(passwordRequired ? 'Password verified' : 'Joined room');
     } catch (error) {
       console.error('Error verifying password:', error);
       toast.error('Failed to verify password');
@@ -275,7 +285,7 @@ export default function Room() {
     );
   }
 
-  if (passwordRequired && !passwordVerified) {
+  if ((passwordRequired || needsNickname) && !passwordVerified) {
     return (
       <div className="h-screen flex items-center justify-center bg-background p-4">
         <motion.div
@@ -290,29 +300,47 @@ export default function Room() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold mb-2">Password Required</h2>
-              <p className="text-muted-foreground text-sm">This room is protected. Enter the password to join.</p>
+              <h2 className="text-2xl font-bold mb-2">{passwordRequired ? 'Password Required' : 'Join Room'}</h2>
+              <p className="text-muted-foreground text-sm">
+                {passwordRequired ? 'This room is protected. Enter your details to join.' : 'Enter your nickname to join the room.'}
+              </p>
             </div>
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Room Password</label>
+                <label className="block text-sm font-medium mb-2">Your Nickname</label>
                 <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
-                  className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono"
-                  data-testid="input-room-password"
-                  autoFocus
+                  type="text"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="Enter your nickname"
+                  className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  data-testid="input-room-nickname"
+                  autoFocus={!passwordRequired}
+                  maxLength={20}
                   required
                 />
               </div>
+              {passwordRequired && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">Room Password</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter password"
+                    className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono"
+                    data-testid="input-room-password"
+                    autoFocus={!!nickname}
+                    required
+                  />
+                </div>
+              )}
               <Button
                 type="submit"
                 className="w-full bg-primary hover:bg-primary/90 text-black font-bold"
                 data-testid="button-verify-password"
               >
-                Unlock Room
+                {passwordRequired ? 'Unlock Room' : 'Join Room'}
               </Button>
               <Button
                 type="button"
