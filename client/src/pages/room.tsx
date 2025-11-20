@@ -473,29 +473,29 @@ export default function Room() {
                 <span className="hidden sm:inline">INVITE PEER</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-white/10 w-[95vw] max-w-md mx-auto max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="font-mono text-sm sm:text-base">SESSION ACCESS KEYS</DialogTitle>
+            <DialogContent className="bg-card border-white/10 w-[95vw] max-w-md mx-auto max-h-[85vh] overflow-y-auto p-4 sm:p-6">
+              <DialogHeader className="pb-2">
+                <DialogTitle className="font-mono text-xs sm:text-sm">SESSION ACCESS KEYS</DialogTitle>
               </DialogHeader>
-              <div className="flex flex-col items-center gap-3 sm:gap-4 py-2 sm:py-4">
-                <div className="p-2 sm:p-3 bg-white rounded-lg">
+              <div className="flex flex-col items-center gap-2 sm:gap-3">
+                <div className="p-2 bg-white rounded-lg">
                   <QRCode 
                     value={window.location.href} 
-                    size={Math.min(160, window.innerWidth - 100)}
-                    className="w-full h-auto max-w-[160px]"
+                    size={Math.min(140, window.innerWidth - 120)}
+                    className="w-full h-auto max-w-[140px]"
                   />
                 </div>
-                <div className="w-full space-y-2">
-                  <label className="text-xs text-muted-foreground font-mono">SHARED SECRET LINK</label>
-                  <div className="flex gap-2">
-                    <div className="flex-1 p-2 bg-black/30 border border-white/10 rounded font-mono text-[10px] sm:text-xs truncate overflow-hidden break-all">
+                <div className="w-full space-y-1.5">
+                  <label className="text-[10px] sm:text-xs text-muted-foreground font-mono">SHARED SECRET LINK</label>
+                  <div className="flex gap-1.5 sm:gap-2">
+                    <div className="flex-1 p-1.5 sm:p-2 bg-black/30 border border-white/10 rounded font-mono text-[9px] sm:text-xs break-all overflow-hidden">
                       {window.location.href}
                     </div>
                     <Button 
                       size="icon" 
                       variant="outline" 
                       onClick={copyLink} 
-                      className="shrink-0 h-auto w-auto px-2 sm:px-3"
+                      className="shrink-0 h-8 w-8 sm:h-9 sm:w-9 p-0"
                       data-testid="button-copy-link"
                     >
                       {copied ? <Check className="w-3 h-3 sm:w-4 sm:h-4 text-primary" /> : <Copy className="w-3 h-3 sm:w-4 sm:h-4" />}
