@@ -159,7 +159,7 @@ export default function Room() {
         text: message.text,
         sender: 'peer',
         timestamp: new Date(),
-        senderName: peerNickname || 'Peer',
+        senderName: message.senderName || peerNickname || 'Peer',
       }]);
     },
     onFileReceive: (file: any) => {
@@ -186,7 +186,7 @@ export default function Room() {
   });
 
   const handleSendMessage = (text: string) => {
-    sendMessage({ text });
+    sendMessage({ text, senderName: nickname });
     setMessages(prev => [...prev, {
       id: Date.now().toString(),
       text,
