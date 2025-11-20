@@ -14,10 +14,12 @@ const createRoomSchema = z.object({
 const joinRoomSchema = z.object({
   password: z.string().optional(),
   nickname: z.string().optional(),
+  createdBy: z.string().optional(),
 });
 
 const updateRoomPasswordSchema = z.object({
   password: z.string().min(1),
+  createdBy: z.string(),
 });
 
 interface WebRTCMessage {
@@ -98,6 +100,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Room not found" });
       }
 
+      if (!room.createdBy || room.createdBy !== body.createdBy) {
+        return res.status(403).json({ error: "Unauthorized: Only room creator can set password" });
+      }
+
       await storage.updateRoomPassword(id, body.password);
       res.json({ success: true });
     } catch (error) {
@@ -124,7 +130,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Room not found" });
       }
 
-      if (room.password && room.password !== body.password) {
+      const isCreator = room.createdBy && body.createdBy && room.createdBy === body.createdBy;
+
+      if (room.password && room.password !== body.password && !isCreator) {
         const failedAttempt = await storage.recordFailedAttempt(id, ipAddress);
         
         if (failedAttempt.attempts >= 5) {
@@ -142,7 +150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.resetFailedAttempts(id, ipAddress);
 
-      res.json({ success: true, hasPassword: !!room.password });
+      res.json({ success: true, hasPassword: !!room.password, isCreator });
     } catch (error) {
       console.error("Error joining room:", error);
       res.status(500).json({ error: "Failed to join room" });

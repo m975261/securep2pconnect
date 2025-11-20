@@ -42,7 +42,7 @@ export default function CreateRoom() {
       }
 
       const data = await response.json();
-      setLocation(`/room/${data.roomId}?nickname=${encodeURIComponent(nickname.trim())}&creator=true`);
+      setLocation(`/room/${data.roomId}?nickname=${encodeURIComponent(nickname.trim())}`);
     } catch (error) {
       console.error('Error creating room:', error);
       toast.error('Failed to create room. Please try again.');

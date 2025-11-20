@@ -44,32 +44,37 @@ export default function Room() {
 
   useEffect(() => {
     const checkRoomPassword = async () => {
-      const isCreatorParam = searchParams.get('creator') === 'true';
-      setIsCreator(isCreatorParam);
-      
-      if (isCreatorParam) {
-        setPasswordRequired(false);
-        setPasswordVerified(true);
-        setCheckingPassword(false);
-        return;
-      }
-
       try {
-        const response = await fetch(`/api/rooms/${roomId}`);
+        const response = await fetch(`/api/rooms/${roomId}/join`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            createdBy: peerId,
+          }),
+        });
+
         if (!response.ok) {
-          toast.error("Room not found");
-          setLocation("/");
-          return;
+          if (response.status === 404) {
+            toast.error("Room not found");
+            setLocation("/");
+            return;
+          }
+          
+          const data = await response.json();
+          if (response.status === 401) {
+            setPasswordRequired(true);
+            setCheckingPassword(false);
+            return;
+          }
+        }
+
+        const data = await response.json();
+        if (data.isCreator) {
+          setIsCreator(true);
         }
         
-        const data = await response.json();
-        if (data.hasPassword) {
-          setPasswordRequired(true);
-          setCheckingPassword(false);
-        } else {
-          setPasswordVerified(true);
-          setCheckingPassword(false);
-        }
+        setPasswordVerified(true);
+        setCheckingPassword(false);
       } catch (error) {
         console.error("Error checking room:", error);
         toast.error("Failed to check room");
@@ -80,7 +85,7 @@ export default function Room() {
     if (roomId) {
       checkRoomPassword();
     }
-  }, [roomId, setLocation]);
+  }, [roomId, peerId, setLocation]);
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,7 +94,10 @@ export default function Room() {
       const response = await fetch(`/api/rooms/${roomId}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ 
+          password,
+          createdBy: peerId,
+        }),
       });
 
       const data = await response.json();
@@ -106,6 +114,9 @@ export default function Room() {
       }
 
       setPasswordVerified(true);
+      if (data.isCreator) {
+        setIsCreator(true);
+      }
       toast.success('Password verified');
     } catch (error) {
       console.error('Error verifying password:', error);
@@ -170,7 +181,10 @@ export default function Room() {
       const response = await fetch(`/api/rooms/${roomId}/password`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: newPassword }),
+        body: JSON.stringify({ 
+          password: newPassword,
+          createdBy: peerId,
+        }),
       });
 
       if (response.ok) {
@@ -178,7 +192,8 @@ export default function Room() {
         setShowPasswordDialog(false);
         setNewPassword('');
       } else {
-        toast.error('Failed to set password');
+        const data = await response.json();
+        toast.error(data.error || 'Failed to set password');
       }
     } catch (error) {
       toast.error('Failed to set password');
