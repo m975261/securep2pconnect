@@ -360,32 +360,33 @@ export default function Room() {
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
-      <header className="h-16 border-b border-white/10 bg-card/50 backdrop-blur flex items-center justify-between px-4 z-20">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
+      <header className="h-16 border-b border-white/10 bg-card/50 backdrop-blur flex items-center justify-between px-2 sm:px-4 z-20">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1 overflow-hidden">
+          <div className="flex items-center gap-1 sm:gap-2">
             <div className={`w-2 h-2 rounded-full ${connectionState === 'connected' ? 'bg-primary shadow-[0_0_10px_rgba(0,255,157,0.5)]' : 'bg-yellow-500 animate-pulse'}`} />
-            <span className="font-mono text-sm font-bold tracking-widest" data-testid="text-status">
-              {connectionState === 'connected' ? 'SECURE_LINK_ACTIVE' : 'HANDSHAKE_INIT...'}
+            <span className="font-mono text-[10px] sm:text-sm font-bold tracking-wider sm:tracking-widest truncate" data-testid="text-status">
+              {connectionState === 'connected' ? 'SECURE' : 'CONNECTING...'}
             </span>
           </div>
           {peerNickname && (
-            <span className="text-sm text-muted-foreground" data-testid="text-peer-nickname">
-              Connected with: <span className="text-primary font-medium">{peerNickname}</span>
+            <span className="text-xs sm:text-sm text-muted-foreground truncate" data-testid="text-peer-nickname">
+              <span className="hidden sm:inline">Connected with: </span>
+              <span className="text-primary font-medium">{peerNickname}</span>
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {isCreator && (
             <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
               <DialogTrigger asChild>
                 <Button 
                   size="sm" 
                   variant="outline" 
-                  className={`border-white/10 gap-2 ${hasPassword ? 'bg-primary/10 hover:bg-primary/20 border-primary/30' : 'bg-white/5 hover:bg-white/10'}`}
+                  className={`border-white/10 gap-1 sm:gap-2 ${hasPassword ? 'bg-primary/10 hover:bg-primary/20 border-primary/30' : 'bg-white/5 hover:bg-white/10'}`}
                   data-testid="button-password-toggle"
                 >
-                  <Lock className={`w-4 h-4 ${hasPassword ? 'text-primary' : ''}`} />
+                  <Lock className={`w-3 h-3 sm:w-4 sm:h-4 ${hasPassword ? 'text-primary' : ''}`} />
                   <span className="hidden sm:inline">{hasPassword ? 'PASSWORD ENABLED' : 'NO PASSWORD'}</span>
                 </Button>
               </DialogTrigger>
@@ -467,8 +468,8 @@ export default function Room() {
           
           <Dialog>
             <DialogTrigger asChild>
-              <Button size="sm" variant="outline" className="border-white/10 bg-white/5 hover:bg-white/10 gap-2" data-testid="button-invite">
-                <Share2 className="w-4 h-4" />
+              <Button size="sm" variant="outline" className="border-white/10 bg-white/5 hover:bg-white/10 gap-1 sm:gap-2" data-testid="button-invite">
+                <Share2 className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">INVITE PEER</span>
               </Button>
             </DialogTrigger>
@@ -507,12 +508,14 @@ export default function Room() {
           
           <Button 
             variant="destructive" 
-            className="rounded-full h-10 px-4 gap-2 font-bold tracking-wider"
+            size="sm"
+            className="rounded-full gap-1 sm:gap-2 font-bold tracking-wider"
             onClick={() => setLocation("/")}
             data-testid="button-exit"
           >
-            <PhoneOff className="w-4 h-4" />
-            EXIT SESSION
+            <PhoneOff className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden md:inline">EXIT SESSION</span>
+            <span className="md:hidden text-xs">EXIT</span>
           </Button>
         </div>
       </header>
