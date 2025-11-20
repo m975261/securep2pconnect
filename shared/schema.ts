@@ -22,6 +22,30 @@ export const failedAttempts = pgTable("failed_attempts", {
   bannedUntil: timestamp("banned_until"),
 });
 
+export const adminUsers = pgTable("admin_users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username").notNull().unique(),
+  password: text("password").notNull(),
+  twoFactorSecret: text("two_factor_secret"),
+  twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
+  forcePasswordChange: boolean("force_password_change").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  lastLogin: timestamp("last_login"),
+});
+
+export const peerConnections = pgTable("peer_connections", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  peerId: text("peer_id").notNull(),
+  roomId: varchar("room_id").notNull(),
+  ipAddress: text("ip_address").notNull(),
+  userAgent: text("user_agent"),
+  deviceType: text("device_type"),
+  os: text("os"),
+  browser: text("browser"),
+  connectedAt: timestamp("connected_at").notNull().defaultNow(),
+  disconnectedAt: timestamp("disconnected_at"),
+});
+
 export const insertRoomSchema = createInsertSchema(rooms).omit({
   createdAt: true,
   isActive: true,
@@ -32,7 +56,22 @@ export const insertFailedAttemptSchema = createInsertSchema(failedAttempts).omit
   lastAttempt: true,
 });
 
+export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({
+  id: true,
+  createdAt: true,
+  lastLogin: true,
+});
+
+export const insertPeerConnectionSchema = createInsertSchema(peerConnections).omit({
+  id: true,
+  connectedAt: true,
+});
+
 export type Room = typeof rooms.$inferSelect;
 export type InsertRoom = z.infer<typeof insertRoomSchema>;
 export type FailedAttempt = typeof failedAttempts.$inferSelect;
 export type InsertFailedAttempt = z.infer<typeof insertFailedAttemptSchema>;
+export type AdminUser = typeof adminUsers.$inferSelect;
+export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
+export type PeerConnection = typeof peerConnections.$inferSelect;
+export type InsertPeerConnection = z.infer<typeof insertPeerConnectionSchema>;

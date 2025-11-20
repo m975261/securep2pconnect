@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { z } from "zod";
 import { randomBytes } from "crypto";
+import { registerAdminRoutes, initializeDefaultAdmin, parseUserAgent } from "./admin-routes";
 
 const createRoomSchema = z.object({
   password: z.string().optional(),
@@ -45,11 +46,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
 
+  await initializeDefaultAdmin();
+  
   storage.cleanExpiredRooms().catch(console.error);
 
   setInterval(() => {
     storage.cleanExpiredRooms().catch(console.error);
   }, 60000);
+  
+  registerAdminRoutes(app);
 
   app.post("/api/rooms", async (req, res) => {
     try {
@@ -140,8 +145,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  wss.on("connection", (ws: WebSocket) => {
+  wss.on("connection", (ws: WebSocket, req: Request) => {
     let currentPeer: RoomPeer | null = null;
+    const ipAddress = getClientIP(req);
+    const userAgent = req.headers['user-agent'] || 'unknown';
 
     ws.on("message", async (data: Buffer) => {
       try {
@@ -172,6 +179,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           roomPeers.set(message.roomId, peers);
 
           await storage.updateRoomPeer(message.roomId, message.peerId);
+          
+          const deviceInfo = parseUserAgent(userAgent);
+          await storage.trackPeerConnection({
+            peerId: message.peerId,
+            roomId: message.roomId,
+            ipAddress,
+            userAgent,
+            deviceType: deviceInfo.deviceType,
+            os: deviceInfo.os,
+            browser: deviceInfo.browser,
+            disconnectedAt: null,
+          });
 
           peers.forEach((peerId) => {
             if (peerId !== message.peerId) {
@@ -212,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-    ws.on("close", () => {
+    ws.on("close", async () => {
       if (currentPeer) {
         const peers = roomPeers.get(currentPeer.roomId);
         if (peers) {
@@ -233,6 +252,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         activePeers.delete(currentPeer.peerId);
+        
+        await storage.disconnectPeer(currentPeer.peerId);
       }
     });
   });

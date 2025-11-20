@@ -1,13 +1,19 @@
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { eq, and, lt } from "drizzle-orm";
+import { eq, and, lt, isNull } from "drizzle-orm";
 import {
   type Room,
   type InsertRoom,
   type FailedAttempt,
   type InsertFailedAttempt,
+  type AdminUser,
+  type InsertAdminUser,
+  type PeerConnection,
+  type InsertPeerConnection,
   rooms,
   failedAttempts,
+  adminUsers,
+  peerConnections,
 } from "@shared/schema";
 
 const sql = neon(process.env.DATABASE_URL!);
@@ -25,6 +31,17 @@ export interface IStorage {
   isBanned(roomId: string, ipAddress: string): Promise<boolean>;
   banIP(roomId: string, ipAddress: string, hours: number): Promise<void>;
   cleanExpiredRooms(): Promise<void>;
+  
+  createAdminUser(admin: InsertAdminUser): Promise<AdminUser>;
+  getAdminByUsername(username: string): Promise<AdminUser | undefined>;
+  updateAdminPassword(username: string, newPassword: string): Promise<void>;
+  updateAdmin2FA(username: string, secret: string | null, enabled: boolean): Promise<void>;
+  updateAdminLastLogin(username: string): Promise<void>;
+  
+  trackPeerConnection(peer: InsertPeerConnection): Promise<PeerConnection>;
+  disconnectPeer(peerId: string): Promise<void>;
+  getActivePeerConnections(): Promise<PeerConnection[]>;
+  getPeersByRoom(roomId: string): Promise<PeerConnection[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -118,6 +135,66 @@ export class DbStorage implements IStorage {
       .update(rooms)
       .set({ isActive: false })
       .where(and(eq(rooms.isActive, true), lt(rooms.expiresAt, new Date())));
+  }
+
+  async createAdminUser(insertAdmin: InsertAdminUser): Promise<AdminUser> {
+    const [admin] = await db.insert(adminUsers).values(insertAdmin).returning();
+    return admin;
+  }
+
+  async getAdminByUsername(username: string): Promise<AdminUser | undefined> {
+    const [admin] = await db
+      .select()
+      .from(adminUsers)
+      .where(eq(adminUsers.username, username));
+    return admin;
+  }
+
+  async updateAdminPassword(username: string, newPassword: string): Promise<void> {
+    await db
+      .update(adminUsers)
+      .set({ password: newPassword, forcePasswordChange: false })
+      .where(eq(adminUsers.username, username));
+  }
+
+  async updateAdmin2FA(username: string, secret: string | null, enabled: boolean): Promise<void> {
+    await db
+      .update(adminUsers)
+      .set({ twoFactorSecret: secret, twoFactorEnabled: enabled })
+      .where(eq(adminUsers.username, username));
+  }
+
+  async updateAdminLastLogin(username: string): Promise<void> {
+    await db
+      .update(adminUsers)
+      .set({ lastLogin: new Date() })
+      .where(eq(adminUsers.username, username));
+  }
+
+  async trackPeerConnection(insertPeer: InsertPeerConnection): Promise<PeerConnection> {
+    const [peer] = await db.insert(peerConnections).values(insertPeer).returning();
+    return peer;
+  }
+
+  async disconnectPeer(peerId: string): Promise<void> {
+    await db
+      .update(peerConnections)
+      .set({ disconnectedAt: new Date() })
+      .where(and(eq(peerConnections.peerId, peerId), isNull(peerConnections.disconnectedAt)));
+  }
+
+  async getActivePeerConnections(): Promise<PeerConnection[]> {
+    return await db
+      .select()
+      .from(peerConnections)
+      .where(isNull(peerConnections.disconnectedAt));
+  }
+
+  async getPeersByRoom(roomId: string): Promise<PeerConnection[]> {
+    return await db
+      .select()
+      .from(peerConnections)
+      .where(eq(peerConnections.roomId, roomId));
   }
 }
 

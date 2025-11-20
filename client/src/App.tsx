@@ -8,6 +8,9 @@ import Home from "@/pages/home";
 import CreateRoom from "@/pages/create-room";
 import JoinRoom from "@/pages/join-room";
 import Room from "@/pages/room";
+import AdminLogin from "@/pages/admin-login";
+import AdminChangePassword from "@/pages/admin-change-password";
+import AdminDashboard from "@/pages/admin-dashboard";
 
 function Router() {
   return (
@@ -16,6 +19,9 @@ function Router() {
       <Route path="/create" component={CreateRoom} />
       <Route path="/join" component={JoinRoom} />
       <Route path="/room/:id" component={Room} />
+      <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin/change-password" component={AdminChangePassword} />
+      <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
