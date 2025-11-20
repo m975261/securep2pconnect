@@ -116,6 +116,7 @@ export function useWebRTC(config: WebRTCConfig) {
     chatChannel.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
+        console.log('Received chat message:', message);
         config.onMessage?.(message);
       } catch (error) {
         console.error('Error parsing chat message:', error);

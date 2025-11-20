@@ -186,7 +186,9 @@ export default function Room() {
   });
 
   const handleSendMessage = (text: string) => {
-    sendMessage({ text, senderName: nickname });
+    const messageData = { text, senderName: nickname || 'Anonymous' };
+    console.log('Sending message:', messageData);
+    sendMessage(messageData);
     setMessages(prev => [...prev, {
       id: Date.now().toString(),
       text,
