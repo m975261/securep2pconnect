@@ -4,13 +4,18 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
+import Home from "@/pages/home";
+import CreateRoom from "@/pages/create-room";
+import JoinRoom from "@/pages/join-room";
+import Room from "@/pages/room";
 
 function Router() {
   return (
     <Switch>
-      {/* Add pages below */}
-      {/* <Route path="/" component={Home}/> */}
-      {/* Fallback to 404 */}
+      <Route path="/" component={Home} />
+      <Route path="/create" component={CreateRoom} />
+      <Route path="/join" component={JoinRoom} />
+      <Route path="/room/:id" component={Room} />
       <Route component={NotFound} />
     </Switch>
   );
