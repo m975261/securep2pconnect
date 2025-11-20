@@ -26,7 +26,12 @@ export default function Room() {
   const roomId = params?.id || "";
   const searchParams = new URLSearchParams(window.location.search);
   const nicknameFromUrl = searchParams.get('nickname') || '';
-  const [peerId] = useState(() => Math.random().toString(36).substring(7));
+  const [peerId] = useState(() => {
+    const stored = localStorage.getItem(`creator_${roomId}`);
+    if (stored) return stored;
+    const newId = Math.random().toString(36).substring(7);
+    return newId;
+  });
   const [nickname] = useState(nicknameFromUrl);
   const [peerNickname, setPeerNickname] = useState<string>("");
   const [isMicOn, setIsMicOn] = useState(false);
