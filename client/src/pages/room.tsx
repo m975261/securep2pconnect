@@ -80,12 +80,12 @@ export default function Room() {
           </Dialog>
           
           <Button 
-            size="icon" 
             variant="destructive" 
-            className="rounded-full w-10 h-10"
+            className="rounded-full h-10 px-4 gap-2 font-bold tracking-wider"
             onClick={() => setLocation("/")}
           >
             <PhoneOff className="w-4 h-4" />
+            EXIT SESSION
           </Button>
         </div>
       </header>

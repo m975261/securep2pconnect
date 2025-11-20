@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
-import { Scan, ArrowRight, Loader2, Keyboard, Upload } from "lucide-react";
-import { useLocation } from "wouter";
+import { Scan, ArrowRight, Loader2, Keyboard, Upload, Home } from "lucide-react";
+import { useLocation, Link } from "wouter";
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,7 +47,16 @@ export default function JoinRoom() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 relative">
+      <div className="absolute top-4 left-4">
+        <Link href="/">
+          <Button variant="ghost" className="text-muted-foreground hover:text-white gap-2">
+            <Home className="w-4 h-4" />
+            BACK TO HOME
+          </Button>
+        </Link>
+      </div>
+
       {showScanner && (
         <QRCodeScanner 
           onScan={handleScan} 
