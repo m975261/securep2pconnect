@@ -20,6 +20,12 @@ export function useWebRTC(config: WebRTCConfig) {
   // File transfer state
   const fileMetadataRef = useRef<any>(null);
   const fileChunksRef = useRef<ArrayBuffer[]>([]);
+  
+  // Use refs for callbacks to prevent reconnections on re-renders
+  const configRef = useRef(config);
+  useEffect(() => {
+    configRef.current = config;
+  });
 
   const sendMessage = useCallback((message: any) => {
     const ws = wsRef.current;
@@ -28,12 +34,12 @@ export function useWebRTC(config: WebRTCConfig) {
         type: 'chat',
         data: {
           ...message,
-          from: config.peerId,
-          fromNickname: config.nickname,
+          from: configRef.current.peerId,
+          fromNickname: configRef.current.nickname,
         },
       }));
     }
-  }, [config.peerId, config.nickname]);
+  }, []);
 
   const sendFile = useCallback((file: File) => {
     return new Promise<void>((resolve, reject) => {
@@ -52,8 +58,8 @@ export function useWebRTC(config: WebRTCConfig) {
           name: file.name,
           size: file.size,
           type: file.type,
-          from: config.peerId,
-          fromNickname: config.nickname,
+          from: configRef.current.peerId,
+          fromNickname: configRef.current.nickname,
         };
         ws.send(JSON.stringify({
           type: 'file-metadata',
@@ -87,7 +93,7 @@ export function useWebRTC(config: WebRTCConfig) {
       reader.onerror = reject;
       reader.readAsArrayBuffer(file);
     });
-  }, [config.peerId, config.nickname]);
+  }, []);
 
   const startVoiceChat = useCallback(async () => {
     try {
@@ -169,9 +175,9 @@ export function useWebRTC(config: WebRTCConfig) {
       console.log('WebSocket connected');
       ws.send(JSON.stringify({
         type: 'join',
-        roomId: config.roomId,
-        peerId: config.peerId,
-        nickname: config.nickname,
+        roomId: configRef.current.roomId,
+        peerId: configRef.current.peerId,
+        nickname: configRef.current.nickname,
       }));
     };
 
@@ -185,7 +191,7 @@ export function useWebRTC(config: WebRTCConfig) {
           setConnectionState('connected');
           
           if (message.existingPeers.length > 0) {
-            config.onPeerConnected?.({ nickname: message.existingPeers[0]?.nickname });
+            configRef.current.onPeerConnected?.({ nickname: message.existingPeers[0]?.nickname });
             
             // Create WebRTC offer for voice
             const offer = await pc.createOffer();
@@ -199,7 +205,7 @@ export function useWebRTC(config: WebRTCConfig) {
           console.log('Peer joined:', message.peerId, message.nickname);
           setIsConnected(true);
           setConnectionState('connected');
-          config.onPeerConnected?.({ nickname: message.nickname });
+          configRef.current.onPeerConnected?.({ nickname: message.nickname });
         } else if (message.type === 'offer') {
           await pc.setRemoteDescription(new RTCSessionDescription(message.data));
           const answer = await pc.createAnswer();
@@ -214,7 +220,7 @@ export function useWebRTC(config: WebRTCConfig) {
           await pc.addIceCandidate(new RTCIceCandidate(message.data));
         } else if (message.type === 'chat') {
           console.log('Received chat message:', message.data);
-          config.onMessage?.(message.data);
+          configRef.current.onMessage?.(message.data);
         } else if (message.type === 'file-metadata') {
           fileMetadataRef.current = message.data;
           fileChunksRef.current = [];
@@ -236,7 +242,7 @@ export function useWebRTC(config: WebRTCConfig) {
           const blob = new Blob(fileChunksRef.current, { type: capturedMetadata.type });
           const reader = new FileReader();
           reader.onload = () => {
-            config.onFileReceive?.({
+            configRef.current.onFileReceive?.({
               name: capturedMetadata.name,
               type: capturedMetadata.type,
               size: capturedMetadata.size,
@@ -253,7 +259,7 @@ export function useWebRTC(config: WebRTCConfig) {
           console.log('Peer left:', message.peerId);
           setIsConnected(false);
           setConnectionState('disconnected');
-          config.onPeerDisconnected?.();
+          configRef.current.onPeerDisconnected?.();
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
