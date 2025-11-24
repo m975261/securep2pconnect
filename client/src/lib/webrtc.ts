@@ -25,6 +25,11 @@ export function useWebRTC(config: WebRTCConfig) {
   const fileMetadataRef = useRef<any>(null);
   const fileChunksRef = useRef<ArrayBuffer[]>([]);
   
+  // Reconnection state
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const intentionalDisconnectRef = useRef(false);
+  
   // Use refs for callbacks to prevent reconnections on re-renders
   const configRef = useRef(config);
   useEffect(() => {
@@ -187,8 +192,9 @@ export function useWebRTC(config: WebRTCConfig) {
     pcRef.current = pc;
 
     pc.onicecandidate = (event) => {
-      if (event.candidate && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
+      const currentWs = wsRef.current;
+      if (event.candidate && currentWs && currentWs.readyState === WebSocket.OPEN) {
+        currentWs.send(JSON.stringify({
           type: 'ice-candidate',
           data: event.candidate,
         }));
@@ -207,17 +213,26 @@ export function useWebRTC(config: WebRTCConfig) {
 
     ws.onopen = () => {
       console.log('WebSocket connected');
-      ws.send(JSON.stringify({
-        type: 'join',
-        roomId: configRef.current.roomId,
-        peerId: configRef.current.peerId,
-        nickname: configRef.current.nickname,
-      }));
+      // Reset reconnection attempts on successful connection
+      reconnectAttemptsRef.current = 0;
+      intentionalDisconnectRef.current = false;
+      
+      const currentWs = wsRef.current;
+      if (currentWs && currentWs.readyState === WebSocket.OPEN) {
+        currentWs.send(JSON.stringify({
+          type: 'join',
+          roomId: configRef.current.roomId,
+          peerId: configRef.current.peerId,
+          nickname: configRef.current.nickname,
+        }));
+      }
     };
 
     ws.onmessage = async (event) => {
       try {
         const message = JSON.parse(event.data);
+        const currentPc = pcRef.current;
+        const currentWs = wsRef.current;
 
         if (message.type === 'joined') {
           console.log('Joined room, existing peers:', message.existingPeers);
@@ -228,12 +243,14 @@ export function useWebRTC(config: WebRTCConfig) {
             configRef.current.onPeerConnected?.({ nickname: message.existingPeers[0]?.nickname });
             
             // Create WebRTC offer for voice
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            ws.send(JSON.stringify({
-              type: 'offer',
-              data: offer,
-            }));
+            if (currentPc && currentWs && currentWs.readyState === WebSocket.OPEN) {
+              const offer = await currentPc.createOffer();
+              await currentPc.setLocalDescription(offer);
+              currentWs.send(JSON.stringify({
+                type: 'offer',
+                data: offer,
+              }));
+            }
           }
         } else if (message.type === 'peer-joined') {
           console.log('Peer joined:', message.peerId, message.nickname);
@@ -241,17 +258,23 @@ export function useWebRTC(config: WebRTCConfig) {
           setConnectionState('connected');
           configRef.current.onPeerConnected?.({ nickname: message.nickname });
         } else if (message.type === 'offer') {
-          await pc.setRemoteDescription(new RTCSessionDescription(message.data));
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-          ws.send(JSON.stringify({
-            type: 'answer',
-            data: answer,
-          }));
+          if (currentPc && currentWs && currentWs.readyState === WebSocket.OPEN) {
+            await currentPc.setRemoteDescription(new RTCSessionDescription(message.data));
+            const answer = await currentPc.createAnswer();
+            await currentPc.setLocalDescription(answer);
+            currentWs.send(JSON.stringify({
+              type: 'answer',
+              data: answer,
+            }));
+          }
         } else if (message.type === 'answer') {
-          await pc.setRemoteDescription(new RTCSessionDescription(message.data));
+          if (currentPc) {
+            await currentPc.setRemoteDescription(new RTCSessionDescription(message.data));
+          }
         } else if (message.type === 'ice-candidate') {
-          await pc.addIceCandidate(new RTCIceCandidate(message.data));
+          if (currentPc) {
+            await currentPc.addIceCandidate(new RTCIceCandidate(message.data));
+          }
         } else if (message.type === 'chat') {
           console.log('Received chat message:', message.data);
           configRef.current.onMessage?.(message.data);
@@ -310,7 +333,40 @@ export function useWebRTC(config: WebRTCConfig) {
     ws.onclose = () => {
       console.log('WebSocket closed');
       setIsConnected(false);
-      setConnectionState('disconnected');
+      setConnectionState('connecting');
+      
+      // Only attempt to reconnect if this wasn't an intentional disconnect
+      if (!intentionalDisconnectRef.current) {
+        // Clear any existing reconnect timeout
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+        }
+        
+        // Exponential backoff: 1s, 2s, 4s, 8s, max 10s
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 10000);
+        reconnectAttemptsRef.current++;
+        
+        console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttemptsRef.current})...`);
+        
+        reconnectTimeoutRef.current = setTimeout(() => {
+          if (!intentionalDisconnectRef.current && configRef.current.roomId && configRef.current.peerId) {
+            console.log('Reconnecting WebSocket...');
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+            const newWs = new WebSocket(wsUrl);
+            
+            // Reuse the same handlers (they reference wsRef.current and pcRef.current)
+            newWs.onopen = ws.onopen;
+            newWs.onmessage = ws.onmessage;
+            newWs.onclose = ws.onclose;
+            newWs.onerror = ws.onerror;
+            
+            wsRef.current = newWs;
+          }
+        }, delay);
+      } else {
+        setConnectionState('disconnected');
+      }
     };
 
     ws.onerror = (error) => {
@@ -318,6 +374,15 @@ export function useWebRTC(config: WebRTCConfig) {
     };
 
     return () => {
+      // Mark this as an intentional disconnect
+      intentionalDisconnectRef.current = true;
+      
+      // Clear any pending reconnection attempts
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      
       // Only clean up if websocket is actually open/connecting
       if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
         ws.close();

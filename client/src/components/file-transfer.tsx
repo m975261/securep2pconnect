@@ -112,49 +112,51 @@ export function FileTransfer({ onSendFile, transferredFiles }: FileTransferProps
 
           {transferredFiles.length > 0 && (
             <div className="pt-2 border-t border-white/5 mt-2">
-              <h3 className="text-[10px] font-mono text-muted-foreground mb-2 uppercase">Transfer History</h3>
-              {transferredFiles.slice().reverse().map((file, idx) => (
-                <motion.div
-                  key={`${file.timestamp.getTime()}-${idx}`}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white/5 border border-white/5 rounded-lg p-3 mb-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
-                      <div className="p-1.5 bg-black/50 rounded">
-                        {file.type === 'sent' ? (
-                          <ArrowUp className="w-3 h-3 text-blue-400" />
-                        ) : (
-                          <ArrowDown className="w-3 h-3 text-green-400" />
-                        )}
-                      </div>
-                      <div className="truncate flex-1 min-w-0">
-                        <div className="text-xs font-mono truncate text-white/90" data-testid={`file-${file.type}-${idx}`}>
-                          {file.name}
+              <h3 className="text-[10px] font-mono text-muted-foreground mb-2 uppercase sticky top-0 bg-background z-10">Transfer History</h3>
+              <div className="space-y-2 max-h-96 overflow-y-auto pr-1" data-testid="transfer-history-list">
+                {transferredFiles.slice().reverse().map((file, idx) => (
+                  <motion.div
+                    key={`${file.timestamp.getTime()}-${idx}`}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white/5 border border-white/5 rounded-lg p-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
+                        <div className="p-1.5 bg-black/50 rounded">
+                          {file.type === 'sent' ? (
+                            <ArrowUp className="w-3 h-3 text-blue-400" />
+                          ) : (
+                            <ArrowDown className="w-3 h-3 text-green-400" />
+                          )}
                         </div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type === 'sent' ? `Sent by ${file.senderName || 'You'}` : `Received from ${file.senderName || 'Peer'}`}
+                        <div className="truncate flex-1 min-w-0">
+                          <div className="text-xs font-mono truncate text-white/90" data-testid={`file-${file.type}-${idx}`}>
+                            {file.name}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type === 'sent' ? `Sent by ${file.senderName || 'You'}` : `Received from ${file.senderName || 'Peer'}`}
+                          </div>
                         </div>
                       </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 shrink-0"
+                        onClick={() => {
+                          const a = document.createElement('a');
+                          a.href = file.url;
+                          a.download = file.name;
+                          a.click();
+                        }}
+                        data-testid={`button-download-${idx}`}
+                      >
+                        <Download className="w-3 h-3" />
+                      </Button>
                     </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 shrink-0"
-                      onClick={() => {
-                        const a = document.createElement('a');
-                        a.href = file.url;
-                        a.download = file.name;
-                        a.click();
-                      }}
-                      data-testid={`button-download-${idx}`}
-                    >
-                      <Download className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                ))}
+              </div>
             </div>
           )}
         </AnimatePresence>
