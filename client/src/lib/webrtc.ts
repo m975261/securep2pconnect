@@ -32,6 +32,10 @@ export function useWebRTC(config: WebRTCConfig) {
   const reconnectAttemptsRef = useRef(0);
   const intentionalDisconnectRef = useRef(false);
   
+  // Negotiation state to prevent overlapping offers
+  const negotiatingRef = useRef(false);
+  const pendingNegotiationRef = useRef(false);
+  
   // Use refs for callbacks to prevent reconnections on re-renders
   const configRef = useRef(config);
   useEffect(() => {
@@ -133,26 +137,62 @@ export function useWebRTC(config: WebRTCConfig) {
     });
   }, []);
 
+  // Helper function to perform negotiation with guard
+  const performNegotiation = useCallback(async () => {
+    const pc = pcRef.current;
+    const ws = wsRef.current;
+
+    // Check if already negotiating or PC is not in stable state
+    if (negotiatingRef.current || (pc && pc.signalingState !== 'stable')) {
+      console.log(`Negotiation blocked: negotiatingRef=${negotiatingRef.current}, signalingState=${pc?.signalingState}, marking pending`);
+      pendingNegotiationRef.current = true;
+      return;
+    }
+
+    if (!pc || !ws || ws.readyState !== WebSocket.OPEN) {
+      console.log('Cannot negotiate: PC or WS not ready');
+      return;
+    }
+
+    try {
+      negotiatingRef.current = true;
+      console.log('Creating offer for negotiation, signalingState:', pc.signalingState);
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      ws.send(JSON.stringify({
+        type: 'offer',
+        data: offer,
+      }));
+      console.log('Offer sent, waiting for answer');
+      // Note: negotiatingRef will be cleared when answer is received
+    } catch (error) {
+      console.error('Error during negotiation:', error);
+      negotiatingRef.current = false;
+      
+      // If there was a pending negotiation, retry
+      if (pendingNegotiationRef.current) {
+        pendingNegotiationRef.current = false;
+        console.log('Retrying pending negotiation after error');
+        setTimeout(() => performNegotiation(), 100);
+      }
+    }
+  }, []);
+
   const startVoiceChat = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       localStreamRef.current = stream;
       
       const pc = pcRef.current;
-      const ws = wsRef.current;
       
-      if (pc && ws && ws.readyState === WebSocket.OPEN) {
+      if (pc) {
         stream.getTracks().forEach(track => {
+          console.log('Adding audio track to peer connection');
           pc.addTrack(track, stream);
         });
         
-        // Always renegotiate when adding tracks
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        ws.send(JSON.stringify({
-          type: 'offer',
-          data: offer,
-        }));
+        // Renegotiate with guard
+        await performNegotiation();
       }
 
       return stream;
@@ -160,7 +200,7 @@ export function useWebRTC(config: WebRTCConfig) {
       console.error('Error starting voice chat:', error);
       throw error;
     }
-  }, []);
+  }, [performNegotiation]);
 
   const stopVoiceChat = useCallback(() => {
     if (localStreamRef.current) {
@@ -174,6 +214,7 @@ export function useWebRTC(config: WebRTCConfig) {
         if (pc) {
           const sender = pc.getSenders().find(s => s.track === track);
           if (sender) {
+            console.log('Removing audio track from peer connection');
             pc.removeTrack(sender);
           }
         }
@@ -181,22 +222,10 @@ export function useWebRTC(config: WebRTCConfig) {
       
       localStreamRef.current = null;
       
-      // Renegotiate after removing tracks if connection is active
-      const ws = wsRef.current;
-      if (pc && ws && ws.readyState === WebSocket.OPEN) {
-        pc.createOffer().then(offer => {
-          return pc.setLocalDescription(offer);
-        }).then(() => {
-          ws.send(JSON.stringify({
-            type: 'offer',
-            data: pc.localDescription,
-          }));
-        }).catch(err => {
-          console.error('Error renegotiating after stopping voice:', err);
-        });
-      }
+      // Renegotiate with guard
+      performNegotiation();
     }
-  }, []);
+  }, [performNegotiation]);
 
   useEffect(() => {
     // Only reconnect if we don't have a connection or if roomId actually changes
@@ -243,6 +272,18 @@ export function useWebRTC(config: WebRTCConfig) {
 
     pc.onconnectionstatechange = () => {
       console.log('WebRTC connection state:', pc.connectionState);
+    };
+
+    pc.onsignalingstatechange = () => {
+      console.log('WebRTC signaling state:', pc.signalingState);
+      
+      // If connection returns to stable and there's a pending negotiation, trigger it
+      if (pc.signalingState === 'stable' && pendingNegotiationRef.current) {
+        console.log('Signaling state is stable, triggering pending negotiation');
+        pendingNegotiationRef.current = false;
+        negotiatingRef.current = false; // Ensure flag is clear
+        setTimeout(() => performNegotiation(), 100);
+      }
     };
 
     ws.onopen = () => {
@@ -293,6 +334,7 @@ export function useWebRTC(config: WebRTCConfig) {
           configRef.current.onPeerConnected?.({ nickname: message.nickname });
         } else if (message.type === 'offer') {
           if (currentPc && currentWs && currentWs.readyState === WebSocket.OPEN) {
+            console.log('Received offer, setting remote description');
             await currentPc.setRemoteDescription(new RTCSessionDescription(message.data));
             
             // If we have a local stream, add our tracks before creating the answer
@@ -301,21 +343,34 @@ export function useWebRTC(config: WebRTCConfig) {
               localStreamRef.current.getTracks().forEach(track => {
                 // Only add track if it's not already added
                 if (!existingTracks.includes(track)) {
+                  console.log('Adding local audio track when answering offer');
                   currentPc.addTrack(track, localStreamRef.current!);
                 }
               });
             }
             
+            console.log('Creating answer');
             const answer = await currentPc.createAnswer();
             await currentPc.setLocalDescription(answer);
             currentWs.send(JSON.stringify({
               type: 'answer',
               data: answer,
             }));
+            console.log('Answer sent');
           }
         } else if (message.type === 'answer') {
           if (currentPc) {
+            console.log('Received answer, setting remote description');
             await currentPc.setRemoteDescription(new RTCSessionDescription(message.data));
+            // Clear negotiating flag when answer is received
+            negotiatingRef.current = false;
+            
+            // Check if there's a pending negotiation
+            if (pendingNegotiationRef.current) {
+              pendingNegotiationRef.current = false;
+              console.log('Performing pending negotiation after answer');
+              setTimeout(() => performNegotiation(), 100);
+            }
           }
         } else if (message.type === 'ice-candidate') {
           if (currentPc) {
