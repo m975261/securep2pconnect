@@ -259,8 +259,6 @@ export function useWebRTC(config: WebRTCConfig) {
       }
     };
 
-    setupDataChannels();
-
     ws.onopen = () => {
       ws.send(JSON.stringify({
         type: 'join',
@@ -277,6 +275,7 @@ export function useWebRTC(config: WebRTCConfig) {
         console.log('Joined room, existing peers:', message.existingPeers);
         if (message.existingPeers.length > 0) {
           config.onPeerConnected?.({ nickname: message.existingPeers[0]?.nickname });
+          setupDataChannels();
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
           ws.send(JSON.stringify({
