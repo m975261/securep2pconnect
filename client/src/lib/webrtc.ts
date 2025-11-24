@@ -164,8 +164,37 @@ export function useWebRTC(config: WebRTCConfig) {
 
   const stopVoiceChat = useCallback(() => {
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => track.stop());
+      const pc = pcRef.current;
+      
+      // Stop all tracks
+      localStreamRef.current.getTracks().forEach(track => {
+        track.stop();
+        
+        // Remove the track from the peer connection
+        if (pc) {
+          const sender = pc.getSenders().find(s => s.track === track);
+          if (sender) {
+            pc.removeTrack(sender);
+          }
+        }
+      });
+      
       localStreamRef.current = null;
+      
+      // Renegotiate after removing tracks if connection is active
+      const ws = wsRef.current;
+      if (pc && ws && ws.readyState === WebSocket.OPEN) {
+        pc.createOffer().then(offer => {
+          return pc.setLocalDescription(offer);
+        }).then(() => {
+          ws.send(JSON.stringify({
+            type: 'offer',
+            data: pc.localDescription,
+          }));
+        }).catch(err => {
+          console.error('Error renegotiating after stopping voice:', err);
+        });
+      }
     }
   }, []);
 
@@ -265,6 +294,18 @@ export function useWebRTC(config: WebRTCConfig) {
         } else if (message.type === 'offer') {
           if (currentPc && currentWs && currentWs.readyState === WebSocket.OPEN) {
             await currentPc.setRemoteDescription(new RTCSessionDescription(message.data));
+            
+            // If we have a local stream, add our tracks before creating the answer
+            if (localStreamRef.current) {
+              const existingTracks = currentPc.getSenders().map(s => s.track);
+              localStreamRef.current.getTracks().forEach(track => {
+                // Only add track if it's not already added
+                if (!existingTracks.includes(track)) {
+                  currentPc.addTrack(track, localStreamRef.current!);
+                }
+              });
+            }
+            
             const answer = await currentPc.createAnswer();
             await currentPc.setLocalDescription(answer);
             currentWs.send(JSON.stringify({
