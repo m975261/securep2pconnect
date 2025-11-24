@@ -90,19 +90,33 @@ export function useWebRTC(config: WebRTCConfig) {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        {
+          urls: 'turn:numb.viagenie.ca',
+          username: 'webrtc@live.com',
+          credential: 'muazkh',
+        },
         {
           urls: [
             'turn:openrelay.metered.ca:80',
             'turn:openrelay.metered.ca:443',
             'turn:openrelay.metered.ca:443?transport=tcp',
-            'turns:openrelay.metered.ca:443?transport=tcp'
           ],
           username: 'openrelayproject',
           credential: 'openrelayproject',
         },
+        {
+          urls: 'turn:relay1.expressturn.com:3478',
+          username: 'efNOVM4P7DG28SDBKH',
+          credential: 'SJx7iUZFU1X6aVSY',
+        },
       ],
       iceTransportPolicy: 'all',
       iceCandidatePoolSize: 10,
+      bundlePolicy: 'max-bundle',
+      rtcpMuxPolicy: 'require',
     });
     pcRef.current = pc;
 
@@ -164,7 +178,7 @@ export function useWebRTC(config: WebRTCConfig) {
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        console.log('ICE candidate:', event.candidate.type, event.candidate.protocol, event.candidate.address);
+        console.log('ICE candidate:', event.candidate.type, event.candidate.protocol, event.candidate.address || 'relay');
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({
             type: 'ice-candidate',
@@ -174,6 +188,10 @@ export function useWebRTC(config: WebRTCConfig) {
       } else {
         console.log('ICE gathering complete');
       }
+    };
+
+    pc.onicecandidateerror = (event) => {
+      console.error('ICE candidate error:', event.errorCode, event.errorText, event.url);
     };
 
     pc.onicegatheringstatechange = () => {
