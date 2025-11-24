@@ -12,6 +12,7 @@ interface FileTransferProps {
     url: string;
     type: 'sent' | 'received';
     timestamp: Date;
+    senderName?: string;
   }>;
 }
 
@@ -145,7 +146,7 @@ export function FileTransfer({ onSendFile, transferredFiles }: FileTransferProps
                           {file.name}
                         </div>
                         <div className="text-[10px] text-muted-foreground">
-                          {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type === 'sent' ? 'Sent' : 'Received'}
+                          {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type === 'sent' ? `Sent by ${file.senderName || 'You'}` : `Received from ${file.senderName || 'Peer'}`}
                         </div>
                       </div>
                     </div>

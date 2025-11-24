@@ -352,9 +352,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (peerId !== currentPeer!.peerId) {
                 const peer = activePeers.get(peerId);
                 if (peer && peer.ws.readyState === WebSocket.OPEN) {
+                  // For file-metadata, ensure we preserve/add sender identity
+                  const enrichedData = message.type === "file-metadata" 
+                    ? { ...message.data, from: currentPeer!.peerId, fromNickname: currentPeer!.nickname }
+                    : message.data;
+                  
                   peer.ws.send(JSON.stringify({
                     type: message.type,
-                    data: message.data,
+                    data: enrichedData,
                     from: currentPeer!.peerId,
                   }));
                 }

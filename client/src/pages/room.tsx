@@ -56,6 +56,7 @@ export default function Room() {
     url: string;
     type: 'sent' | 'received';
     timestamp: Date;
+    senderName?: string;
   }>>([]);
 
   useEffect(() => {
@@ -224,6 +225,7 @@ export default function Room() {
       url,
       type: 'sent',
       timestamp: new Date(),
+      senderName: nickname || 'You',
     }]);
     await sendFile(file);
   };
