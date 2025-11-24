@@ -144,10 +144,14 @@ export function FileTransfer({ onSendFile, transferredFiles }: FileTransferProps
                         variant="ghost"
                         className="h-8 w-8 shrink-0"
                         onClick={() => {
+                          // Use the existing blob URL directly for download
                           const a = document.createElement('a');
                           a.href = file.url;
                           a.download = file.name;
+                          a.style.display = 'none';
+                          document.body.appendChild(a);
                           a.click();
+                          document.body.removeChild(a);
                         }}
                         data-testid={`button-download-${idx}`}
                       >

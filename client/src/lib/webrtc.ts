@@ -8,6 +8,7 @@ interface WebRTCConfig {
   onFileReceive?: (file: { name: string; type: string; size: number; data: ArrayBuffer; from?: string; fromNickname?: string }) => void;
   onPeerConnected?: (peerInfo?: { nickname?: string }) => void;
   onPeerDisconnected?: () => void;
+  onRemoteStream?: (stream: MediaStream | null) => void;
 }
 
 interface SendFileOptions {
@@ -17,6 +18,7 @@ interface SendFileOptions {
 export function useWebRTC(config: WebRTCConfig) {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -203,8 +205,11 @@ export function useWebRTC(config: WebRTCConfig) {
 
     pc.ontrack = (event) => {
       console.log('Received remote audio track');
-      // The remote stream will be available in event.streams[0]
-      // UI components can access this via refs if needed
+      // Expose remote stream to UI for playback
+      if (event.streams && event.streams[0]) {
+        setRemoteStream(event.streams[0]);
+        configRef.current.onRemoteStream?.(event.streams[0]);
+      }
     };
 
     pc.onconnectionstatechange = () => {
@@ -323,6 +328,8 @@ export function useWebRTC(config: WebRTCConfig) {
           console.log('Peer left:', message.peerId);
           setIsConnected(false);
           setConnectionState('disconnected');
+          setRemoteStream(null);
+          configRef.current.onRemoteStream?.(null);
           configRef.current.onPeerDisconnected?.();
         }
       } catch (error) {
@@ -401,6 +408,7 @@ export function useWebRTC(config: WebRTCConfig) {
   return {
     isConnected,
     connectionState,
+    remoteStream,
     sendMessage,
     sendFile,
     startVoiceChat,

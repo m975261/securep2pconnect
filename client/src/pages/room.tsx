@@ -4,7 +4,7 @@ import {
   Share2, MessageSquare, FileText, Copy, Check, Lock
 } from "lucide-react";
 import { useLocation, useRoute } from "wouter";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import QRCode from "react-qr-code";
@@ -58,6 +58,9 @@ export default function Room() {
     timestamp: Date;
     senderName?: string;
   }>>([]);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
+  const [remoteAudioMuted, setRemoteAudioMuted] = useState(true);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && roomId) {
@@ -212,7 +215,41 @@ export default function Room() {
     onPeerDisconnected,
   }), [passwordVerified, roomId, peerId, nickname, onMessage, onFileReceive, onPeerConnected, onPeerDisconnected]);
 
-  const { connectionState, sendMessage, sendFile, startVoiceChat, stopVoiceChat } = useWebRTC(webrtcConfig);
+  const { connectionState, remoteStream, sendMessage, sendFile, startVoiceChat, stopVoiceChat } = useWebRTC(webrtcConfig);
+
+  // Attach remote audio stream to audio element
+  useEffect(() => {
+    if (remoteAudioRef.current && remoteStream) {
+      remoteAudioRef.current.srcObject = remoteStream;
+      // Start muted to comply with autoplay policies
+      remoteAudioRef.current.muted = true;
+      remoteAudioRef.current.play().then(() => {
+        // Auto-unmute if user has already interacted
+        if (hasUserInteracted && remoteAudioRef.current) {
+          remoteAudioRef.current.muted = false;
+          setRemoteAudioMuted(false);
+        } else {
+          // Show notification to enable audio
+          toast.info('Peer audio available - click to enable', {
+            duration: 5000,
+            action: {
+              label: 'Enable',
+              onClick: () => {
+                if (remoteAudioRef.current) {
+                  remoteAudioRef.current.muted = false;
+                  setRemoteAudioMuted(false);
+                  toast.success('Peer audio enabled');
+                }
+              }
+            }
+          });
+        }
+      }).catch(err => {
+        console.error('Error playing remote audio:', err);
+        toast.error('Failed to play peer audio');
+      });
+    }
+  }, [remoteStream, hasUserInteracted]);
 
   const handleSendMessage = (text: string) => {
     const messageData = { text, senderName: nickname || 'Anonymous' };
@@ -294,12 +331,21 @@ export default function Room() {
   };
 
   const handleToggleMic = async () => {
+    // Mark that user has interacted
+    setHasUserInteracted(true);
+    
     if (!isMicOn) {
       try {
         const stream = await startVoiceChat();
         setAudioStream(stream);
         setIsMicOn(true);
         toast.success('Microphone enabled');
+        
+        // Auto-unmute remote audio if it's muted
+        if (remoteStream && remoteAudioRef.current && remoteAudioRef.current.muted) {
+          remoteAudioRef.current.muted = false;
+          setRemoteAudioMuted(false);
+        }
       } catch (error) {
         toast.error('Failed to access microphone');
       }
@@ -690,6 +736,9 @@ export default function Room() {
           </div>
         </div>
       </main>
+      
+      {/* Audio element for remote peer's voice */}
+      <audio ref={remoteAudioRef} autoPlay playsInline muted />
     </div>
   );
 }
