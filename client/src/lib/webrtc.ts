@@ -18,8 +18,6 @@ export function useWebRTC(config: WebRTCConfig) {
   const chatChannelRef = useRef<RTCDataChannel | null>(null);
   const fileChannelRef = useRef<RTCDataChannel | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
-  const iceRestartAttemptsRef = useRef(0);
-  const iceRestartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sendMessage = useCallback((message: any) => {
     if (chatChannelRef.current?.readyState === 'open') {
@@ -108,58 +106,60 @@ export function useWebRTC(config: WebRTCConfig) {
     });
     pcRef.current = pc;
 
-    const chatChannel = pc.createDataChannel('chat');
-    chatChannelRef.current = chatChannel;
+    const setupDataChannels = () => {
+      const chatChannel = pc.createDataChannel('chat');
+      chatChannelRef.current = chatChannel;
 
-    chatChannel.onopen = () => {
-      console.log('Chat channel opened');
-    };
+      chatChannel.onopen = () => {
+        console.log('Chat channel opened');
+      };
 
-    chatChannel.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        console.log('Received chat message:', message);
-        config.onMessage?.(message);
-      } catch (error) {
-        console.error('Error parsing chat message:', error);
-      }
-    };
-
-    const fileChannel = pc.createDataChannel('files');
-    fileChannelRef.current = fileChannel;
-
-    let fileMetadata: any = null;
-    let fileChunks: ArrayBuffer[] = [];
-
-    fileChannel.onmessage = (event) => {
-      if (typeof event.data === 'string') {
-        if (event.data === 'EOF') {
-          if (!fileMetadata) {
-            console.error('Received EOF without file metadata');
-            return;
-          }
-          const blob = new Blob(fileChunks);
-          const capturedMetadata = fileMetadata;
-          const reader = new FileReader();
-          reader.onload = () => {
-            config.onFileReceive?.({
-              name: capturedMetadata.name,
-              data: reader.result as ArrayBuffer,
-            });
-          };
-          reader.readAsArrayBuffer(blob);
-          fileChunks = [];
-          fileMetadata = null;
-        } else {
-          try {
-            fileMetadata = JSON.parse(event.data);
-          } catch (error) {
-            console.error('Error parsing file metadata:', error);
-          }
+      chatChannel.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          console.log('Received chat message:', message);
+          config.onMessage?.(message);
+        } catch (error) {
+          console.error('Error parsing chat message:', error);
         }
-      } else {
-        fileChunks.push(event.data);
-      }
+      };
+
+      const fileChannel = pc.createDataChannel('files');
+      fileChannelRef.current = fileChannel;
+
+      let fileMetadata: any = null;
+      let fileChunks: ArrayBuffer[] = [];
+
+      fileChannel.onmessage = (event) => {
+        if (typeof event.data === 'string') {
+          if (event.data === 'EOF') {
+            if (!fileMetadata) {
+              console.error('Received EOF without file metadata');
+              return;
+            }
+            const blob = new Blob(fileChunks);
+            const capturedMetadata = fileMetadata;
+            const reader = new FileReader();
+            reader.onload = () => {
+              config.onFileReceive?.({
+                name: capturedMetadata.name,
+                data: reader.result as ArrayBuffer,
+              });
+            };
+            reader.readAsArrayBuffer(blob);
+            fileChunks = [];
+            fileMetadata = null;
+          } else {
+            try {
+              fileMetadata = JSON.parse(event.data);
+            } catch (error) {
+              console.error('Error parsing file metadata:', error);
+            }
+          }
+        } else {
+          fileChunks.push(event.data);
+        }
+      };
     };
 
     pc.onicecandidate = (event) => {
@@ -180,41 +180,8 @@ export function useWebRTC(config: WebRTCConfig) {
       console.log('ICE gathering state:', pc.iceGatheringState);
     };
 
-    pc.oniceconnectionstatechange = async () => {
+    pc.oniceconnectionstatechange = () => {
       console.log('ICE connection state:', pc.iceConnectionState);
-      if (pc.iceConnectionState === 'connected') {
-        iceRestartAttemptsRef.current = 0;
-        if (iceRestartTimeoutRef.current) {
-          clearTimeout(iceRestartTimeoutRef.current);
-          iceRestartTimeoutRef.current = null;
-        }
-      } else if (pc.iceConnectionState === 'failed') {
-        if (iceRestartAttemptsRef.current < 3) {
-          iceRestartAttemptsRef.current++;
-          console.error(`ICE connection failed - attempting ICE restart (${iceRestartAttemptsRef.current}/3)`);
-          
-          if (iceRestartTimeoutRef.current) {
-            clearTimeout(iceRestartTimeoutRef.current);
-          }
-          
-          iceRestartTimeoutRef.current = setTimeout(async () => {
-            try {
-              const offer = await pc.createOffer({ iceRestart: true });
-              await pc.setLocalDescription(offer);
-              if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                  type: 'offer',
-                  data: offer,
-                }));
-              }
-            } catch (error) {
-              console.error('Failed to restart ICE:', error);
-            }
-          }, 2000);
-        } else {
-          console.error('ICE connection failed after 3 restart attempts');
-        }
-      }
     };
 
     pc.ontrack = (event) => {
@@ -308,6 +275,7 @@ export function useWebRTC(config: WebRTCConfig) {
         console.log('Joined room, existing peers:', message.existingPeers);
         if (message.existingPeers.length > 0) {
           config.onPeerConnected?.({ nickname: message.existingPeers[0]?.nickname });
+          setupDataChannels();
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
           ws.send(JSON.stringify({
@@ -339,11 +307,12 @@ export function useWebRTC(config: WebRTCConfig) {
     };
 
     return () => {
-      if (iceRestartTimeoutRef.current) {
-        clearTimeout(iceRestartTimeoutRef.current);
+      if (chatChannelRef.current) {
+        chatChannelRef.current.close();
       }
-      chatChannel.close();
-      fileChannel.close();
+      if (fileChannelRef.current) {
+        fileChannelRef.current.close();
+      }
       pc.close();
       ws.close();
       stopVoiceChat();
