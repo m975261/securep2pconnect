@@ -17,35 +17,35 @@ interface FileTransferProps {
 }
 
 export function FileTransfer({ onSendFile, transferredFiles }: FileTransferProps) {
-  const [files, setFiles] = useState<Array<{ name: string; size: string; progress: number; status: 'uploading' | 'completed' }>>([]);
+  const [files, setFiles] = useState<Array<{ id: string; name: string; size: string; progress: number; status: 'uploading' | 'completed' }>>([]);
 
   const onDrop = async (acceptedFiles: File[]) => {
-    const newFiles = acceptedFiles.map(file => ({
-      name: file.name,
-      size: (file.size / 1024 / 1024).toFixed(2) + " MB",
-      progress: 0,
-      status: 'uploading' as const
-    }));
+    for (const file of acceptedFiles) {
+      const fileId = `${file.name}-${Date.now()}-${Math.random()}`;
+      const fileEntry = {
+        id: fileId,
+        name: file.name,
+        size: (file.size / 1024 / 1024).toFixed(2) + " MB",
+        progress: 0,
+        status: 'uploading' as const
+      };
 
-    setFiles(prev => [...prev, ...newFiles]);
-
-    for (let i = 0; i < acceptedFiles.length; i++) {
-      const file = acceptedFiles[i];
-      const fileIndex = files.length + i;
+      // Add this file to the list
+      setFiles(prev => [...prev, fileEntry]);
 
       try {
         await onSendFile(file, (progress) => {
-          setFiles(prev => {
-            const updated = [...prev];
-            if (updated[fileIndex]) {
-              updated[fileIndex].progress = progress;
-              if (progress >= 100) {
-                updated[fileIndex].status = 'completed';
-              }
-            }
-            return updated;
-          });
+          setFiles(prev => prev.map(f => 
+            f.id === fileId 
+              ? { ...f, progress, status: progress >= 100 ? 'completed' as const : f.status }
+              : f
+          ));
         });
+        
+        // Remove completed file from the progress list after a short delay
+        setTimeout(() => {
+          setFiles(prev => prev.filter(f => f.id !== fileId));
+        }, 1500);
       } catch (error) {
         console.error('Error sending file:', error);
       }
@@ -74,11 +74,12 @@ export function FileTransfer({ onSendFile, transferredFiles }: FileTransferProps
 
       <div className="flex-1 overflow-y-auto space-y-2">
         <AnimatePresence>
-          {files.map((file, idx) => (
+          {files.map((file) => (
             <motion.div
-              key={idx}
+              key={file.id}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
               className="bg-white/5 border border-white/5 rounded-lg p-3"
             >
               <div className="flex items-center justify-between mb-2">
@@ -87,14 +88,14 @@ export function FileTransfer({ onSendFile, transferredFiles }: FileTransferProps
                     <FileIcon className="w-3 h-3 text-accent" />
                   </div>
                   <div className="truncate">
-                    <div className="text-xs font-mono truncate text-white/90" data-testid={`text-filename-${idx}`}>{file.name}</div>
+                    <div className="text-xs font-mono truncate text-white/90" data-testid={`text-filename-${file.id}`}>{file.name}</div>
                     <div className="text-[10px] text-muted-foreground">{file.size}</div>
                   </div>
                 </div>
                 {file.status === 'completed' ? (
                   <Check className="w-4 h-4 text-primary" />
                 ) : (
-                  <span className="text-xs font-mono text-accent font-bold" data-testid={`text-progress-${idx}`}>{file.progress}%</span>
+                  <span className="text-xs font-mono text-accent font-bold" data-testid={`text-progress-${file.id}`}>{file.progress}%</span>
                 )}
               </div>
               

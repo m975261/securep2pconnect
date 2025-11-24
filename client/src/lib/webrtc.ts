@@ -99,10 +99,8 @@ export function useWebRTC(config: WebRTCConfig) {
             const progress = Math.round((chunksSent / totalChunks) * 100);
             options?.onProgress?.(progress);
             
-            // Yield to event loop to allow UI updates - use setTimeout to force browser paint
-            if (chunksSent % 5 === 0) {
-              await new Promise(resolve => setTimeout(resolve, 0));
-            }
+            // Yield to event loop to allow UI updates (works even in background tabs)
+            await new Promise(resolve => setTimeout(resolve, 0));
           }
           console.log(`Sent ${chunksSent} chunks`);
           
@@ -320,9 +318,18 @@ export function useWebRTC(config: WebRTCConfig) {
     };
 
     return () => {
-      pc.close();
-      ws.close();
-      stopVoiceChat();
+      // Only clean up if websocket is actually open/connecting
+      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+        ws.close();
+      }
+      // Only close peer connection if it's not already closed
+      if (pc.connectionState !== 'closed') {
+        pc.close();
+      }
+      // Only stop voice if there's an active stream
+      if (localStreamRef.current) {
+        stopVoiceChat();
+      }
     };
   }, [config.roomId, config.peerId]);
 
