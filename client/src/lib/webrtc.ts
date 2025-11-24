@@ -18,6 +18,8 @@ export function useWebRTC(config: WebRTCConfig) {
   const chatChannelRef = useRef<RTCDataChannel | null>(null);
   const fileChannelRef = useRef<RTCDataChannel | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const iceRestartAttemptsRef = useRef(0);
+  const iceRestartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sendMessage = useCallback((message: any) => {
     if (chatChannelRef.current?.readyState === 'open') {
@@ -180,19 +182,37 @@ export function useWebRTC(config: WebRTCConfig) {
 
     pc.oniceconnectionstatechange = async () => {
       console.log('ICE connection state:', pc.iceConnectionState);
-      if (pc.iceConnectionState === 'failed') {
-        console.error('ICE connection failed - attempting ICE restart');
-        try {
-          const offer = await pc.createOffer({ iceRestart: true });
-          await pc.setLocalDescription(offer);
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-              type: 'offer',
-              data: offer,
-            }));
+      if (pc.iceConnectionState === 'connected') {
+        iceRestartAttemptsRef.current = 0;
+        if (iceRestartTimeoutRef.current) {
+          clearTimeout(iceRestartTimeoutRef.current);
+          iceRestartTimeoutRef.current = null;
+        }
+      } else if (pc.iceConnectionState === 'failed') {
+        if (iceRestartAttemptsRef.current < 3) {
+          iceRestartAttemptsRef.current++;
+          console.error(`ICE connection failed - attempting ICE restart (${iceRestartAttemptsRef.current}/3)`);
+          
+          if (iceRestartTimeoutRef.current) {
+            clearTimeout(iceRestartTimeoutRef.current);
           }
-        } catch (error) {
-          console.error('Failed to restart ICE:', error);
+          
+          iceRestartTimeoutRef.current = setTimeout(async () => {
+            try {
+              const offer = await pc.createOffer({ iceRestart: true });
+              await pc.setLocalDescription(offer);
+              if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                  type: 'offer',
+                  data: offer,
+                }));
+              }
+            } catch (error) {
+              console.error('Failed to restart ICE:', error);
+            }
+          }, 2000);
+        } else {
+          console.error('ICE connection failed after 3 restart attempts');
         }
       }
     };
@@ -319,6 +339,9 @@ export function useWebRTC(config: WebRTCConfig) {
     };
 
     return () => {
+      if (iceRestartTimeoutRef.current) {
+        clearTimeout(iceRestartTimeoutRef.current);
+      }
       chatChannel.close();
       fileChannel.close();
       pc.close();
