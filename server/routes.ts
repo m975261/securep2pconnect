@@ -23,7 +23,7 @@ const updateRoomPasswordSchema = z.object({
 });
 
 interface WebRTCMessage {
-  type: "offer" | "answer" | "ice-candidate" | "join" | "peer-joined" | "peer-left";
+  type: "offer" | "answer" | "ice-candidate" | "join" | "peer-joined" | "peer-left" | "chat" | "file-metadata" | "file-chunk" | "file-eof";
   roomId?: string;
   data?: any;
   peerId?: string;
@@ -314,6 +314,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
             existingPeers: existingPeersWithNicknames,
           }));
         } else if (currentPeer && (message.type === "offer" || message.type === "answer" || message.type === "ice-candidate")) {
+          const peers = roomPeers.get(currentPeer.roomId);
+          if (peers) {
+            peers.forEach((peerId) => {
+              if (peerId !== currentPeer!.peerId) {
+                const peer = activePeers.get(peerId);
+                if (peer && peer.ws.readyState === WebSocket.OPEN) {
+                  peer.ws.send(JSON.stringify({
+                    type: message.type,
+                    data: message.data,
+                    from: currentPeer!.peerId,
+                  }));
+                }
+              }
+            });
+          }
+        } else if (currentPeer && message.type === "chat") {
+          const peers = roomPeers.get(currentPeer.roomId);
+          if (peers) {
+            peers.forEach((peerId) => {
+              if (peerId !== currentPeer!.peerId) {
+                const peer = activePeers.get(peerId);
+                if (peer && peer.ws.readyState === WebSocket.OPEN) {
+                  peer.ws.send(JSON.stringify({
+                    type: "chat",
+                    data: message.data,
+                    from: currentPeer!.peerId,
+                  }));
+                }
+              }
+            });
+          }
+        } else if (currentPeer && (message.type === "file-metadata" || message.type === "file-chunk" || message.type === "file-eof")) {
           const peers = roomPeers.get(currentPeer.roomId);
           if (peers) {
             peers.forEach((peerId) => {

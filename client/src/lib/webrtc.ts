@@ -15,41 +15,71 @@ export function useWebRTC(config: WebRTCConfig) {
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const wsRef = useRef<WebSocket | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
-  const chatChannelRef = useRef<RTCDataChannel | null>(null);
-  const fileChannelRef = useRef<RTCDataChannel | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  
+  // File transfer state
+  const fileMetadataRef = useRef<any>(null);
+  const fileChunksRef = useRef<ArrayBuffer[]>([]);
 
   const sendMessage = useCallback((message: any) => {
-    if (chatChannelRef.current?.readyState === 'open') {
-      chatChannelRef.current.send(JSON.stringify(message));
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: 'chat',
+        data: {
+          ...message,
+          from: config.peerId,
+          fromNickname: config.nickname,
+        },
+      }));
     }
-  }, []);
+  }, [config.peerId, config.nickname]);
 
   const sendFile = useCallback((file: File) => {
     return new Promise<void>((resolve, reject) => {
-      if (fileChannelRef.current?.readyState !== 'open') {
-        reject(new Error('File channel not open'));
+      const ws = wsRef.current;
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        reject(new Error('WebSocket not connected'));
         return;
       }
 
       const reader = new FileReader();
       reader.onload = () => {
         const arrayBuffer = reader.result as ArrayBuffer;
-        const metadata = JSON.stringify({
+        
+        // Send metadata
+        const metadata = {
           name: file.name,
           size: file.size,
           type: file.type,
-        });
+        };
+        ws.send(JSON.stringify({
+          type: 'file-metadata',
+          data: metadata,
+        }));
         
-        fileChannelRef.current!.send(metadata);
-        
+        // Send file in chunks
         const chunkSize = 16384;
         for (let offset = 0; offset < arrayBuffer.byteLength; offset += chunkSize) {
           const chunk = arrayBuffer.slice(offset, offset + chunkSize);
-          fileChannelRef.current!.send(chunk);
+          const bytes = new Uint8Array(chunk);
+          let binary = '';
+          for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const base64Chunk = btoa(binary);
+          ws.send(JSON.stringify({
+            type: 'file-chunk',
+            data: base64Chunk,
+          }));
         }
         
-        fileChannelRef.current!.send('EOF');
+        // Send EOF
+        ws.send(JSON.stringify({
+          type: 'file-eof',
+          data: null,
+        }));
+        
         resolve();
       };
       reader.onerror = reject;
@@ -62,9 +92,22 @@ export function useWebRTC(config: WebRTCConfig) {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       localStreamRef.current = stream;
       
-      stream.getTracks().forEach(track => {
-        pcRef.current?.addTrack(track, stream);
-      });
+      const pc = pcRef.current;
+      const ws = wsRef.current;
+      
+      if (pc && ws && ws.readyState === WebSocket.OPEN) {
+        stream.getTracks().forEach(track => {
+          pc.addTrack(track, stream);
+        });
+        
+        // Always renegotiate when adding tracks
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        ws.send(JSON.stringify({
+          type: 'offer',
+          data: offer,
+        }));
+      }
 
       return stream;
     } catch (error) {
@@ -86,198 +129,42 @@ export function useWebRTC(config: WebRTCConfig) {
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
+    // Simple WebRTC peer connection for voice only
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' },
         {
           urls: 'turn:numb.viagenie.ca',
           username: 'webrtc@live.com',
           credential: 'muazkh',
         },
-        {
-          urls: [
-            'turn:openrelay.metered.ca:80',
-            'turn:openrelay.metered.ca:443',
-            'turn:openrelay.metered.ca:443?transport=tcp',
-          ],
-          username: 'openrelayproject',
-          credential: 'openrelayproject',
-        },
-        {
-          urls: 'turn:relay1.expressturn.com:3478',
-          username: 'efNOVM4P7DG28SDBKH',
-          credential: 'SJx7iUZFU1X6aVSY',
-        },
       ],
-      iceTransportPolicy: 'all',
-      iceCandidatePoolSize: 10,
-      bundlePolicy: 'max-bundle',
-      rtcpMuxPolicy: 'require',
     });
     pcRef.current = pc;
 
-    const setupDataChannels = () => {
-      const chatChannel = pc.createDataChannel('chat');
-      chatChannelRef.current = chatChannel;
-
-      chatChannel.onopen = () => {
-        console.log('Chat channel opened');
-      };
-
-      chatChannel.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-          console.log('Received chat message:', message);
-          config.onMessage?.(message);
-        } catch (error) {
-          console.error('Error parsing chat message:', error);
-        }
-      };
-
-      const fileChannel = pc.createDataChannel('files');
-      fileChannelRef.current = fileChannel;
-
-      let fileMetadata: any = null;
-      let fileChunks: ArrayBuffer[] = [];
-
-      fileChannel.onmessage = (event) => {
-        if (typeof event.data === 'string') {
-          if (event.data === 'EOF') {
-            if (!fileMetadata) {
-              console.error('Received EOF without file metadata');
-              return;
-            }
-            const blob = new Blob(fileChunks);
-            const capturedMetadata = fileMetadata;
-            const reader = new FileReader();
-            reader.onload = () => {
-              config.onFileReceive?.({
-                name: capturedMetadata.name,
-                data: reader.result as ArrayBuffer,
-              });
-            };
-            reader.readAsArrayBuffer(blob);
-            fileChunks = [];
-            fileMetadata = null;
-          } else {
-            try {
-              fileMetadata = JSON.parse(event.data);
-            } catch (error) {
-              console.error('Error parsing file metadata:', error);
-            }
-          }
-        } else {
-          fileChunks.push(event.data);
-        }
-      };
-    };
-
     pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        console.log('ICE candidate:', event.candidate.type, event.candidate.protocol, event.candidate.address || 'relay');
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({
-            type: 'ice-candidate',
-            data: event.candidate,
-          }));
-        }
-      } else {
-        console.log('ICE gathering complete');
+      if (event.candidate && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'ice-candidate',
+          data: event.candidate,
+        }));
       }
-    };
-
-    pc.onicecandidateerror = (event) => {
-      console.error('ICE candidate error:', event.errorCode, event.errorText, event.url);
-    };
-
-    pc.onicegatheringstatechange = () => {
-      console.log('ICE gathering state:', pc.iceGatheringState);
-    };
-
-    pc.oniceconnectionstatechange = () => {
-      console.log('ICE connection state:', pc.iceConnectionState);
     };
 
     pc.ontrack = (event) => {
-      console.log('Received remote track:', event.track.kind);
+      console.log('Received remote audio track');
+      // The remote stream will be available in event.streams[0]
+      // UI components can access this via refs if needed
     };
 
     pc.onconnectionstatechange = () => {
-      console.log('Connection state:', pc.connectionState);
-      if (pc.connectionState === 'connected') {
-        setIsConnected(true);
-        setConnectionState('connected');
-        config.onPeerConnected?.();
-      } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-        setIsConnected(false);
-        setConnectionState('disconnected');
-        config.onPeerDisconnected?.();
-      }
-    };
-
-    pc.ondatachannel = (event) => {
-      console.log('Received data channel:', event.channel.label);
-      
-      if (event.channel.label === 'chat') {
-        chatChannelRef.current = event.channel;
-        
-        event.channel.onopen = () => {
-          console.log('Remote chat channel opened');
-        };
-        
-        event.channel.onmessage = (msgEvent) => {
-          try {
-            const message = JSON.parse(msgEvent.data);
-            console.log('Received chat message:', message);
-            config.onMessage?.(message);
-          } catch (error) {
-            console.error('Error parsing chat message:', error);
-          }
-        };
-      } else if (event.channel.label === 'files') {
-        fileChannelRef.current = event.channel;
-        
-        let fileMetadata: any = null;
-        let fileChunks: ArrayBuffer[] = [];
-        
-        event.channel.onmessage = (msgEvent) => {
-          if (typeof msgEvent.data === 'string') {
-            if (msgEvent.data === 'EOF') {
-              if (!fileMetadata) {
-                console.error('Received EOF without file metadata');
-                return;
-              }
-              const blob = new Blob(fileChunks);
-              const capturedMetadata = fileMetadata;
-              const reader = new FileReader();
-              reader.onload = () => {
-                config.onFileReceive?.({
-                  name: capturedMetadata.name,
-                  data: reader.result as ArrayBuffer,
-                });
-              };
-              reader.readAsArrayBuffer(blob);
-              fileChunks = [];
-              fileMetadata = null;
-            } else {
-              try {
-                fileMetadata = JSON.parse(msgEvent.data);
-              } catch (error) {
-                console.error('Error parsing file metadata:', error);
-              }
-            }
-          } else {
-            fileChunks.push(msgEvent.data);
-          }
-        };
-      }
+      console.log('WebRTC connection state:', pc.connectionState);
     };
 
     ws.onopen = () => {
+      console.log('WebSocket connected');
       ws.send(JSON.stringify({
         type: 'join',
         roomId: config.roomId,
@@ -287,50 +174,95 @@ export function useWebRTC(config: WebRTCConfig) {
     };
 
     ws.onmessage = async (event) => {
-      const message = JSON.parse(event.data);
+      try {
+        const message = JSON.parse(event.data);
 
-      if (message.type === 'joined') {
-        console.log('Joined room, existing peers:', message.existingPeers);
-        if (message.existingPeers.length > 0) {
-          config.onPeerConnected?.({ nickname: message.existingPeers[0]?.nickname });
-          setupDataChannels();
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
+        if (message.type === 'joined') {
+          console.log('Joined room, existing peers:', message.existingPeers);
+          setIsConnected(true);
+          setConnectionState('connected');
+          
+          if (message.existingPeers.length > 0) {
+            config.onPeerConnected?.({ nickname: message.existingPeers[0]?.nickname });
+            
+            // Create WebRTC offer for voice
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            ws.send(JSON.stringify({
+              type: 'offer',
+              data: offer,
+            }));
+          }
+        } else if (message.type === 'peer-joined') {
+          console.log('Peer joined:', message.peerId, message.nickname);
+          config.onPeerConnected?.({ nickname: message.nickname });
+        } else if (message.type === 'offer') {
+          await pc.setRemoteDescription(new RTCSessionDescription(message.data));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
           ws.send(JSON.stringify({
-            type: 'offer',
-            data: offer,
+            type: 'answer',
+            data: answer,
           }));
+        } else if (message.type === 'answer') {
+          await pc.setRemoteDescription(new RTCSessionDescription(message.data));
+        } else if (message.type === 'ice-candidate') {
+          await pc.addIceCandidate(new RTCIceCandidate(message.data));
+        } else if (message.type === 'chat') {
+          console.log('Received chat message:', message.data);
+          config.onMessage?.(message.data);
+        } else if (message.type === 'file-metadata') {
+          fileMetadataRef.current = message.data;
+          fileChunksRef.current = [];
+        } else if (message.type === 'file-chunk') {
+          // Decode base64 chunk
+          const binaryString = atob(message.data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          fileChunksRef.current.push(bytes.buffer);
+        } else if (message.type === 'file-eof') {
+          if (!fileMetadataRef.current) {
+            console.error('Received EOF without file metadata');
+            return;
+          }
+          
+          const capturedMetadata = fileMetadataRef.current;
+          const blob = new Blob(fileChunksRef.current, { type: capturedMetadata.type });
+          const reader = new FileReader();
+          reader.onload = () => {
+            config.onFileReceive?.({
+              name: capturedMetadata.name,
+              data: reader.result as ArrayBuffer,
+            });
+          };
+          reader.readAsArrayBuffer(blob);
+          
+          fileChunksRef.current = [];
+          fileMetadataRef.current = null;
+        } else if (message.type === 'peer-left') {
+          console.log('Peer left:', message.peerId);
+          setIsConnected(false);
+          setConnectionState('disconnected');
+          config.onPeerDisconnected?.();
         }
-      } else if (message.type === 'peer-joined') {
-        console.log('Peer joined:', message.peerId, message.nickname);
-        config.onPeerConnected?.({ nickname: message.nickname });
-      } else if (message.type === 'offer') {
-        await pc.setRemoteDescription(new RTCSessionDescription(message.data));
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        ws.send(JSON.stringify({
-          type: 'answer',
-          data: answer,
-        }));
-      } else if (message.type === 'answer') {
-        await pc.setRemoteDescription(new RTCSessionDescription(message.data));
-      } else if (message.type === 'ice-candidate') {
-        await pc.addIceCandidate(new RTCIceCandidate(message.data));
-      } else if (message.type === 'peer-left') {
-        console.log('Peer left:', message.peerId);
-        setIsConnected(false);
-        setConnectionState('disconnected');
-        config.onPeerDisconnected?.();
+      } catch (error) {
+        console.error('WebSocket message error:', error);
       }
     };
 
+    ws.onclose = () => {
+      console.log('WebSocket closed');
+      setIsConnected(false);
+      setConnectionState('disconnected');
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
     return () => {
-      if (chatChannelRef.current) {
-        chatChannelRef.current.close();
-      }
-      if (fileChannelRef.current) {
-        fileChannelRef.current.close();
-      }
       pc.close();
       ws.close();
       stopVoiceChat();
