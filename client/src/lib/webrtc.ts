@@ -78,6 +78,7 @@ export function useWebRTC(config: WebRTCConfig) {
         const totalChunks = Math.ceil(arrayBuffer.byteLength / chunkSize);
         let chunksSent = 0;
         
+        console.log(`Sending ${totalChunks} chunks...`);
         for (let offset = 0; offset < arrayBuffer.byteLength; offset += chunkSize) {
           const chunk = arrayBuffer.slice(offset, offset + chunkSize);
           const bytes = new Uint8Array(chunk);
@@ -95,6 +96,7 @@ export function useWebRTC(config: WebRTCConfig) {
           const progress = Math.round((chunksSent / totalChunks) * 100);
           options?.onProgress?.(progress);
         }
+        console.log(`Sent ${chunksSent} chunks`);
         
         // Send EOF
         console.log('Sending file EOF');
@@ -253,6 +255,9 @@ export function useWebRTC(config: WebRTCConfig) {
             bytes[i] = binaryString.charCodeAt(i);
           }
           fileChunksRef.current.push(bytes.buffer);
+          if (fileChunksRef.current.length % 10 === 0) {
+            console.log(`Received ${fileChunksRef.current.length} chunks so far...`);
+          }
         } else if (message.type === 'file-eof') {
           if (!fileMetadataRef.current) {
             console.error('Received EOF without file metadata');
