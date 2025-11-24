@@ -197,6 +197,8 @@ export function useWebRTC(config: WebRTCConfig) {
           }
         } else if (message.type === 'peer-joined') {
           console.log('Peer joined:', message.peerId, message.nickname);
+          setIsConnected(true);
+          setConnectionState('connected');
           config.onPeerConnected?.({ nickname: message.nickname });
         } else if (message.type === 'offer') {
           await pc.setRemoteDescription(new RTCSessionDescription(message.data));
