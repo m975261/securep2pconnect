@@ -176,15 +176,17 @@ export default function Room() {
       }]);
     },
     onFileReceive: (file: any) => {
-      toast.success(`Received file: ${file.name}`);
-      const blob = new Blob([file.data]);
+      const senderName = file.fromNickname || 'Peer';
+      toast.success(`Received file from ${senderName}: ${file.name}`);
+      const blob = new Blob([file.data], { type: file.type || 'application/octet-stream' });
       const url = URL.createObjectURL(blob);
       setTransferredFiles(prev => [...prev, {
         name: file.name,
-        size: file.data.byteLength,
+        size: file.size || file.data.byteLength,
         url,
         type: 'received',
         timestamp: new Date(),
+        senderName,
       }]);
     },
     onPeerConnected: (peerInfo?: { nickname?: string }) => {

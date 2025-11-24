@@ -5,7 +5,7 @@ interface WebRTCConfig {
   peerId: string;
   nickname?: string;
   onMessage?: (message: any) => void;
-  onFileReceive?: (file: { name: string; data: ArrayBuffer }) => void;
+  onFileReceive?: (file: { name: string; type: string; size: number; data: ArrayBuffer; from?: string; fromNickname?: string }) => void;
   onPeerConnected?: (peerInfo?: { nickname?: string }) => void;
   onPeerDisconnected?: () => void;
 }
@@ -52,6 +52,8 @@ export function useWebRTC(config: WebRTCConfig) {
           name: file.name,
           size: file.size,
           type: file.type,
+          from: config.peerId,
+          fromNickname: config.nickname,
         };
         ws.send(JSON.stringify({
           type: 'file-metadata',
@@ -85,7 +87,7 @@ export function useWebRTC(config: WebRTCConfig) {
       reader.onerror = reject;
       reader.readAsArrayBuffer(file);
     });
-  }, []);
+  }, [config.peerId, config.nickname]);
 
   const startVoiceChat = useCallback(async () => {
     try {
@@ -234,7 +236,11 @@ export function useWebRTC(config: WebRTCConfig) {
           reader.onload = () => {
             config.onFileReceive?.({
               name: capturedMetadata.name,
+              type: capturedMetadata.type,
+              size: capturedMetadata.size,
               data: reader.result as ArrayBuffer,
+              from: capturedMetadata.from,
+              fromNickname: capturedMetadata.fromNickname,
             });
           };
           reader.readAsArrayBuffer(blob);
