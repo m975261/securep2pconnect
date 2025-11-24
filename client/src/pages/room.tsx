@@ -49,7 +49,13 @@ export default function Room() {
   const [isCreator, setIsCreator] = useState(false);
   const [hasPassword, setHasPassword] = useState(false);
   const [needsNickname, setNeedsNickname] = useState(!nicknameFromUrl);
+  const [shareLink, setShareLink] = useState('');
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && roomId) {
+      setShareLink(`${window.location.origin}/room/${roomId}`);
+    }
+  }, [roomId]);
 
   useEffect(() => {
     const checkRoomPassword = async () => {
@@ -270,10 +276,12 @@ export default function Room() {
   };
 
   const copyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    toast.success('Link copied to clipboard!');
+    if (shareLink) {
+      navigator.clipboard.writeText(shareLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast.success('Link copied to clipboard!');
+    }
   };
 
   if (checkingPassword) {
@@ -482,7 +490,7 @@ export default function Room() {
               <div className="flex flex-col items-center gap-2 sm:gap-3">
                 <div className="p-2 bg-white rounded-lg">
                   <QRCode 
-                    value={window.location.href} 
+                    value={shareLink || window.location.origin} 
                     size={Math.min(140, window.innerWidth - 120)}
                     className="w-full h-auto max-w-[140px]"
                   />
@@ -491,7 +499,7 @@ export default function Room() {
                   <label className="text-[10px] sm:text-xs text-muted-foreground font-mono">SHARED SECRET LINK</label>
                   <div className="flex gap-1.5 sm:gap-2">
                     <div className="flex-1 p-1.5 sm:p-2 bg-black/30 border border-white/10 rounded font-mono text-[9px] sm:text-xs break-all overflow-hidden">
-                      {window.location.href}
+                      {shareLink}
                     </div>
                     <Button 
                       size="icon" 
