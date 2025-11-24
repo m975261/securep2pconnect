@@ -132,11 +132,16 @@ export function useWebRTC(config: WebRTCConfig) {
     fileChannel.onmessage = (event) => {
       if (typeof event.data === 'string') {
         if (event.data === 'EOF') {
+          if (!fileMetadata) {
+            console.error('Received EOF without file metadata');
+            return;
+          }
           const blob = new Blob(fileChunks);
+          const capturedMetadata = fileMetadata;
           const reader = new FileReader();
           reader.onload = () => {
             config.onFileReceive?.({
-              name: fileMetadata.name,
+              name: capturedMetadata.name,
               data: reader.result as ArrayBuffer,
             });
           };
@@ -144,7 +149,11 @@ export function useWebRTC(config: WebRTCConfig) {
           fileChunks = [];
           fileMetadata = null;
         } else {
-          fileMetadata = JSON.parse(event.data);
+          try {
+            fileMetadata = JSON.parse(event.data);
+          } catch (error) {
+            console.error('Error parsing file metadata:', error);
+          }
         }
       } else {
         fileChunks.push(event.data);
@@ -233,19 +242,22 @@ export function useWebRTC(config: WebRTCConfig) {
         event.channel.onmessage = (msgEvent) => {
           if (typeof msgEvent.data === 'string') {
             if (msgEvent.data === 'EOF') {
-              if (fileMetadata) {
-                const blob = new Blob(fileChunks);
-                const reader = new FileReader();
-                reader.onload = () => {
-                  config.onFileReceive?.({
-                    name: fileMetadata.name,
-                    data: reader.result as ArrayBuffer,
-                  });
-                };
-                reader.readAsArrayBuffer(blob);
-                fileChunks = [];
-                fileMetadata = null;
+              if (!fileMetadata) {
+                console.error('Received EOF without file metadata');
+                return;
               }
+              const blob = new Blob(fileChunks);
+              const capturedMetadata = fileMetadata;
+              const reader = new FileReader();
+              reader.onload = () => {
+                config.onFileReceive?.({
+                  name: capturedMetadata.name,
+                  data: reader.result as ArrayBuffer,
+                });
+              };
+              reader.readAsArrayBuffer(blob);
+              fileChunks = [];
+              fileMetadata = null;
             } else {
               try {
                 fileMetadata = JSON.parse(msgEvent.data);

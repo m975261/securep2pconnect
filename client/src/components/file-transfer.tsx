@@ -1,13 +1,21 @@
 import { useDropzone } from "react-dropzone";
-import { Upload, File as FileIcon, X, Check } from "lucide-react";
+import { Upload, File as FileIcon, X, Check, Download, ArrowDown, ArrowUp } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
 interface FileTransferProps {
   onSendFile: (file: File) => Promise<void>;
+  transferredFiles: Array<{
+    name: string;
+    size: number;
+    url: string;
+    type: 'sent' | 'received';
+    timestamp: Date;
+  }>;
 }
 
-export function FileTransfer({ onSendFile }: FileTransferProps) {
+export function FileTransfer({ onSendFile, transferredFiles }: FileTransferProps) {
   const [files, setFiles] = useState<Array<{ name: string; size: string; progress: number; status: 'uploading' | 'completed' }>>([]);
 
   const onDrop = async (acceptedFiles: File[]) => {
@@ -112,6 +120,54 @@ export function FileTransfer({ onSendFile }: FileTransferProps) {
               </div>
             </motion.div>
           ))}
+
+          {transferredFiles.length > 0 && (
+            <div className="pt-2 border-t border-white/5 mt-2">
+              <h3 className="text-[10px] font-mono text-muted-foreground mb-2 uppercase">Transfer History</h3>
+              {transferredFiles.slice().reverse().map((file, idx) => (
+                <motion.div
+                  key={`${file.timestamp.getTime()}-${idx}`}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white/5 border border-white/5 rounded-lg p-3 mb-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
+                      <div className="p-1.5 bg-black/50 rounded">
+                        {file.type === 'sent' ? (
+                          <ArrowUp className="w-3 h-3 text-blue-400" />
+                        ) : (
+                          <ArrowDown className="w-3 h-3 text-green-400" />
+                        )}
+                      </div>
+                      <div className="truncate flex-1 min-w-0">
+                        <div className="text-xs font-mono truncate text-white/90" data-testid={`file-${file.type}-${idx}`}>
+                          {file.name}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type === 'sent' ? 'Sent' : 'Received'}
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => {
+                        const a = document.createElement('a');
+                        a.href = file.url;
+                        a.download = file.name;
+                        a.click();
+                      }}
+                      data-testid={`button-download-${idx}`}
+                    >
+                      <Download className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </AnimatePresence>
       </div>
     </div>

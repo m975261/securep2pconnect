@@ -50,6 +50,13 @@ export default function Room() {
   const [hasPassword, setHasPassword] = useState(false);
   const [needsNickname, setNeedsNickname] = useState(!nicknameFromUrl);
   const [shareLink, setShareLink] = useState('');
+  const [transferredFiles, setTransferredFiles] = useState<Array<{
+    name: string;
+    size: number;
+    url: string;
+    type: 'sent' | 'received';
+    timestamp: Date;
+  }>>([]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && roomId) {
@@ -172,10 +179,13 @@ export default function Room() {
       toast.success(`Received file: ${file.name}`);
       const blob = new Blob([file.data]);
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.name;
-      a.click();
+      setTransferredFiles(prev => [...prev, {
+        name: file.name,
+        size: file.data.byteLength,
+        url,
+        type: 'received',
+        timestamp: new Date(),
+      }]);
     },
     onPeerConnected: (peerInfo?: { nickname?: string }) => {
       if (peerInfo?.nickname) {
@@ -202,6 +212,18 @@ export default function Room() {
       timestamp: new Date(),
       senderName: nickname || 'You',
     }]);
+  };
+
+  const handleSendFile = async (file: File) => {
+    const url = URL.createObjectURL(file);
+    setTransferredFiles(prev => [...prev, {
+      name: file.name,
+      size: file.size,
+      url,
+      type: 'sent',
+      timestamp: new Date(),
+    }]);
+    await sendFile(file);
   };
 
   const handleSetPassword = async () => {
@@ -644,7 +666,10 @@ export default function Room() {
                    exit={{ opacity: 0, x: -20 }}
                    className="h-full"
                  >
-                   <FileTransfer onSendFile={sendFile} />
+                   <FileTransfer 
+                     onSendFile={handleSendFile}
+                     transferredFiles={transferredFiles}
+                   />
                  </motion.div>
                )}
              </AnimatePresence>
