@@ -217,7 +217,7 @@ export default function Room() {
     }]);
   };
 
-  const handleSendFile = async (file: File) => {
+  const handleSendFile = async (file: File, onProgress?: (progress: number) => void) => {
     const url = URL.createObjectURL(file);
     setTransferredFiles(prev => [...prev, {
       name: file.name,
@@ -227,7 +227,7 @@ export default function Room() {
       timestamp: new Date(),
       senderName: nickname || 'You',
     }]);
-    await sendFile(file);
+    await sendFile(file, { onProgress });
   };
 
   const handleSetPassword = async () => {

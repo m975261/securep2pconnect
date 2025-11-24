@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
 interface FileTransferProps {
-  onSendFile: (file: File) => Promise<void>;
+  onSendFile: (file: File, onProgress?: (progress: number) => void) => Promise<void>;
   transferredFiles: Array<{
     name: string;
     size: number;
@@ -34,31 +34,17 @@ export function FileTransfer({ onSendFile, transferredFiles }: FileTransferProps
       const fileIndex = files.length + i;
 
       try {
-        let progress = 0;
-        const interval = setInterval(() => {
-          progress += 10;
-          if (progress >= 100) {
-            clearInterval(interval);
-          }
+        await onSendFile(file, (progress) => {
           setFiles(prev => {
             const updated = [...prev];
             if (updated[fileIndex]) {
-              updated[fileIndex].progress = Math.min(progress, 100);
+              updated[fileIndex].progress = progress;
+              if (progress >= 100) {
+                updated[fileIndex].status = 'completed';
+              }
             }
             return updated;
           });
-        }, 100);
-
-        await onSendFile(file);
-        
-        clearInterval(interval);
-        setFiles(prev => {
-          const updated = [...prev];
-          if (updated[fileIndex]) {
-            updated[fileIndex].status = 'completed';
-            updated[fileIndex].progress = 100;
-          }
-          return updated;
         });
       } catch (error) {
         console.error('Error sending file:', error);
@@ -108,15 +94,16 @@ export function FileTransfer({ onSendFile, transferredFiles }: FileTransferProps
                 {file.status === 'completed' ? (
                   <Check className="w-4 h-4 text-primary" />
                 ) : (
-                  <span className="text-[10px] font-mono text-accent animate-pulse">SENDING...</span>
+                  <span className="text-xs font-mono text-accent font-bold" data-testid={`text-progress-${idx}`}>{file.progress}%</span>
                 )}
               </div>
               
-              <div className="h-1 bg-black/50 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-black/50 rounded-full overflow-hidden">
                 <motion.div 
-                  className="h-full bg-accent"
+                  className="h-full bg-gradient-to-r from-accent to-green-400"
                   initial={{ width: 0 }}
                   animate={{ width: `${file.progress}%` }}
+                  transition={{ duration: 0.3 }}
                 />
               </div>
             </motion.div>

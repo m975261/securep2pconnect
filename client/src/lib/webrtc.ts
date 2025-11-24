@@ -10,6 +10,10 @@ interface WebRTCConfig {
   onPeerDisconnected?: () => void;
 }
 
+interface SendFileOptions {
+  onProgress?: (progress: number) => void;
+}
+
 export function useWebRTC(config: WebRTCConfig) {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
@@ -41,14 +45,16 @@ export function useWebRTC(config: WebRTCConfig) {
     }
   }, []);
 
-  const sendFile = useCallback((file: File) => {
+  const sendFile = useCallback((file: File, options?: SendFileOptions) => {
     return new Promise<void>((resolve, reject) => {
       const ws = wsRef.current;
       if (!ws || ws.readyState !== WebSocket.OPEN) {
+        console.error('Cannot send file: WebSocket not connected');
         reject(new Error('WebSocket not connected'));
         return;
       }
 
+      console.log('Starting file transfer:', file.name, 'Size:', file.size);
       const reader = new FileReader();
       reader.onload = () => {
         const arrayBuffer = reader.result as ArrayBuffer;
@@ -61,6 +67,7 @@ export function useWebRTC(config: WebRTCConfig) {
           from: configRef.current.peerId,
           fromNickname: configRef.current.nickname,
         };
+        console.log('Sending file metadata:', metadata);
         ws.send(JSON.stringify({
           type: 'file-metadata',
           data: metadata,
@@ -68,6 +75,9 @@ export function useWebRTC(config: WebRTCConfig) {
         
         // Send file in chunks
         const chunkSize = 16384;
+        const totalChunks = Math.ceil(arrayBuffer.byteLength / chunkSize);
+        let chunksSent = 0;
+        
         for (let offset = 0; offset < arrayBuffer.byteLength; offset += chunkSize) {
           const chunk = arrayBuffer.slice(offset, offset + chunkSize);
           const bytes = new Uint8Array(chunk);
@@ -80,17 +90,27 @@ export function useWebRTC(config: WebRTCConfig) {
             type: 'file-chunk',
             data: base64Chunk,
           }));
+          
+          chunksSent++;
+          const progress = Math.round((chunksSent / totalChunks) * 100);
+          options?.onProgress?.(progress);
         }
         
         // Send EOF
+        console.log('Sending file EOF');
         ws.send(JSON.stringify({
           type: 'file-eof',
           data: null,
         }));
         
+        options?.onProgress?.(100);
+        console.log('File transfer complete:', file.name);
         resolve();
       };
-      reader.onerror = reject;
+      reader.onerror = (error) => {
+        console.error('FileReader error:', error);
+        reject(error);
+      };
       reader.readAsArrayBuffer(file);
     });
   }, []);
@@ -222,6 +242,7 @@ export function useWebRTC(config: WebRTCConfig) {
           console.log('Received chat message:', message.data);
           configRef.current.onMessage?.(message.data);
         } else if (message.type === 'file-metadata') {
+          console.log('Received file metadata:', message.data);
           fileMetadataRef.current = message.data;
           fileChunksRef.current = [];
         } else if (message.type === 'file-chunk') {
@@ -238,10 +259,13 @@ export function useWebRTC(config: WebRTCConfig) {
             return;
           }
           
+          console.log('Received file EOF, reconstructing file...');
           const capturedMetadata = fileMetadataRef.current;
           const blob = new Blob(fileChunksRef.current, { type: capturedMetadata.type });
+          console.log('File reconstructed, size:', blob.size, 'chunks:', fileChunksRef.current.length);
           const reader = new FileReader();
           reader.onload = () => {
+            console.log('Calling onFileReceive callback');
             configRef.current.onFileReceive?.({
               name: capturedMetadata.name,
               type: capturedMetadata.type,
