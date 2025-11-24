@@ -79,35 +79,46 @@ export function useWebRTC(config: WebRTCConfig) {
         let chunksSent = 0;
         
         console.log(`Sending ${totalChunks} chunks...`);
-        for (let offset = 0; offset < arrayBuffer.byteLength; offset += chunkSize) {
-          const chunk = arrayBuffer.slice(offset, offset + chunkSize);
-          const bytes = new Uint8Array(chunk);
-          let binary = '';
-          for (let i = 0; i < bytes.length; i++) {
-            binary += String.fromCharCode(bytes[i]);
+        
+        // Send chunks with small delays to allow UI updates
+        const sendChunks = async () => {
+          for (let offset = 0; offset < arrayBuffer.byteLength; offset += chunkSize) {
+            const chunk = arrayBuffer.slice(offset, offset + chunkSize);
+            const bytes = new Uint8Array(chunk);
+            let binary = '';
+            for (let i = 0; i < bytes.length; i++) {
+              binary += String.fromCharCode(bytes[i]);
+            }
+            const base64Chunk = btoa(binary);
+            ws.send(JSON.stringify({
+              type: 'file-chunk',
+              data: base64Chunk,
+            }));
+            
+            chunksSent++;
+            const progress = Math.round((chunksSent / totalChunks) * 100);
+            options?.onProgress?.(progress);
+            
+            // Yield to event loop to allow UI updates - use setTimeout to force browser paint
+            if (chunksSent % 5 === 0) {
+              await new Promise(resolve => setTimeout(resolve, 0));
+            }
           }
-          const base64Chunk = btoa(binary);
+          console.log(`Sent ${chunksSent} chunks`);
+          
+          // Send EOF
+          console.log('Sending file EOF');
           ws.send(JSON.stringify({
-            type: 'file-chunk',
-            data: base64Chunk,
+            type: 'file-eof',
+            data: null,
           }));
           
-          chunksSent++;
-          const progress = Math.round((chunksSent / totalChunks) * 100);
-          options?.onProgress?.(progress);
-        }
-        console.log(`Sent ${chunksSent} chunks`);
+          options?.onProgress?.(100);
+          console.log('File transfer complete:', file.name);
+          resolve();
+        };
         
-        // Send EOF
-        console.log('Sending file EOF');
-        ws.send(JSON.stringify({
-          type: 'file-eof',
-          data: null,
-        }));
-        
-        options?.onProgress?.(100);
-        console.log('File transfer complete:', file.name);
-        resolve();
+        sendChunks().catch(reject);
       };
       reader.onerror = (error) => {
         console.error('FileReader error:', error);
@@ -154,6 +165,9 @@ export function useWebRTC(config: WebRTCConfig) {
   }, []);
 
   useEffect(() => {
+    // Only reconnect if we don't have a connection or if roomId actually changes
+    if (!config.roomId || !config.peerId) return;
+    
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
     const ws = new WebSocket(wsUrl);
@@ -310,7 +324,7 @@ export function useWebRTC(config: WebRTCConfig) {
       ws.close();
       stopVoiceChat();
     };
-  }, [config.roomId, config.peerId, config.nickname]);
+  }, [config.roomId, config.peerId]);
 
   return {
     isConnected,

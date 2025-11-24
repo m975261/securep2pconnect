@@ -4,7 +4,7 @@ import {
   Share2, MessageSquare, FileText, Copy, Check, Lock
 } from "lucide-react";
 import { useLocation, useRoute } from "wouter";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import QRCode from "react-qr-code";
@@ -163,46 +163,56 @@ export default function Room() {
     }
   };
 
-  const { connectionState, sendMessage, sendFile, startVoiceChat, stopVoiceChat } = useWebRTC({
+  const onMessage = useCallback((message: any) => {
+    setMessages(prev => [...prev, {
+      id: Date.now().toString(),
+      text: message.text,
+      sender: 'peer',
+      timestamp: new Date(),
+      senderName: message.senderName || peerNickname || 'Peer',
+    }]);
+  }, [peerNickname]);
+
+  const onFileReceive = useCallback((file: any) => {
+    const senderName = file.fromNickname || 'Peer';
+    toast.success(`Received file from ${senderName}: ${file.name}`);
+    const blob = new Blob([file.data], { type: file.type || 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    setTransferredFiles(prev => [...prev, {
+      name: file.name,
+      size: file.size || file.data.byteLength,
+      url,
+      type: 'received',
+      timestamp: new Date(),
+      senderName,
+    }]);
+  }, []);
+
+  const onPeerConnected = useCallback((peerInfo?: { nickname?: string }) => {
+    if (peerInfo?.nickname) {
+      setPeerNickname(peerInfo.nickname);
+      toast.success(`${peerInfo.nickname} connected!`);
+    } else {
+      toast.success('Peer connected!');
+    }
+  }, []);
+
+  const onPeerDisconnected = useCallback(() => {
+    toast.error('Peer disconnected');
+    setPeerNickname('');
+  }, []);
+
+  const webrtcConfig = useMemo(() => ({
     roomId: passwordVerified ? roomId : '',
     peerId: passwordVerified ? peerId : '',
     nickname: passwordVerified ? nickname : '',
-    onMessage: (message: any) => {
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        text: message.text,
-        sender: 'peer',
-        timestamp: new Date(),
-        senderName: message.senderName || peerNickname || 'Peer',
-      }]);
-    },
-    onFileReceive: (file: any) => {
-      const senderName = file.fromNickname || 'Peer';
-      toast.success(`Received file from ${senderName}: ${file.name}`);
-      const blob = new Blob([file.data], { type: file.type || 'application/octet-stream' });
-      const url = URL.createObjectURL(blob);
-      setTransferredFiles(prev => [...prev, {
-        name: file.name,
-        size: file.size || file.data.byteLength,
-        url,
-        type: 'received',
-        timestamp: new Date(),
-        senderName,
-      }]);
-    },
-    onPeerConnected: (peerInfo?: { nickname?: string }) => {
-      if (peerInfo?.nickname) {
-        setPeerNickname(peerInfo.nickname);
-        toast.success(`${peerInfo.nickname} connected!`);
-      } else {
-        toast.success('Peer connected!');
-      }
-    },
-    onPeerDisconnected: () => {
-      toast.error('Peer disconnected');
-      setPeerNickname('');
-    },
-  });
+    onMessage,
+    onFileReceive,
+    onPeerConnected,
+    onPeerDisconnected,
+  }), [passwordVerified, roomId, peerId, nickname, onMessage, onFileReceive, onPeerConnected, onPeerDisconnected]);
+
+  const { connectionState, sendMessage, sendFile, startVoiceChat, stopVoiceChat } = useWebRTC(webrtcConfig);
 
   const handleSendMessage = (text: string) => {
     const messageData = { text, senderName: nickname || 'Anonymous' };
