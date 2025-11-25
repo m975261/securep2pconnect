@@ -272,6 +272,24 @@ export function useWebRTC(config: WebRTCConfig) {
 
     pc.onconnectionstatechange = () => {
       console.log('WebRTC connection state:', pc.connectionState);
+      
+      // Handle connection failures by triggering ICE restart
+      if (pc.connectionState === 'failed') {
+        console.log('WebRTC connection failed, attempting ICE restart');
+        // Trigger renegotiation with ICE restart
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          pc.createOffer({ iceRestart: true }).then(offer => {
+            return pc.setLocalDescription(offer);
+          }).then(() => {
+            wsRef.current!.send(JSON.stringify({
+              type: 'offer',
+              data: pc.localDescription,
+            }));
+          }).catch(err => {
+            console.error('Error restarting ICE:', err);
+          });
+        }
+      }
     };
 
     pc.onsignalingstatechange = () => {
