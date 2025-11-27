@@ -460,22 +460,28 @@ export function useWebRTC(config: WebRTCConfig) {
           if (currentPc) {
             console.log('Received answer, setting remote description');
             console.log('Current signaling state before answer:', currentPc.signalingState);
-            await currentPc.setRemoteDescription(new RTCSessionDescription(message.data));
-            console.log('Remote description set, new signaling state:', currentPc.signalingState);
-            // Clear negotiating flag when answer is received
-            negotiatingRef.current = false;
             
-            // Check if voice stop was requested during negotiation
-            if (pendingStopRef.current) {
-              pendingStopRef.current = false;
-              console.log('Executing deferred stopVoiceChat after negotiation');
-              setTimeout(() => stopVoiceChat(), 100);
-            }
-            // Check if there's a pending negotiation
-            else if (pendingNegotiationRef.current) {
-              pendingNegotiationRef.current = false;
-              console.log('Performing pending negotiation after answer');
-              setTimeout(() => performNegotiation(), 100);
+            // Only set remote description if we're waiting for an answer
+            if (currentPc.signalingState === 'have-local-offer') {
+              await currentPc.setRemoteDescription(new RTCSessionDescription(message.data));
+              console.log('Remote description set, new signaling state:', currentPc.signalingState);
+              // Clear negotiating flag when answer is received
+              negotiatingRef.current = false;
+              
+              // Check if voice stop was requested during negotiation
+              if (pendingStopRef.current) {
+                pendingStopRef.current = false;
+                console.log('Executing deferred stopVoiceChat after negotiation');
+                setTimeout(() => stopVoiceChat(), 100);
+              }
+              // Check if there's a pending negotiation
+              else if (pendingNegotiationRef.current) {
+                pendingNegotiationRef.current = false;
+                console.log('Performing pending negotiation after answer');
+                setTimeout(() => performNegotiation(), 100);
+              }
+            } else {
+              console.warn('Ignoring answer: not in have-local-offer state (current:', currentPc.signalingState + ')');
             }
           }
         } else if (message.type === 'error') {
