@@ -94,27 +94,6 @@ export default function Home() {
 
         {/* Actions */}
         <div className="space-y-4">
-          <Link href="/join">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full group relative overflow-hidden rounded-lg bg-white/5 border border-white/10 p-6 hover:border-accent/50 hover:bg-accent/5 transition-all"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded bg-black text-accent">
-                    <Lock className="w-6 h-6" />
-                  </div>
-                  <div className="text-left">
-                    <h3 className="font-bold text-white">{t.joinRoom}</h3>
-                    <p className="text-xs text-muted-foreground font-mono">{t.joinDesc}</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
-              </div>
-            </motion.button>
-          </Link>
-
           <Link href="/create">
             <motion.button
               whileHover={{ scale: 1.02 }}
@@ -126,12 +105,33 @@ export default function Home() {
                   <div className="p-3 rounded bg-black text-primary">
                     <Users className="w-6 h-6" />
                   </div>
-                  <div className="text-left">
+                  <div className={language === 'ar' ? 'text-right' : 'text-left'}>
                     <h3 className="font-bold text-white">{t.createRoom}</h3>
                     <p className="text-xs text-muted-foreground font-mono">{t.createDesc}</p>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+              </div>
+            </motion.button>
+          </Link>
+
+          <Link href="/join">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full group relative overflow-hidden rounded-lg bg-white/5 border border-white/10 p-6 hover:border-accent/50 hover:bg-accent/5 transition-all"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded bg-black text-accent">
+                    <Lock className="w-6 h-6" />
+                  </div>
+                  <div className={language === 'ar' ? 'text-right' : 'text-left'}>
+                    <h3 className="font-bold text-white">{t.joinRoom}</h3>
+                    <p className="text-xs text-muted-foreground font-mono">{t.joinDesc}</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
               </div>
             </motion.button>
           </Link>
