@@ -109,11 +109,13 @@ export function FileTransfer({ onSendFile, transferredFiles }: FileTransferProps
               </div>
             </motion.div>
           ))}
+        </AnimatePresence>
 
-          {transferredFiles.length > 0 && (
-            <div className="pt-2 border-t border-white/5 mt-2">
-              <h3 className="text-[10px] font-mono text-muted-foreground mb-2 uppercase sticky top-0 bg-background z-10">Transfer History</h3>
-              <div className="space-y-2 max-h-96 overflow-y-auto pr-1" data-testid="transfer-history-list">
+        {transferredFiles.length > 0 && (
+          <div className="pt-2 border-t border-white/5 mt-2">
+            <h3 className="text-[10px] font-mono text-muted-foreground mb-2 uppercase sticky top-0 bg-background z-10">Transfer History</h3>
+            <div className="space-y-2 max-h-96 overflow-y-auto pr-1" data-testid="transfer-history-list">
+              <AnimatePresence>
                 {transferredFiles.slice().reverse().map((file, idx) => (
                   <motion.div
                     key={`${file.name}-${file.timestamp.getTime()}-${file.type}`}
@@ -161,10 +163,10 @@ export function FileTransfer({ onSendFile, transferredFiles }: FileTransferProps
                     </div>
                   </motion.div>
                 ))}
-              </div>
+              </AnimatePresence>
             </div>
-          )}
-        </AnimatePresence>
+          </div>
+        )}
       </div>
     </div>
   );
