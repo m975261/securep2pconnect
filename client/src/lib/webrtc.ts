@@ -299,8 +299,6 @@ export function useWebRTC(config: WebRTCConfig) {
       ],
       iceTransportPolicy: 'all', // Try all connection types
       iceCandidatePoolSize: 10,
-      bundlePolicy: 'max-bundle',
-      rtcpMuxPolicy: 'require',
     });
     pcRef.current = pc;
 
