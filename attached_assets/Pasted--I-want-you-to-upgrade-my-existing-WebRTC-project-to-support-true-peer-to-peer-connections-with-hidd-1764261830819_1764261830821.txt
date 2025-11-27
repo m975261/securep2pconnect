@@ -1,0 +1,84 @@
+"I want you to upgrade my existing WebRTC project to support true peer-to-peer connections with hidden IP addresses using a lightweight local helper application. The browser must NOT connect directly to remote peers. Instead, it must communicate with a tiny native helper running on the user's device, which provides a private overlay network that hides real IPs, handles NAT traversal, and routes WebRTC traffic securely.
+
+Here is the architecture I want you to build:
+
+Browser Layer (Web App)
+
+Keep the existing WebRTC code.
+
+Replace direct RTCPeerConnection with a connection to a local WebSocket server running on ws://127.0.0.1:52100.
+
+All WebRTC offer/answer/ICE candidates should be sent to the helper instead of directly to the other peer.
+
+The browser never learns or exposes real IPs.
+
+Helper Application (Native – small binary)
+
+Use Go or Rust to build a 2–3 MB executable.
+
+On startup:
+
+Open a WebSocket server at 127.0.0.1:52100 for the browser.
+
+Connect to a decentralized DHT network using libp2p.
+
+Assign each helper a persistent libp2p PeerID (not an IP).
+
+When the browser sends a WebRTC offer or ICE candidates:
+
+Forward them over the libp2p network to the target PeerID.
+
+When receiving remote WebRTC signaling:
+
+Push the signaling messages back to the browser through the local WebSocket.
+
+This replaces any need for STUN, TURN, or a signaling server.
+
+Peer Discovery
+
+Use libp2p Kademlia DHT for discovery.
+
+Peers exchange offers/answers via peer IDs over the libp2p overlay.
+
+No central server is required.
+
+Security
+
+Encrypt all P2P communication using Noise XX handshake (built into libp2p).
+
+Each helper must create a secure channel between peer IDs.
+
+The helper should NAT-punch through using libp2p’s autonat and hole punching.
+
+WebRTC media remains encrypted end-to-end with DTLS and AES-256.
+
+Build Outputs
+
+Generate:
+
+A working local helper binary for Windows, Mac, and Linux.
+
+Updated browser code using WebSocket <-> helper signaling.
+
+A simple UI to show my Peer ID and allow entering a remote Peer ID to start a call.
+
+Documentation on how the browser talks to the helper.
+
+Instructions for packaging the helper as a download for users.
+
+Goal:
+I want a full system where:
+
+Browser ↔ Helper (local WebSocket)
+
+Helper ↔ Peer Helper (libp2p encrypted overlay)
+
+Helper ↔ Browser (forwarding WebRTC signaling)
+
+Video/audio/data channels stay WebRTC
+
+No STUN, no TURN, no middle signaling server
+
+Real IPs are hidden behind the overlay network.
+
+Please generate all code, structure, and explanations necessary and ensure everything works together
