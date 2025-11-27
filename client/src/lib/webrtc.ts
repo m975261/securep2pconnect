@@ -269,19 +269,10 @@ export function useWebRTC(config: WebRTCConfig) {
         { urls: 'stun:stun4.l.google.com:19302' },
         // Twilio STUN
         { urls: 'stun:global.stun.twilio.com:3478' },
-        // OpenRelay TURN servers (multiple protocols for better compatibility)
+        // Multiple TURN servers for better reliability
+        // OpenRelay
         {
-          urls: 'turn:openrelay.metered.ca:80',
-          username: 'openrelayproject',
-          credential: 'openrelayproject',
-        },
-        {
-          urls: 'turn:openrelay.metered.ca:443',
-          username: 'openrelayproject',
-          credential: 'openrelayproject',
-        },
-        {
-          urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+          urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443'],
           username: 'openrelayproject',
           credential: 'openrelayproject',
         },
@@ -290,11 +281,28 @@ export function useWebRTC(config: WebRTCConfig) {
           username: 'openrelayproject',
           credential: 'openrelayproject',
         },
-        // Additional free TURN server as fallback
+        // Viagenie
         {
           urls: 'turn:numb.viagenie.ca',
           username: 'webrtc@live.com',
           credential: 'muazkh',
+        },
+        // Stunprotocol.org
+        {
+          urls: 'turn:turn.anyfirewall.com:443?transport=tcp',
+          username: 'webrtc',
+          credential: 'webrtc',
+        },
+        // Additional relay servers
+        {
+          urls: ['stun:relay.metered.ca:80', 'turn:relay.metered.ca:80'],
+          username: 'openrelayproject',
+          credential: 'openrelayproject',
+        },
+        {
+          urls: 'turn:relay.metered.ca:443',
+          username: 'openrelayproject',
+          credential: 'openrelayproject',
         },
       ],
       iceTransportPolicy: 'all', // Try all connection types
@@ -343,8 +351,8 @@ export function useWebRTC(config: WebRTCConfig) {
       // Handle connection failures by triggering ICE restart
       if (pc.connectionState === 'failed') {
         console.log('WebRTC connection failed, attempting ICE restart');
-        // Trigger renegotiation with ICE restart
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        // Only restart if in stable signaling state to avoid "Called in wrong state" error
+        if (pc.signalingState === 'stable' && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
           pc.createOffer({ iceRestart: true }).then(offer => {
             return pc.setLocalDescription(offer);
           }).then(() => {
@@ -355,6 +363,8 @@ export function useWebRTC(config: WebRTCConfig) {
           }).catch(err => {
             console.error('Error restarting ICE:', err);
           });
+        } else {
+          console.log('ICE restart deferred: signaling state is', pc.signalingState);
         }
       }
     };

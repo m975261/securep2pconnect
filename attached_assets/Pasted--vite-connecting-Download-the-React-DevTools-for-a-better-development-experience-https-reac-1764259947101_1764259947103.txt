@@ -1,0 +1,84 @@
+ [vite] connecting...
+ Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+ WebSocket connection to 'wss://0c151c26-9ae7-4d0e-9eb4-c5a486cbcfcb-00-28plws5jdmq9y.picard.replit.dev/?token=cZyjronWFC4I' failed: 
+createConnection @ client:745
+ WebSocket connection to 'wss://localhost:5173/?token=cZyjronWFC4I' failed: 
+createConnection @ client:755
+ [vite] failed to connect to websocket.
+your current setup:
+  (browser) 0c151c26-9ae7-4d0e-9eb4-c5a486cbcfcb-00-28plws5jdmq9y.picard.replit.dev/ <--[HTTP]--> localhost:5173/ (server)
+  (browser) 0c151c26-9ae7-4d0e-9eb4-c5a486cbcfcb-00-28plws5jdmq9y.picard.replit.dev:/ <--[WebSocket (failing)]--> localhost:5173/ (server)
+Check out your Vite / network configuration and https://vite.dev/config/server-options.html#server-hmr .
+connect @ client:765
+ Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+console.warn @ debug-panel.tsx:21
+ WebSocket connected
+ Joined room, existing peers: Array(0)
+ Peer joined: b6uz19 2
+ Received offer, setting remote description
+ Current signaling state before offer: stable
+ WebRTC signaling state: have-remote-offer
+ Remote description set from offer, new signaling state: have-remote-offer
+ Creating answer
+ WebRTC signaling state: stable
+ Sending answer, signaling state: stable
+ Answer sent
+ Received offer, setting remote description
+ Current signaling state before offer: stable
+ WebRTC signaling state: have-remote-offer
+ Received remote audio track
+ Remote description set from offer, new signaling state: have-remote-offer
+ Creating answer
+ WebRTC signaling state: stable
+ Sending answer, signaling state: stable
+ Answer sent
+ ICE gathering state: gathering
+ ICE connection state: checking
+ ICE candidate: host udp 172.30.0.1
+ ICE candidate: host udp 192.168.1.245
+ WebRTC connection state: connecting
+ ICE candidate: srflx udp 91.73.56.69
+ ICE candidate: host tcp 172.30.0.1
+ ICE candidate: host tcp 192.168.1.245
+ ICE candidate: srflx udp 91.73.56.69
+ Adding audio track to peer connection
+ Creating offer for negotiation, signalingState: stable
+ WebRTC signaling state: have-local-offer
+ Offer sent, waiting for answer
+ Received answer, setting remote description
+ Current signaling state before answer: have-local-offer
+ WebRTC signaling state: stable
+debug-panel.tsx:24 Remote description set, new signaling state: stable
+debug-panel.tsx:24 ICE connection state: disconnected
+debug-panel.tsx:29 ICE connection issue detected, may need to restart
+console.warn @ debug-panel.tsx:29
+debug-panel.tsx:24 WebRTC connection state: failed
+debug-panel.tsx:24 WebRTC connection failed, attempting ICE restart
+debug-panel.tsx:24 WebRTC signaling state: have-local-offer
+debug-panel.tsx:24 ICE connection state: checking
+debug-panel.tsx:24 ICE candidate: host udp 172.30.0.1
+debug-panel.tsx:24 WebRTC connection state: connecting
+debug-panel.tsx:24 ICE candidate: host udp 192.168.1.245
+debug-panel.tsx:24 ICE candidate: srflx udp 91.73.56.69
+debug-panel.tsx:24 ICE candidate: host tcp 172.30.0.1
+debug-panel.tsx:24 ICE candidate: host tcp 192.168.1.245
+debug-panel.tsx:24 ICE candidate: srflx udp 91.73.56.69
+debug-panel.tsx:24 Received offer, setting remote description
+debug-panel.tsx:24 Current signaling state before offer: have-local-offer
+debug-panel.tsx:24 WebRTC signaling state: stable
+debug-panel.tsx:24 WebRTC signaling state: have-remote-offer
+debug-panel.tsx:24 Remote description set from offer, new signaling state: have-remote-offer
+debug-panel.tsx:24 Creating answer
+debug-panel.tsx:24 WebRTC signaling state: stable
+debug-panel.tsx:24 Sending answer, signaling state: stable
+debug-panel.tsx:24 Answer sent
+debug-panel.tsx:24 ICE candidate: host udp 172.30.0.1
+debug-panel.tsx:24 ICE candidate: host udp 192.168.1.245
+debug-panel.tsx:24 ICE candidate: srflx udp 91.73.56.69
+debug-panel.tsx:24 ICE candidate: host tcp 172.30.0.1
+debug-panel.tsx:24 ICE candidate: host tcp 192.168.1.245
+debug-panel.tsx:24 ICE candidate: srflx udp 91.73.56.69
+debug-panel.tsx:24 Received answer, setting remote description
+debug-panel.tsx:24 Current signaling state before answer: stable
+debug-panel.tsx:34 WebSocket message error: InvalidStateError: Failed to execute 'setRemoteDescription' on 'RTCPeerConnection': Failed to set remote answer sdp: Called in wrong state: stable
+console.error @ debug-panel.tsx:34
