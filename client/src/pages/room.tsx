@@ -680,7 +680,7 @@ export default function Room() {
         <div className="max-h-[280px] md:max-h-none md:flex-1 shrink-0 p-3 md:p-4 flex flex-col items-center justify-start md:justify-center relative border-b md:border-b-0 md:border-r border-white/10 bg-black/20 overflow-y-auto">
           <div className="w-full max-w-sm space-y-3 md:space-y-4">
             {/* App Header */}
-            <div className="flex items-center justify-between p-2 bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm">
+            <div className="flex items-center justify-center gap-3 p-2 bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm">
               <span className="font-mono text-sm font-bold tracking-wider text-primary">SECURE.LINK</span>
               <div className="w-8 h-8 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
                 <Lock className="w-4 h-4 text-primary" />
@@ -688,7 +688,7 @@ export default function Room() {
             </div>
 
             {/* Peers in One Line */}
-            <div className="p-2 md:p-3 bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm space-y-2">
+            <div className="p-2 md:p-3 bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm">
               <div className="flex items-center justify-center gap-4 md:gap-6">
                 {/* Current User */}
                 <div className="flex flex-col items-center gap-1 flex-1">
@@ -696,6 +696,7 @@ export default function Room() {
                     <span className="text-primary font-bold text-base md:text-lg">{nickname?.charAt(0).toUpperCase()}</span>
                   </div>
                   <p className="font-medium text-xs md:text-sm truncate max-w-[100px]" data-testid="text-my-nickname">{nickname}</p>
+                  <p className="text-xs text-muted-foreground">connected</p>
                 </div>
 
                 {/* Connection Line */}
@@ -707,15 +708,8 @@ export default function Room() {
                     <span className="text-accent font-bold text-base md:text-lg">{peerNickname ? peerNickname.charAt(0).toUpperCase() : '?'}</span>
                   </div>
                   <p className="font-medium text-xs md:text-sm truncate max-w-[100px]" data-testid="text-peer-display-nickname">{peerNickname || 'Waiting...'}</p>
+                  <p className="text-xs text-muted-foreground">{peerNickname ? 'connected' : 'waiting'}</p>
                 </div>
-              </div>
-
-              {/* Connection Status */}
-              <div className="flex items-center justify-center gap-2 pt-1">
-                <div className={`w-2 h-2 rounded-full ${connectionState === 'connected' && peerNickname ? 'bg-primary shadow-[0_0_10px_rgba(0,255,157,0.5)]' : 'bg-yellow-500 animate-pulse'}`} />
-                <span className="text-xs font-mono text-muted-foreground">
-                  {connectionState === 'connected' && peerNickname ? 'CONNECTED' : 'CONNECTING...'}
-                </span>
               </div>
             </div>
 
@@ -749,7 +743,7 @@ export default function Room() {
           </div>
         </div>
 
-        <div className="flex-1 md:max-w-md flex flex-col bg-card/30 backdrop-blur-sm">
+        <div className="flex-1 md:max-w-md flex flex-col bg-card/30 backdrop-blur-sm mt-4 md:mt-0">
           <div className="flex border-b border-white/10">
             <button
               onClick={() => setActiveTab('chat')}
