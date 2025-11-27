@@ -253,12 +253,15 @@ export function useWebRTC(config: WebRTCConfig) {
     // Simple WebRTC peer connection for voice only
     const pc = new RTCPeerConnection({
       iceServers: [
+        // Google STUN servers
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun2.l.google.com:19302' },
         { urls: 'stun:stun3.l.google.com:19302' },
         { urls: 'stun:stun4.l.google.com:19302' },
-        // OpenRelay TURN servers (free public TURN servers)
+        // Twilio STUN
+        { urls: 'stun:global.stun.twilio.com:3478' },
+        // OpenRelay TURN servers (multiple protocols for better compatibility)
         {
           urls: 'turn:openrelay.metered.ca:80',
           username: 'openrelayproject',
@@ -274,19 +277,43 @@ export function useWebRTC(config: WebRTCConfig) {
           username: 'openrelayproject',
           credential: 'openrelayproject',
         },
+        {
+          urls: 'turns:openrelay.metered.ca:443?transport=tcp',
+          username: 'openrelayproject',
+          credential: 'openrelayproject',
+        },
       ],
+      iceTransportPolicy: 'all', // Try all connection types
       iceCandidatePoolSize: 10,
+      bundlePolicy: 'max-bundle',
+      rtcpMuxPolicy: 'require',
     });
     pcRef.current = pc;
 
     pc.onicecandidate = (event) => {
       const currentWs = wsRef.current;
-      if (event.candidate && currentWs && currentWs.readyState === WebSocket.OPEN) {
-        currentWs.send(JSON.stringify({
-          type: 'ice-candidate',
-          data: event.candidate,
-        }));
+      if (event.candidate) {
+        console.log('ICE candidate:', event.candidate.type, event.candidate.protocol, event.candidate.address);
+        if (currentWs && currentWs.readyState === WebSocket.OPEN) {
+          currentWs.send(JSON.stringify({
+            type: 'ice-candidate',
+            data: event.candidate,
+          }));
+        }
+      } else {
+        console.log('ICE gathering complete');
       }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      console.log('ICE connection state:', pc.iceConnectionState);
+      if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+        console.warn('ICE connection issue detected, may need to restart');
+      }
+    };
+
+    pc.onicegatheringstatechange = () => {
+      console.log('ICE gathering state:', pc.iceGatheringState);
     };
 
     pc.ontrack = (event) => {
