@@ -646,8 +646,8 @@ export default function Room() {
 
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         
-        <div className="flex-1 p-6 flex flex-col items-center justify-center relative border-b md:border-b-0 md:border-r border-white/10 bg-black/20">
-          <div className="relative w-48 h-48 flex items-center justify-center">
+        <div className="h-[180px] md:h-auto md:flex-1 p-4 flex flex-col items-center justify-start pt-4 relative border-b md:border-b-0 md:border-r border-white/10 bg-black/20">
+          <div className="relative w-32 h-32 flex items-center justify-center">
             {[1, 2, 3].map((i) => (
               <motion.div
                 key={i}
@@ -665,14 +665,14 @@ export default function Room() {
               />
             ))}
             
-            <div className="relative z-10 w-24 h-24 rounded-full bg-black border-2 border-primary/50 flex items-center justify-center shadow-[0_0_30px_rgba(0,255,157,0.2)]">
+            <div className="relative z-10 w-16 h-16 rounded-full bg-black border-2 border-primary/50 flex items-center justify-center shadow-[0_0_30px_rgba(0,255,157,0.2)]">
               {isMicOn ? (
-                <div className="flex gap-1 items-end h-12">
+                <div className="flex gap-0.5 items-end h-8">
                   {[...Array(5)].map((_, i) => (
                     <motion.div
                       key={i}
-                      className="w-1 bg-primary"
-                      animate={{ height: [10, 30, 10] }}
+                      className="w-0.5 bg-primary"
+                      animate={{ height: [6, 20, 6] }}
                       transition={{
                         duration: 0.5,
                         repeat: Infinity,
@@ -683,33 +683,33 @@ export default function Room() {
                   ))}
                 </div>
               ) : (
-                <MicOff className="w-10 h-10 text-muted-foreground" />
+                <MicOff className="w-6 h-6 text-muted-foreground" />
               )}
             </div>
           </div>
 
-          <div className="mt-10 flex gap-4">
+          <div className="mt-3 flex gap-3 pb-8">
             <Button
               size="lg"
               variant={isMicOn ? "default" : "secondary"}
-              className={`rounded-full w-16 h-16 ${isMicOn ? 'bg-primary text-black hover:bg-primary/90' : ''}`}
+              className={`rounded-full w-14 h-14 ${isMicOn ? 'bg-primary text-black hover:bg-primary/90' : ''}`}
               onClick={handleToggleMic}
               data-testid="button-mic"
             >
-              {isMicOn ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
+              {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
             </Button>
             <Button
               size="lg"
               variant={isSpeakerMuted ? "secondary" : "default"}
-              className={`rounded-full w-16 h-16 ${!isSpeakerMuted ? 'bg-accent text-black hover:bg-accent/90' : ''}`}
+              className={`rounded-full w-14 h-14 ${!isSpeakerMuted ? 'bg-accent text-black hover:bg-accent/90' : ''}`}
               onClick={handleToggleSpeaker}
               data-testid="button-speaker"
             >
-              {isSpeakerMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+              {isSpeakerMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
             </Button>
           </div>
 
-          <div className="absolute bottom-3 text-center">
+          <div className="absolute bottom-2 text-center">
              <p className="text-xs font-mono text-muted-foreground/50">
                AES-256 ENCRYPTION ENABLED
              </p>
