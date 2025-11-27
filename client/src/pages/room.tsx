@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Mic, MicOff, PhoneOff, 
-  Share2, MessageSquare, FileText, Copy, Check, Lock, Volume2, VolumeX, Download
+  Share2, MessageSquare, FileText, Copy, Check, Lock, Volume2, VolumeX, Download, Languages
 } from "lucide-react";
 import { useLocation, useRoute } from "wouter";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
@@ -63,6 +63,68 @@ export default function Room() {
   const [remoteAudioMuted, setRemoteAudioMuted] = useState(true);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
+  const [language, setLanguage] = useState<'en' | 'ar'>('en');
+
+  const translations = {
+    en: {
+      appName: 'SECURE.LINK',
+      connected: 'connected',
+      waiting: 'waiting',
+      encrypted: 'AES-256 ENCRYPTED',
+      chatTab: 'Chat',
+      fileTab: 'File Transfer',
+      exitSession: 'EXIT SESSION',
+      exit: 'EXIT',
+      invitePeer: 'INVITE PEER',
+      password: 'PASSWORD',
+      passwordEnabled: 'PASSWORD ENABLED',
+      noPassword: 'NO PASSWORD',
+      roomPassword: 'ROOM PASSWORD',
+      passwordProtection: 'Password Protection',
+      roomProtected: 'Room is password protected',
+      roomNotProtected: 'Room is not protected',
+      changePassword: 'Change Password',
+      enterNewPassword: 'Enter new password',
+      updatePassword: 'Update Password',
+      removePassword: 'Remove Password',
+      setPassword: 'Set Password',
+      enterPassword: 'Enter password',
+      enablePassword: 'Enable Password Protection',
+      sessionKeys: 'SESSION ACCESS KEYS',
+      saveQr: 'SAVE QR',
+      sharedLink: 'SHARED SECRET LINK',
+    },
+    ar: {
+      appName: 'SECURE.LINK',
+      connected: 'متصل',
+      waiting: 'انتظار',
+      encrypted: 'مشفر AES-256',
+      chatTab: 'محادثة',
+      fileTab: 'نقل الملفات',
+      exitSession: 'إنهاء الجلسة',
+      exit: 'خروج',
+      invitePeer: 'دعوة',
+      password: 'كلمة المرور',
+      passwordEnabled: 'كلمة المرور مفعلة',
+      noPassword: 'بدون كلمة مرور',
+      roomPassword: 'كلمة مرور الغرفة',
+      passwordProtection: 'حماية كلمة المرور',
+      roomProtected: 'الغرفة محمية بكلمة مرور',
+      roomNotProtected: 'الغرفة غير محمية',
+      changePassword: 'تغيير كلمة المرور',
+      enterNewPassword: 'أدخل كلمة مرور جديدة',
+      updatePassword: 'تحديث كلمة المرور',
+      removePassword: 'إزالة كلمة المرور',
+      setPassword: 'تعيين كلمة المرور',
+      enterPassword: 'أدخل كلمة المرور',
+      enablePassword: 'تفعيل حماية كلمة المرور',
+      sessionKeys: 'مفاتيح الوصول للجلسة',
+      saveQr: 'حفظ الرمز',
+      sharedLink: 'رابط المشاركة السري',
+    },
+  };
+
+  const t = translations[language];
 
   useEffect(() => {
     if (typeof window !== 'undefined' && roomId) {
@@ -513,7 +575,7 @@ export default function Room() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
+    <div className="h-screen flex flex-col bg-background overflow-hidden" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <header className="h-16 border-b border-white/10 bg-card/50 backdrop-blur flex items-center justify-between px-2 sm:px-4 z-20">
         <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1 overflow-hidden">
           <span className="font-mono text-[10px] sm:text-sm font-bold tracking-wider sm:tracking-widest text-primary" data-testid="text-room-id">
@@ -532,21 +594,21 @@ export default function Room() {
                   data-testid="button-password-toggle"
                 >
                   <Lock className={`w-3 h-3 sm:w-4 sm:h-4 ${hasPassword ? 'text-primary' : ''}`} />
-                  <span className="hidden sm:inline">{hasPassword ? 'PASSWORD ENABLED' : 'NO PASSWORD'}</span>
+                  <span className="hidden sm:inline">{hasPassword ? t.passwordEnabled : t.noPassword}</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="bg-card border-white/10 w-[95vw] max-w-md mx-auto max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle className="font-mono text-sm sm:text-base">ROOM PASSWORD</DialogTitle>
+                  <DialogTitle className="font-mono text-sm sm:text-base">{t.roomPassword}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-3 sm:space-y-4 py-2 sm:py-4">
                   <div className="flex items-center justify-between p-2 sm:p-3 bg-black/20 rounded-lg border border-white/10">
                     <div className="flex items-center gap-2 sm:gap-3">
                       <Lock className={`w-4 h-4 sm:w-5 sm:h-5 ${hasPassword ? 'text-primary' : 'text-muted-foreground'}`} />
                       <div>
-                        <p className="text-xs sm:text-sm font-medium">Password Protection</p>
+                        <p className="text-xs sm:text-sm font-medium">{t.passwordProtection}</p>
                         <p className="text-[10px] sm:text-xs text-muted-foreground">
-                          {hasPassword ? 'Room is password protected' : 'Room is not protected'}
+                          {hasPassword ? t.roomProtected : t.roomNotProtected}
                         </p>
                       </div>
                     </div>
@@ -556,12 +618,12 @@ export default function Room() {
                   {hasPassword ? (
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-xs sm:text-sm font-medium mb-2">Change Password</label>
+                        <label className="block text-xs sm:text-sm font-medium mb-2">{t.changePassword}</label>
                         <Input
                           type="password"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder="Enter new password"
+                          placeholder={t.enterNewPassword}
                           className="bg-black/20 border-white/10 focus:border-primary/50 text-sm"
                           data-testid="input-new-password"
                         />
@@ -572,7 +634,7 @@ export default function Room() {
                           className="flex-1 bg-primary hover:bg-primary/90 text-black font-bold text-xs sm:text-sm"
                           data-testid="button-update-password"
                         >
-                          Update Password
+                          {t.updatePassword}
                         </Button>
                         <Button
                           onClick={handleRemovePassword}
@@ -580,19 +642,19 @@ export default function Room() {
                           className="flex-1 text-xs sm:text-sm"
                           data-testid="button-remove-password"
                         >
-                          Remove Password
+                          {t.removePassword}
                         </Button>
                       </div>
                     </div>
                   ) : (
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-xs sm:text-sm font-medium mb-2">Set Password</label>
+                        <label className="block text-xs sm:text-sm font-medium mb-2">{t.setPassword}</label>
                         <Input
                           type="password"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder="Enter password"
+                          placeholder={t.enterPassword}
                           className="bg-black/20 border-white/10 focus:border-primary/50 text-sm"
                           data-testid="input-new-password"
                         />
@@ -602,7 +664,7 @@ export default function Room() {
                         className="w-full bg-primary hover:bg-primary/90 text-black font-bold text-xs sm:text-sm"
                         data-testid="button-save-password"
                       >
-                        Enable Password Protection
+                        {t.enablePassword}
                       </Button>
                     </div>
                   )}
@@ -611,16 +673,27 @@ export default function Room() {
             </Dialog>
           )}
           
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-white/10 bg-white/5 hover:bg-white/10"
+            onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+            data-testid="button-language"
+          >
+            <Languages className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline ml-1 sm:ml-2">{language === 'en' ? 'العربية' : 'English'}</span>
+          </Button>
+
           <Dialog>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline" className="border-white/10 bg-white/5 hover:bg-white/10 gap-1 sm:gap-2" data-testid="button-invite">
                 <Share2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">INVITE PEER</span>
+                <span className="hidden sm:inline">{t.invitePeer}</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="bg-card border-white/10 w-[95vw] max-w-md mx-auto max-h-[85vh] overflow-y-auto p-4 sm:p-6">
               <DialogHeader className="pb-2">
-                <DialogTitle className="font-mono text-xs sm:text-sm">SESSION ACCESS KEYS</DialogTitle>
+                <DialogTitle className="font-mono text-xs sm:text-sm">{t.sessionKeys}</DialogTitle>
               </DialogHeader>
               <div className="flex flex-col items-center gap-2 sm:gap-3">
                 <div className="p-2 bg-white rounded-lg relative">
@@ -638,10 +711,10 @@ export default function Room() {
                   data-testid="button-download-qr"
                 >
                   <Download className="w-3 h-3" />
-                  SAVE QR
+                  {t.saveQr}
                 </Button>
                 <div className="w-full space-y-1.5">
-                  <label className="text-[10px] sm:text-xs text-muted-foreground font-mono">SHARED SECRET LINK</label>
+                  <label className="text-[10px] sm:text-xs text-muted-foreground font-mono">{t.sharedLink}</label>
                   <div className="flex gap-1.5 sm:gap-2">
                     <div className="flex-1 p-1.5 sm:p-2 bg-black/30 border border-white/10 rounded font-mono text-[9px] sm:text-xs break-all overflow-hidden">
                       {shareLink}
@@ -669,8 +742,8 @@ export default function Room() {
             data-testid="button-exit"
           >
             <PhoneOff className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="hidden md:inline">EXIT SESSION</span>
-            <span className="md:hidden text-xs">EXIT</span>
+            <span className="hidden md:inline">{t.exitSession}</span>
+            <span className="md:hidden text-xs">{t.exit}</span>
           </Button>
         </div>
       </header>
@@ -681,7 +754,7 @@ export default function Room() {
           <div className="w-full max-w-sm space-y-2 md:space-y-4">
             {/* App Header */}
             <div className="flex items-center justify-center gap-2 p-1.5 md:p-2 bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm">
-              <span className="font-mono text-xs md:text-sm font-bold tracking-wider text-primary">SECURE.LINK</span>
+              <span className="font-mono text-xs md:text-sm font-bold tracking-wider text-primary">{t.appName}</span>
               <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
                 <Lock className="w-3 h-3 md:w-4 md:h-4 text-primary" />
               </div>
@@ -695,7 +768,7 @@ export default function Room() {
                   <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center px-1" data-testid="text-my-nickname">
                     <span className="text-primary font-bold text-[10px] md:text-sm truncate max-w-full text-center">{nickname}</span>
                   </div>
-                  <p className="text-[9px] md:text-xs text-muted-foreground">connected</p>
+                  <p className="text-[9px] md:text-xs text-muted-foreground">{t.connected}</p>
                 </div>
 
                 {/* Connection Line */}
@@ -706,7 +779,7 @@ export default function Room() {
                   <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-accent/20 border-2 border-accent flex items-center justify-center px-1" data-testid="text-peer-display-nickname">
                     <span className="text-accent font-bold text-[10px] md:text-sm truncate max-w-full text-center">{peerNickname || '?'}</span>
                   </div>
-                  <p className="text-[9px] md:text-xs text-muted-foreground">{peerNickname ? 'connected' : 'waiting'}</p>
+                  <p className="text-[9px] md:text-xs text-muted-foreground">{peerNickname ? t.connected : t.waiting}</p>
                 </div>
               </div>
             </div>
@@ -714,7 +787,7 @@ export default function Room() {
             {/* Encryption Status */}
             <div className="flex items-center justify-center gap-1.5 p-1.5 md:p-2 bg-primary/5 border border-primary/20 rounded-lg">
               <Lock className="w-2.5 h-2.5 md:w-3 md:h-3 text-primary" />
-              <span className="text-[10px] md:text-xs font-mono text-primary">AES-256 ENCRYPTED</span>
+              <span className="text-[10px] md:text-xs font-mono text-primary">{t.encrypted}</span>
             </div>
 
             {/* Voice Controls */}
@@ -752,7 +825,7 @@ export default function Room() {
               }`}
               data-testid="tab-chat"
             >
-              <MessageSquare className="w-4 h-4" /> CHAT_STREAM
+              <MessageSquare className="w-4 h-4" /> {t.chatTab}
             </button>
             <button
               onClick={() => {
@@ -766,7 +839,7 @@ export default function Room() {
               }`}
               data-testid="tab-files"
             >
-              <FileText className="w-4 h-4" /> DATA_TRANSFER
+              <FileText className="w-4 h-4" /> {t.fileTab}
               {unreadFileCount > 0 && (
                 <motion.span
                   initial={{ scale: 0 }}
