@@ -182,14 +182,18 @@ export default function Room() {
     toast.success(`Received file from ${senderName}: ${file.name}`);
     const blob = new Blob([file.data], { type: file.type || 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
-    setTransferredFiles(prev => [...prev, {
-      name: file.name,
-      size: file.size || file.data.byteLength,
-      url,
-      type: 'received',
-      timestamp: new Date(),
-      senderName,
-    }]);
+    setTransferredFiles(prev => {
+      const updated = [...prev, {
+        name: file.name,
+        size: file.size || file.data.byteLength,
+        url,
+        type: 'received' as const,
+        timestamp: new Date(),
+        senderName,
+      }];
+      console.log('Updated transferredFiles (received):', updated.length, updated);
+      return updated;
+    });
   }, []);
 
   const onPeerConnected = useCallback((peerInfo?: { nickname?: string }) => {
@@ -267,14 +271,18 @@ export default function Room() {
 
   const handleSendFile = async (file: File, onProgress?: (progress: number) => void) => {
     const url = URL.createObjectURL(file);
-    setTransferredFiles(prev => [...prev, {
-      name: file.name,
-      size: file.size,
-      url,
-      type: 'sent',
-      timestamp: new Date(),
-      senderName: nickname || 'You',
-    }]);
+    setTransferredFiles(prev => {
+      const updated = [...prev, {
+        name: file.name,
+        size: file.size,
+        url,
+        type: 'sent' as const,
+        timestamp: new Date(),
+        senderName: nickname || 'You',
+      }];
+      console.log('Updated transferredFiles (sent):', updated.length, updated);
+      return updated;
+    });
     await sendFile(file, { onProgress });
   };
 

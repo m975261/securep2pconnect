@@ -18,6 +18,8 @@ interface FileTransferProps {
 
 export function FileTransfer({ onSendFile, transferredFiles }: FileTransferProps) {
   const [files, setFiles] = useState<Array<{ id: string; name: string; size: string; progress: number; status: 'uploading' | 'completed' }>>([]);
+  
+  console.log('FileTransfer render - transferredFiles count:', transferredFiles.length, transferredFiles);
 
   const onDrop = async (acceptedFiles: File[]) => {
     for (const file of acceptedFiles) {
