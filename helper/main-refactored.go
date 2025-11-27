@@ -60,7 +60,8 @@ type Helper struct {
         
         // WebRTC peer connection with browser
         browserPC *webrtc.PeerConnection
-        localTrack *webrtc.TrackLocalStaticRTP
+        audioTrack *webrtc.TrackLocalStaticRTP
+        videoTrack *webrtc.TrackLocalStaticRTP
         pcLock    sync.Mutex
         
         // RTP forwarding to remote peer
@@ -236,9 +237,40 @@ func (h *Helper) createBrowserPeerConnection() error {
                 return err
         }
 
+        // Create local audio track for receiving RTP from remote peer
+        audioTrack, err := webrtc.NewTrackLocalStaticRTP(
+                webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus},
+                "audio",
+                "pion-audio",
+        )
+        if err != nil {
+                return err
+        }
+        
+        // Create local video track for receiving RTP from remote peer
+        videoTrack, err := webrtc.NewTrackLocalStaticRTP(
+                webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8},
+                "video",
+                "pion-video",
+        )
+        if err != nil {
+                return err
+        }
+
+        // Add local tracks to peer connection (for sending to browser)
+        if _, err = pc.AddTrack(audioTrack); err != nil {
+                return err
+        }
+        if _, err = pc.AddTrack(videoTrack); err != nil {
+                return err
+        }
+
+        h.audioTrack = audioTrack
+        h.videoTrack = videoTrack
+
         // Handle incoming tracks from browser
         pc.OnTrack(func(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
-                log.Printf("← Received track from browser: %s", track.Kind())
+                log.Printf("← Received %s track from browser: codec=%s", track.Kind(), track.Codec().MimeType)
                 
                 // Forward RTP packets to remote peer via libp2p
                 go h.forwardRTPToLibp2p(track)
@@ -317,9 +349,29 @@ func (h *Helper) handleRTPStream(stream network.Stream) {
                         return
                 }
 
-                // TODO: Inject RTP packet into browser peer connection
-                // This requires creating a local track and writing to it
-                log.Printf("Received %d bytes from remote peer", n)
+                // Parse RTP packet
+                packet := &webrtc.RTPPacket{}
+                if err := packet.Unmarshal(buf[:n]); err != nil {
+                        log.Printf("Error unmarshaling RTP: %v", err)
+                        continue
+                }
+
+                // Inject into appropriate track based on payload type
+                h.pcLock.Lock()
+                
+                // Payload type 111 is typically Opus (audio)
+                // Payload type 96 is typically VP8 (video)
+                if packet.PayloadType == 111 && h.audioTrack != nil {
+                        if err := h.audioTrack.WriteRTP(packet); err != nil {
+                                log.Printf("Error writing audio RTP: %v", err)
+                        }
+                } else if packet.PayloadType == 96 && h.videoTrack != nil {
+                        if err := h.videoTrack.WriteRTP(packet); err != nil {
+                                log.Printf("Error writing video RTP: %v", err)
+                        }
+                }
+                
+                h.pcLock.Unlock()
         }
 }
 

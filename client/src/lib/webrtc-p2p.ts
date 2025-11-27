@@ -172,7 +172,7 @@ export function useWebRTCP2P(config: WebRTCP2PConfig) {
 
   const startVoiceChat = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       localStreamRef.current = stream;
       
       const pc = pcRef.current;
@@ -188,6 +188,28 @@ export function useWebRTCP2P(config: WebRTCP2PConfig) {
       return stream;
     } catch (error) {
       console.error('Error starting voice:', error);
+      throw error;
+    }
+  }, [performNegotiation]);
+
+  const startVideoChat = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+      localStreamRef.current = stream;
+      
+      const pc = pcRef.current;
+      if (pc) {
+        stream.getTracks().forEach(track => {
+          console.log('Adding track:', track.kind);
+          pc.addTrack(track, stream);
+        });
+        
+        await performNegotiation();
+      }
+
+      return stream;
+    } catch (error) {
+      console.error('Error starting video:', error);
       throw error;
     }
   }, [performNegotiation]);
@@ -420,6 +442,7 @@ export function useWebRTCP2P(config: WebRTCP2PConfig) {
     sendMessage,
     sendFile,
     startVoiceChat,
+    startVideoChat,
     stopVoiceChat,
     connectToPeer,
     localPeerId,
