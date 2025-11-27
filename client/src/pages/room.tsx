@@ -182,18 +182,14 @@ export default function Room() {
     toast.success(`Received file from ${senderName}: ${file.name}`);
     const blob = new Blob([file.data], { type: file.type || 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
-    setTransferredFiles(prev => {
-      const updated = [...prev, {
-        name: file.name,
-        size: file.size || file.data.byteLength,
-        url,
-        type: 'received' as const,
-        timestamp: new Date(),
-        senderName,
-      }];
-      console.log('Updated transferredFiles (received):', updated.length, updated);
-      return updated;
-    });
+    setTransferredFiles(prev => [...prev, {
+      name: file.name,
+      size: file.size || file.data.byteLength,
+      url,
+      type: 'received' as const,
+      timestamp: new Date(),
+      senderName,
+    }]);
   }, []);
 
   const onPeerConnected = useCallback((peerInfo?: { nickname?: string }) => {
@@ -271,18 +267,14 @@ export default function Room() {
 
   const handleSendFile = async (file: File, onProgress?: (progress: number) => void) => {
     const url = URL.createObjectURL(file);
-    setTransferredFiles(prev => {
-      const updated = [...prev, {
-        name: file.name,
-        size: file.size,
-        url,
-        type: 'sent' as const,
-        timestamp: new Date(),
-        senderName: nickname || 'You',
-      }];
-      console.log('Updated transferredFiles (sent):', updated.length, updated);
-      return updated;
-    });
+    setTransferredFiles(prev => [...prev, {
+      name: file.name,
+      size: file.size,
+      url,
+      type: 'sent' as const,
+      timestamp: new Date(),
+      senderName: nickname || 'You',
+    }]);
     await sendFile(file, { onProgress });
   };
 
@@ -732,37 +724,20 @@ export default function Room() {
           </div>
 
           <div className="flex-1 p-4 overflow-hidden relative">
-             <AnimatePresence mode="wait">
-               {activeTab === 'chat' ? (
-                 <motion.div 
-                   key="chat"
-                   initial={{ opacity: 0, x: 20 }}
-                   animate={{ opacity: 1, x: 0 }}
-                   exit={{ opacity: 0, x: -20 }}
-                   className="h-full"
-                 >
-                   <ChatInterface 
-                     messages={messages} 
-                     onSendMessage={handleSendMessage}
-                     peerNickname={peerNickname}
-                     connectionState={connectionState}
-                   />
-                 </motion.div>
-               ) : (
-                 <motion.div 
-                   key="files"
-                   initial={{ opacity: 0, x: 20 }}
-                   animate={{ opacity: 1, x: 0 }}
-                   exit={{ opacity: 0, x: -20 }}
-                   className="h-full"
-                 >
-                   <FileTransfer 
-                     onSendFile={handleSendFile}
-                     transferredFiles={transferredFiles}
-                   />
-                 </motion.div>
-               )}
-             </AnimatePresence>
+            <div className={`h-full ${activeTab === 'chat' ? 'block' : 'hidden'}`}>
+              <ChatInterface 
+                messages={messages} 
+                onSendMessage={handleSendMessage}
+                peerNickname={peerNickname}
+                connectionState={connectionState}
+              />
+            </div>
+            <div className={`h-full ${activeTab === 'files' ? 'block' : 'hidden'}`}>
+              <FileTransfer 
+                onSendFile={handleSendFile}
+                transferredFiles={transferredFiles}
+              />
+            </div>
           </div>
         </div>
       </main>
