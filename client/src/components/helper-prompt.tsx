@@ -119,41 +119,29 @@ export function HelperPrompt({ open, onHelperConnected, onCancel }: HelperPrompt
                 </AlertDescription>
               </Alert>
 
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Download Helper:</p>
-                <div className="grid gap-2">
-                  <Button variant="outline" size="sm" className="justify-start" asChild>
-                    <a href="/helper/builds/securelink-helper-windows-amd64.exe" download>
-                      <Download className="mr-2 h-4 w-4" />
-                      Windows (64-bit)
-                    </a>
-                  </Button>
-                  <Button variant="outline" size="sm" className="justify-start" asChild>
-                    <a href="/helper/builds/securelink-helper-macos-arm64" download>
-                      <Download className="mr-2 h-4 w-4" />
-                      macOS (Apple Silicon)
-                    </a>
-                  </Button>
-                  <Button variant="outline" size="sm" className="justify-start" asChild>
-                    <a href="/helper/builds/securelink-helper-macos-amd64" download>
-                      <Download className="mr-2 h-4 w-4" />
-                      macOS (Intel)
-                    </a>
-                  </Button>
-                  <Button variant="outline" size="sm" className="justify-start" asChild>
-                    <a href="/helper/builds/securelink-helper-linux-amd64" download>
-                      <Download className="mr-2 h-4 w-4" />
-                      Linux (64-bit)
-                    </a>
-                  </Button>
+              <div className="space-y-3">
+                <p className="text-sm font-medium">How to Get the Helper:</p>
+                <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                  <p className="text-xs font-medium">Build it locally with Go 1.21+:</p>
+                  <div className="font-mono text-xs bg-black/50 p-2 rounded space-y-1">
+                    <div>1. Download the project files</div>
+                    <div>2. cd helper/</div>
+                    <div>3. go build -o securelink-helper main-refactored.go</div>
+                    <div>4. Run: ./securelink-helper</div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    The helper shows your Peer ID in the console when running.
+                  </p>
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">
+                    ⚠️ Pre-built binaries are not yet available. You must compile locally.
+                  </p>
                 </div>
 
-                <div className="mt-4 p-3 bg-muted rounded-md">
+                <div className="p-3 bg-muted rounded-md">
                   <p className="text-xs text-muted-foreground">
-                    <strong>After downloading:</strong><br />
-                    1. Run the helper application<br />
-                    2. A console will open showing your Peer ID<br />
-                    3. Click "I Have It Running" below
+                    <strong>After starting the helper:</strong><br />
+                    1. Keep the helper console window open<br />
+                    2. Click "I Have It Running" below to connect
                   </p>
                 </div>
               </div>

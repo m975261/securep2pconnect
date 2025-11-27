@@ -84,8 +84,11 @@ Binaries will be in `./builds/` for all platforms (Windows, macOS, Linux)
 
 ### Pre-built Binaries
 
-If you don't have Go 1.21+, pre-compiled binaries will be available for download.
-_(Coming soon - GitHub Releases or external hosting)_
+⚠️ **Pre-built binaries are NOT yet available.**
+
+You must build from source using Go 1.21+. The download links in the web UI are placeholders and will show corrupted/missing file errors.
+
+If you don't have Go installed, download it from https://go.dev/dl/
 
 ## Technical Details
 
