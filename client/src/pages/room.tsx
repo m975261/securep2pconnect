@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Mic, MicOff, PhoneOff, 
-  Share2, MessageSquare, FileText, Copy, Check, Lock, Volume2, VolumeX
+  Share2, MessageSquare, FileText, Copy, Check, Lock, Volume2, VolumeX, Download
 } from "lucide-react";
 import { useLocation, useRoute } from "wouter";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
@@ -398,6 +398,36 @@ export default function Room() {
     }
   };
 
+  const downloadQRCode = () => {
+    const svg = document.querySelector('.qr-code-svg') as SVGElement;
+    if (!svg) return;
+
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+
+    canvas.width = 256;
+    canvas.height = 256;
+
+    img.onload = () => {
+      ctx?.drawImage(img, 0, 0, 256, 256);
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `secure-link-${roomId}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+          toast.success("QR code saved!");
+        }
+      });
+    };
+
+    img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+  };
+
   if (checkingPassword) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
@@ -486,18 +516,9 @@ export default function Room() {
     <div className="h-screen flex flex-col bg-background overflow-hidden">
       <header className="h-16 border-b border-white/10 bg-card/50 backdrop-blur flex items-center justify-between px-2 sm:px-4 z-20">
         <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1 overflow-hidden">
-          <div className="flex items-center gap-1 sm:gap-2">
-            <div className={`w-2 h-2 rounded-full ${connectionState === 'connected' ? 'bg-primary shadow-[0_0_10px_rgba(0,255,157,0.5)]' : 'bg-yellow-500 animate-pulse'}`} />
-            <span className="font-mono text-[10px] sm:text-sm font-bold tracking-wider sm:tracking-widest truncate" data-testid="text-status">
-              {connectionState === 'connected' ? 'SECURE' : 'CONNECTING...'}
-            </span>
-          </div>
-          {peerNickname && (
-            <span className="text-xs sm:text-sm text-muted-foreground truncate" data-testid="text-peer-nickname">
-              <span className="hidden sm:inline">Connected with: </span>
-              <span className="text-primary font-medium">{peerNickname}</span>
-            </span>
-          )}
+          <span className="font-mono text-[10px] sm:text-sm font-bold tracking-wider sm:tracking-widest text-primary" data-testid="text-room-id">
+            ROOM: {roomId}
+          </span>
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
@@ -602,13 +623,23 @@ export default function Room() {
                 <DialogTitle className="font-mono text-xs sm:text-sm">SESSION ACCESS KEYS</DialogTitle>
               </DialogHeader>
               <div className="flex flex-col items-center gap-2 sm:gap-3">
-                <div className="p-2 bg-white rounded-lg">
+                <div className="p-2 bg-white rounded-lg relative">
                   <QRCode 
                     value={shareLink || window.location.origin} 
                     size={Math.min(140, window.innerWidth - 120)}
-                    className="w-full h-auto max-w-[140px]"
+                    className="w-full h-auto max-w-[140px] qr-code-svg"
                   />
                 </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={downloadQRCode}
+                  className="border-white/10 bg-white/5 hover:bg-white/10 gap-2 font-mono text-xs"
+                  data-testid="button-download-qr"
+                >
+                  <Download className="w-3 h-3" />
+                  SAVE QR
+                </Button>
                 <div className="w-full space-y-1.5">
                   <label className="text-[10px] sm:text-xs text-muted-foreground font-mono">SHARED SECRET LINK</label>
                   <div className="flex gap-1.5 sm:gap-2">
@@ -646,73 +677,79 @@ export default function Room() {
 
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         
-        <div className="h-[180px] md:h-auto md:flex-1 p-4 flex flex-col items-center justify-start pt-4 relative border-b md:border-b-0 md:border-r border-white/10 bg-black/20">
-          <div className="relative w-32 h-32 flex items-center justify-center">
-            {[1, 2, 3].map((i) => (
-              <motion.div
-                key={i}
-                className={`absolute inset-0 border border-primary/20 rounded-full`}
-                animate={{
-                  scale: isMicOn ? [1, 1.2, 1] : 1,
-                  opacity: isMicOn ? [0.5, 0, 0.5] : 0.2,
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  delay: i * 0.4,
-                  ease: "easeInOut"
-                }}
-              />
-            ))}
-            
-            <div className="relative z-10 w-16 h-16 rounded-full bg-black border-2 border-primary/50 flex items-center justify-center shadow-[0_0_30px_rgba(0,255,157,0.2)]">
-              {isMicOn ? (
-                <div className="flex gap-0.5 items-end h-8">
-                  {[...Array(5)].map((_, i) => (
-                    <motion.div
-                      key={i}
-                      className="w-0.5 bg-primary"
-                      animate={{ height: [6, 20, 6] }}
-                      transition={{
-                        duration: 0.5,
-                        repeat: Infinity,
-                        delay: i * 0.1,
-                        repeatType: "reverse"
-                      }}
-                    />
-                  ))}
+        <div className="h-[180px] md:h-auto md:flex-1 p-4 flex flex-col items-center justify-center relative border-b md:border-b-0 md:border-r border-white/10 bg-black/20">
+          <div className="w-full max-w-sm space-y-4">
+            <div className="flex flex-col gap-3">
+              {/* Current User */}
+              <div className="flex items-center justify-between p-3 bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
+                    <span className="text-primary font-bold text-sm">{nickname?.charAt(0).toUpperCase()}</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm truncate" data-testid="text-my-nickname">{nickname}</p>
+                    <p className="text-xs text-muted-foreground">You</p>
+                  </div>
                 </div>
-              ) : (
-                <MicOff className="w-6 h-6 text-muted-foreground" />
-              )}
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className={`w-2 h-2 rounded-full ${connectionState === 'connected' ? 'bg-primary shadow-[0_0_10px_rgba(0,255,157,0.5)]' : 'bg-yellow-500 animate-pulse'}`} />
+                    <span className="text-xs font-mono text-muted-foreground">
+                      {connectionState === 'connected' ? 'ONLINE' : 'CONNECTING'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Peer User */}
+              <div className="flex items-center justify-between p-3 bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-accent/20 border-2 border-accent flex items-center justify-center">
+                    <span className="text-accent font-bold text-sm">{peerNickname ? peerNickname.charAt(0).toUpperCase() : '?'}</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm truncate" data-testid="text-peer-display-nickname">{peerNickname || 'Waiting for peer...'}</p>
+                    <p className="text-xs text-muted-foreground">Peer</p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className={`w-2 h-2 rounded-full ${peerNickname ? 'bg-primary shadow-[0_0_10px_rgba(0,255,157,0.5)]' : 'bg-muted-foreground/30'}`} />
+                    <span className="text-xs font-mono text-muted-foreground">
+                      {peerNickname ? 'ONLINE' : 'OFFLINE'}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div className="mt-3 flex gap-3 pb-8">
-            <Button
-              size="lg"
-              variant={isMicOn ? "default" : "secondary"}
-              className={`rounded-full w-14 h-14 ${isMicOn ? 'bg-primary text-black hover:bg-primary/90' : ''}`}
-              onClick={handleToggleMic}
-              data-testid="button-mic"
-            >
-              {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-            </Button>
-            <Button
-              size="lg"
-              variant={isSpeakerMuted ? "secondary" : "default"}
-              className={`rounded-full w-14 h-14 ${!isSpeakerMuted ? 'bg-accent text-black hover:bg-accent/90' : ''}`}
-              onClick={handleToggleSpeaker}
-              data-testid="button-speaker"
-            >
-              {isSpeakerMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-            </Button>
-          </div>
+            {/* Encryption Status */}
+            <div className="flex items-center justify-center gap-2 p-2 bg-primary/5 border border-primary/20 rounded-lg">
+              <Lock className="w-3 h-3 text-primary" />
+              <span className="text-xs font-mono text-primary">AES-256 ENCRYPTED</span>
+            </div>
 
-          <div className="absolute bottom-2 text-center">
-             <p className="text-xs font-mono text-muted-foreground/50">
-               AES-256 ENCRYPTION ENABLED
-             </p>
+            {/* Voice Controls */}
+            <div className="flex justify-center gap-3 pt-2">
+              <Button
+                size="lg"
+                variant={isMicOn ? "default" : "secondary"}
+                className={`rounded-full w-14 h-14 ${isMicOn ? 'bg-primary text-black hover:bg-primary/90' : ''}`}
+                onClick={handleToggleMic}
+                data-testid="button-mic"
+              >
+                {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+              </Button>
+              <Button
+                size="lg"
+                variant={isSpeakerMuted ? "secondary" : "default"}
+                className={`rounded-full w-14 h-14 ${!isSpeakerMuted ? 'bg-accent text-black hover:bg-accent/90' : ''}`}
+                onClick={handleToggleSpeaker}
+                data-testid="button-speaker"
+              >
+                {isSpeakerMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+              </Button>
+            </div>
           </div>
         </div>
 
