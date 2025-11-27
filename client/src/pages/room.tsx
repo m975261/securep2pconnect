@@ -692,8 +692,8 @@ export default function Room() {
               <div className="flex items-center justify-center gap-3 md:gap-6">
                 {/* Current User */}
                 <div className="flex flex-col items-center gap-0.5 flex-1">
-                  <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center" data-testid="text-my-nickname">
-                    <span className="text-primary font-bold text-sm md:text-lg">{nickname?.charAt(0).toUpperCase()}</span>
+                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center px-1" data-testid="text-my-nickname">
+                    <span className="text-primary font-bold text-[10px] md:text-sm truncate max-w-full text-center">{nickname}</span>
                   </div>
                   <p className="text-[9px] md:text-xs text-muted-foreground">connected</p>
                 </div>
@@ -703,8 +703,8 @@ export default function Room() {
 
                 {/* Peer User */}
                 <div className="flex flex-col items-center gap-0.5 flex-1">
-                  <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-accent/20 border-2 border-accent flex items-center justify-center" data-testid="text-peer-display-nickname">
-                    <span className="text-accent font-bold text-sm md:text-lg">{peerNickname ? peerNickname.charAt(0).toUpperCase() : '?'}</span>
+                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-accent/20 border-2 border-accent flex items-center justify-center px-1" data-testid="text-peer-display-nickname">
+                    <span className="text-accent font-bold text-[10px] md:text-sm truncate max-w-full text-center">{peerNickname || '?'}</span>
                   </div>
                   <p className="text-[9px] md:text-xs text-muted-foreground">{peerNickname ? 'connected' : 'waiting'}</p>
                 </div>
