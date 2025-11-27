@@ -93,22 +93,20 @@ export default function Home() {
         </div>
 
         {/* Actions */}
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Link href="/create">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full group relative overflow-hidden rounded-lg bg-white/5 border border-white/10 p-6 hover:border-primary/50 hover:bg-primary/5 transition-all"
+              className="w-full h-full group relative overflow-hidden rounded-lg bg-white/5 border border-white/10 p-6 hover:border-primary/50 hover:bg-primary/5 transition-all"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded bg-black text-primary">
-                    <Users className="w-6 h-6" />
-                  </div>
-                  <div className="text-left">
-                    <h3 className="font-bold text-white">{t.createRoom}</h3>
-                    <p className="text-xs text-muted-foreground font-mono">{t.createDesc}</p>
-                  </div>
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="p-4 rounded-full bg-black text-primary">
+                  <Users className="w-8 h-8" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-lg mb-1">{t.createRoom}</h3>
+                  <p className="text-xs text-muted-foreground font-mono">{t.createDesc}</p>
                 </div>
                 <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
               </div>
@@ -119,17 +117,15 @@ export default function Home() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full group relative overflow-hidden rounded-lg bg-white/5 border border-white/10 p-6 hover:border-accent/50 hover:bg-accent/5 transition-all"
+              className="w-full h-full group relative overflow-hidden rounded-lg bg-white/5 border border-white/10 p-6 hover:border-accent/50 hover:bg-accent/5 transition-all"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded bg-black text-accent">
-                    <Lock className="w-6 h-6" />
-                  </div>
-                  <div className="text-left">
-                    <h3 className="font-bold text-white">{t.joinRoom}</h3>
-                    <p className="text-xs text-muted-foreground font-mono">{t.joinDesc}</p>
-                  </div>
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="p-4 rounded-full bg-black text-accent">
+                  <Lock className="w-8 h-8" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-lg mb-1">{t.joinRoom}</h3>
+                  <p className="text-xs text-muted-foreground font-mono">{t.joinDesc}</p>
                 </div>
                 <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
               </div>
