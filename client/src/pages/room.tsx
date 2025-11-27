@@ -37,6 +37,7 @@ export default function Room() {
   const [peerNickname, setPeerNickname] = useState<string>("");
   const [isMicOn, setIsMicOn] = useState(false);
   const [activeTab, setActiveTab] = useState<'chat' | 'files'>('chat');
+  const [unreadFileCount, setUnreadFileCount] = useState(0);
   const [copied, setCopied] = useState(false);
   const [messages, setMessages] = useState<Array<{id: string; text: string; sender: 'me' | 'peer'; timestamp: Date; senderName?: string}>>([]);
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
@@ -190,6 +191,14 @@ export default function Room() {
       timestamp: new Date(),
       senderName,
     }]);
+    
+    // Increment unread count if user is on chat tab
+    setActiveTab(currentTab => {
+      if (currentTab === 'chat') {
+        setUnreadFileCount(prev => prev + 1);
+      }
+      return currentTab;
+    });
   }, []);
 
   const onPeerConnected = useCallback((peerInfo?: { nickname?: string }) => {
@@ -679,7 +688,7 @@ export default function Room() {
             </div>
           </div>
 
-          <div className="mt-6 flex gap-4">
+          <div className="mt-10 flex gap-4">
             <Button
               size="lg"
               variant={isMicOn ? "default" : "secondary"}
@@ -700,7 +709,7 @@ export default function Room() {
             </Button>
           </div>
 
-          <div className="absolute bottom-6 text-center">
+          <div className="absolute bottom-3 text-center">
              <p className="text-xs font-mono text-muted-foreground/50">
                AES-256 ENCRYPTION ENABLED
              </p>
@@ -721,8 +730,11 @@ export default function Room() {
               <MessageSquare className="w-4 h-4" /> CHAT_STREAM
             </button>
             <button
-              onClick={() => setActiveTab('files')}
-              className={`flex-1 py-4 text-sm font-bold font-mono border-b-2 transition-colors flex items-center justify-center gap-2 ${
+              onClick={() => {
+                setActiveTab('files');
+                setUnreadFileCount(0);
+              }}
+              className={`flex-1 py-4 text-sm font-bold font-mono border-b-2 transition-colors flex items-center justify-center gap-2 relative ${
                 activeTab === 'files' 
                   ? 'border-accent text-accent bg-accent/5' 
                   : 'border-transparent text-muted-foreground hover:text-white'
@@ -730,6 +742,17 @@ export default function Room() {
               data-testid="tab-files"
             >
               <FileText className="w-4 h-4" /> DATA_TRANSFER
+              {unreadFileCount > 0 && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 1 }}
+                  className="absolute -top-1 right-1/4 bg-accent text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg"
+                  data-testid="badge-unread-files"
+                >
+                  {unreadFileCount}
+                </motion.span>
+              )}
             </button>
           </div>
 
