@@ -678,48 +678,44 @@ export default function Room() {
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         
         <div className="max-h-[280px] md:max-h-none md:flex-1 shrink-0 p-3 md:p-4 flex flex-col items-center justify-start md:justify-center relative border-b md:border-b-0 md:border-r border-white/10 bg-black/20 overflow-y-auto">
-          <div className="w-full max-w-sm space-y-2 md:space-y-4">
-            <div className="flex flex-col gap-2">
-              {/* Current User */}
-              <div className="flex items-center justify-between p-2 md:p-3 bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
-                    <span className="text-primary font-bold text-sm">{nickname?.charAt(0).toUpperCase()}</span>
+          <div className="w-full max-w-sm space-y-3 md:space-y-4">
+            {/* App Header */}
+            <div className="flex items-center justify-between p-2 bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm">
+              <span className="font-mono text-sm font-bold tracking-wider text-primary">SECURE.LINK</span>
+              <div className="w-8 h-8 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
+                <Lock className="w-4 h-4 text-primary" />
+              </div>
+            </div>
+
+            {/* Peers in One Line */}
+            <div className="p-2 md:p-3 bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm space-y-2">
+              <div className="flex items-center justify-center gap-4 md:gap-6">
+                {/* Current User */}
+                <div className="flex flex-col items-center gap-1 flex-1">
+                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
+                    <span className="text-primary font-bold text-base md:text-lg">{nickname?.charAt(0).toUpperCase()}</span>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate" data-testid="text-my-nickname">{nickname}</p>
-                    <p className="text-xs text-muted-foreground">You</p>
-                  </div>
+                  <p className="font-medium text-xs md:text-sm truncate max-w-[100px]" data-testid="text-my-nickname">{nickname}</p>
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <div className={`w-2 h-2 rounded-full ${connectionState === 'connected' ? 'bg-primary shadow-[0_0_10px_rgba(0,255,157,0.5)]' : 'bg-yellow-500 animate-pulse'}`} />
-                    <span className="text-xs font-mono text-muted-foreground">
-                      {connectionState === 'connected' ? 'ONLINE' : 'CONNECTING'}
-                    </span>
+
+                {/* Connection Line */}
+                <div className="flex-shrink-0 w-8 h-0.5 bg-primary/30"></div>
+
+                {/* Peer User */}
+                <div className="flex flex-col items-center gap-1 flex-1">
+                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-accent/20 border-2 border-accent flex items-center justify-center">
+                    <span className="text-accent font-bold text-base md:text-lg">{peerNickname ? peerNickname.charAt(0).toUpperCase() : '?'}</span>
                   </div>
+                  <p className="font-medium text-xs md:text-sm truncate max-w-[100px]" data-testid="text-peer-display-nickname">{peerNickname || 'Waiting...'}</p>
                 </div>
               </div>
 
-              {/* Peer User */}
-              <div className="flex items-center justify-between p-2 md:p-3 bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-accent/20 border-2 border-accent flex items-center justify-center">
-                    <span className="text-accent font-bold text-sm">{peerNickname ? peerNickname.charAt(0).toUpperCase() : '?'}</span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate" data-testid="text-peer-display-nickname">{peerNickname || 'Waiting for peer...'}</p>
-                    <p className="text-xs text-muted-foreground">Peer</p>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <div className={`w-2 h-2 rounded-full ${peerNickname ? 'bg-primary shadow-[0_0_10px_rgba(0,255,157,0.5)]' : 'bg-muted-foreground/30'}`} />
-                    <span className="text-xs font-mono text-muted-foreground">
-                      {peerNickname ? 'ONLINE' : 'OFFLINE'}
-                    </span>
-                  </div>
-                </div>
+              {/* Connection Status */}
+              <div className="flex items-center justify-center gap-2 pt-1">
+                <div className={`w-2 h-2 rounded-full ${connectionState === 'connected' && peerNickname ? 'bg-primary shadow-[0_0_10px_rgba(0,255,157,0.5)]' : 'bg-yellow-500 animate-pulse'}`} />
+                <span className="text-xs font-mono text-muted-foreground">
+                  {connectionState === 'connected' && peerNickname ? 'CONNECTED' : 'CONNECTING...'}
+                </span>
               </div>
             </div>
 
@@ -730,7 +726,7 @@ export default function Room() {
             </div>
 
             {/* Voice Controls */}
-            <div className="flex justify-center gap-3 pt-1 md:pt-2">
+            <div className="flex justify-center gap-3">
               <Button
                 size="lg"
                 variant={isMicOn ? "default" : "secondary"}
