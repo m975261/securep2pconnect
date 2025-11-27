@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Scan, ArrowRight, Loader2, Keyboard, Upload, Home, KeyRound } from "lucide-react";
+import { Scan, ArrowRight, Loader2, Keyboard, Upload, Home, KeyRound, Languages } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -20,12 +20,58 @@ export default function JoinRoom() {
   const [needsPassword, setNeedsPassword] = useState(false);
   const [password, setPassword] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [language, setLanguage] = useState<'en' | 'ar'>('en');
+
+  const translations = {
+    en: {
+      backToHome: 'BACK TO HOME',
+      joinSession: 'Join Session',
+      authenticateVia: 'Authenticate via Code, QR Scan, or Upload',
+      enterRoomCode: 'Enter room code (e.g. A1B2C3)',
+      yourNickname: 'Your nickname',
+      enterRoomPassword: 'Enter room password',
+      connect: 'CONNECT',
+      orAuthWith: 'Or authenticate with',
+      scanCamera: 'Scan Camera',
+      useDeviceCam: 'Use device cam',
+      uploadQr: 'Upload QR',
+      fromImageFile: 'From image file',
+      pleaseEnterNickname: 'Please enter your nickname',
+      roomNotFound: 'Room not found',
+      failedToJoin: 'Failed to join room',
+      qrReadSuccess: 'QR code read successfully!',
+      noQrFound: 'No QR code found in image',
+      attemptsRemaining: 'attempts remaining',
+    },
+    ar: {
+      backToHome: 'العودة للرئيسية',
+      joinSession: 'الانضمام للجلسة',
+      authenticateVia: 'المصادقة عبر الرمز أو المسح أو التحميل',
+      enterRoomCode: 'أدخل رمز الغرفة (مثال: A1B2C3)',
+      yourNickname: 'اسمك المستعار',
+      enterRoomPassword: 'أدخل كلمة مرور الغرفة',
+      connect: 'اتصال',
+      orAuthWith: 'أو المصادقة بواسطة',
+      scanCamera: 'مسح الكاميرا',
+      useDeviceCam: 'استخدام كاميرا الجهاز',
+      uploadQr: 'تحميل رمز QR',
+      fromImageFile: 'من ملف صورة',
+      pleaseEnterNickname: 'الرجاء إدخال اسمك المستعار',
+      roomNotFound: 'الغرفة غير موجودة',
+      failedToJoin: 'فشل الانضمام للغرفة',
+      qrReadSuccess: 'تم قراءة رمز QR بنجاح!',
+      noQrFound: 'لم يتم العثور على رمز QR في الصورة',
+      attemptsRemaining: 'محاولات متبقية',
+    },
+  };
+
+  const t = translations[language];
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!code || !nickname.trim()) {
       if (!nickname.trim()) {
-        toast.error('Please enter your nickname');
+        toast.error(t.pleaseEnterNickname);
       }
       return;
     }
@@ -49,11 +95,11 @@ export default function JoinRoom() {
           toast.error(data.error);
         } else if (response.status === 401) {
           setNeedsPassword(true);
-          toast.error(data.error + (data.attemptsRemaining ? ` (${data.attemptsRemaining} attempts remaining)` : ''));
+          toast.error(data.error + (data.attemptsRemaining ? ` (${data.attemptsRemaining} ${t.attemptsRemaining})` : ''));
         } else if (response.status === 404) {
-          toast.error('Room not found');
+          toast.error(t.roomNotFound);
         } else {
-          toast.error('Failed to join room');
+          toast.error(t.failedToJoin);
         }
         setLoading(false);
         return;
@@ -68,7 +114,7 @@ export default function JoinRoom() {
       setLocation(`/room/${code}?nickname=${encodeURIComponent(nickname.trim())}`);
     } catch (error) {
       console.error('Error joining room:', error);
-      toast.error('Failed to join room. Please try again.');
+      toast.error(t.failedToJoin);
       setLoading(false);
     }
   };
@@ -100,9 +146,9 @@ export default function JoinRoom() {
         if (qrCode) {
           const roomCode = qrCode.data.split('/').pop() || '';
           setCode(roomCode);
-          toast.success('QR code read successfully!');
+          toast.success(t.qrReadSuccess);
         } else {
-          toast.error('No QR code found in image');
+          toast.error(t.noQrFound);
         }
       };
       image.src = reader.result as string;
@@ -111,14 +157,28 @@ export default function JoinRoom() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 relative">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 relative" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="absolute top-4 left-4">
         <Link href="/">
           <Button variant="ghost" className="text-muted-foreground hover:text-white gap-2" data-testid="button-back">
             <Home className="w-4 h-4" />
-            BACK TO HOME
+            {t.backToHome}
           </Button>
         </Link>
+      </div>
+
+      {/* Language Toggle - Top Right */}
+      <div className="absolute top-4 right-4">
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-white/10 bg-white/5 hover:bg-white/10 gap-1"
+          onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+          data-testid="button-language"
+        >
+          <Languages className="w-4 h-4" />
+          <span className="text-xs">{language === 'en' ? 'AR' : 'EN'}</span>
+        </Button>
       </div>
 
       {showScanner && (
@@ -134,8 +194,8 @@ export default function JoinRoom() {
         className="w-full max-w-md"
       >
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold mb-2">Join Session</h1>
-          <p className="text-muted-foreground font-mono text-sm">Authenticate via Code, QR Scan, or Upload</p>
+          <h1 className="text-3xl font-bold mb-2">{t.joinSession}</h1>
+          <p className="text-muted-foreground font-mono text-sm">{t.authenticateVia}</p>
         </div>
 
         <div className="grid gap-6">
@@ -146,7 +206,7 @@ export default function JoinRoom() {
                 <Input 
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
-                  placeholder="Enter room code (e.g. A1B2C3)"
+                  placeholder={t.enterRoomCode}
                   className="pl-9 bg-black/20 border-white/10 focus:border-accent/50 font-mono uppercase tracking-widest"
                   data-testid="input-code"
                 />
@@ -156,7 +216,7 @@ export default function JoinRoom() {
                 <Input 
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
-                  placeholder="Your nickname"
+                  placeholder={t.yourNickname}
                   className="bg-black/20 border-white/10 focus:border-accent/50"
                   data-testid="input-nickname"
                   maxLength={20}
@@ -176,7 +236,7 @@ export default function JoinRoom() {
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter room password"
+                      placeholder={t.enterRoomPassword}
                       className="pl-9 bg-black/20 border-white/10 focus:border-primary/50 font-mono"
                       data-testid="input-password"
                     />
@@ -190,7 +250,7 @@ export default function JoinRoom() {
                 className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-bold"
                 data-testid="button-connect"
               >
-                {loading ? <Loader2 className="animate-spin" /> : "CONNECT"}
+                {loading ? <Loader2 className="animate-spin" /> : t.connect}
               </Button>
             </form>
           </Card>
@@ -200,7 +260,7 @@ export default function JoinRoom() {
               <span className="w-full border-t border-white/10" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or authenticate with</span>
+              <span className="bg-background px-2 text-muted-foreground">{t.orAuthWith}</span>
             </div>
           </div>
 
@@ -215,8 +275,8 @@ export default function JoinRoom() {
                 <Scan className="w-6 h-6 text-primary" />
               </div>
               <div className="flex flex-col items-center text-center">
-                <span className="font-bold text-xs">Scan Camera</span>
-                <span className="text-[10px] text-muted-foreground font-mono scale-90">Use device cam</span>
+                <span className="font-bold text-xs">{t.scanCamera}</span>
+                <span className="text-[10px] text-muted-foreground font-mono scale-90">{t.useDeviceCam}</span>
               </div>
             </Button>
 
@@ -230,8 +290,8 @@ export default function JoinRoom() {
                 <Upload className="w-6 h-6 text-blue-500" />
               </div>
               <div className="flex flex-col items-center text-center">
-                <span className="font-bold text-xs">Upload QR</span>
-                <span className="text-[10px] text-muted-foreground font-mono scale-90">From image file</span>
+                <span className="font-bold text-xs">{t.uploadQr}</span>
+                <span className="text-[10px] text-muted-foreground font-mono scale-90">{t.fromImageFile}</span>
               </div>
               <input 
                 type="file" 

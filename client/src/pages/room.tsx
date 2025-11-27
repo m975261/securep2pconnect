@@ -676,12 +676,12 @@ export default function Room() {
           <Button
             size="sm"
             variant="outline"
-            className="border-white/10 bg-white/5 hover:bg-white/10"
+            className="border-white/10 bg-white/5 hover:bg-white/10 gap-1"
             onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
             data-testid="button-language"
           >
-            <Languages className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline ml-1 sm:ml-2">{language === 'en' ? 'العربية' : 'English'}</span>
+            <Languages className="w-4 h-4" />
+            <span className="text-xs">{language === 'en' ? 'AR' : 'EN'}</span>
           </Button>
 
           <Dialog>

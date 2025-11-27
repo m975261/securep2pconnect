@@ -1,11 +1,40 @@
 import { motion } from "framer-motion";
-import { Shield, Users, Lock, ArrowRight } from "lucide-react";
+import { Shield, Users, Lock, ArrowRight, Languages } from "lucide-react";
 import { Link } from "wouter";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import bgImage from "@assets/generated_images/dark_abstract_digital_security_network_background.png";
 
 export default function Home() {
+  const [language, setLanguage] = useState<'en' | 'ar'>('en');
+
+  const translations = {
+    en: {
+      appName: 'SECURE.LINK',
+      tagline: 'End-to-End Encrypted P2P Communication Node.',
+      noTraces: 'No Servers. No Traces.',
+      createRoom: 'Create Room',
+      createDesc: 'Start a secure session',
+      joinRoom: 'Join Room',
+      joinDesc: 'Enter code or scan QR',
+      version: 'V2.0.1 • WEBRTC • AES-256-GCM',
+    },
+    ar: {
+      appName: 'SECURE.LINK',
+      tagline: 'اتصال نظير إلى نظير مشفر من طرف إلى طرف.',
+      noTraces: 'بدون خوادم. بدون آثار.',
+      createRoom: 'إنشاء غرفة',
+      createDesc: 'بدء جلسة آمنة',
+      joinRoom: 'الانضمام لغرفة',
+      joinDesc: 'أدخل الرمز أو امسح رمز الاستجابة',
+      version: 'V2.0.1 • WEBRTC • AES-256-GCM',
+    },
+  };
+
+  const t = translations[language];
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Background */}
       <div 
         className="absolute inset-0 z-0"
@@ -17,6 +46,20 @@ export default function Home() {
         }}
       />
       <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/90 to-background z-0" />
+
+      {/* Language Toggle - Top Right */}
+      <div className="absolute top-4 right-4 z-20">
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-white/10 bg-white/5 hover:bg-white/10 gap-1"
+          onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+          data-testid="button-language"
+        >
+          <Languages className="w-4 h-4" />
+          <span className="text-xs">{language === 'en' ? 'AR' : 'EN'}</span>
+        </Button>
+      </div>
 
       <div className="relative z-10 w-full max-w-md px-6 space-y-12">
         {/* Hero */}
@@ -35,7 +78,7 @@ export default function Home() {
             transition={{ delay: 0.1 }}
             className="text-4xl md:text-5xl font-bold tracking-tighter text-white"
           >
-            SECURE<span className="text-primary">.LINK</span>
+            {t.appName.split('.')[0]}<span className="text-primary">.{t.appName.split('.')[1]}</span>
           </motion.h1>
           
           <motion.p 
@@ -44,8 +87,8 @@ export default function Home() {
             transition={{ delay: 0.2 }}
             className="text-muted-foreground font-mono text-sm"
           >
-            End-to-End Encrypted P2P Communication Node.
-            <br />No Servers. No Traces.
+            {t.tagline}
+            <br />{t.noTraces}
           </motion.p>
         </div>
 
@@ -63,8 +106,8 @@ export default function Home() {
                     <Users className="w-6 h-6" />
                   </div>
                   <div className="text-left">
-                    <h3 className="font-bold text-white">Create Room</h3>
-                    <p className="text-xs text-muted-foreground font-mono">Start a secure session</p>
+                    <h3 className="font-bold text-white">{t.createRoom}</h3>
+                    <p className="text-xs text-muted-foreground font-mono">{t.createDesc}</p>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -84,8 +127,8 @@ export default function Home() {
                     <Lock className="w-6 h-6" />
                   </div>
                   <div className="text-left">
-                    <h3 className="font-bold text-white">Join Room</h3>
-                    <p className="text-xs text-muted-foreground font-mono">Enter code or scan QR</p>
+                    <h3 className="font-bold text-white">{t.joinRoom}</h3>
+                    <p className="text-xs text-muted-foreground font-mono">{t.joinDesc}</p>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
