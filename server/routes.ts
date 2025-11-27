@@ -9,7 +9,6 @@ import { registerAdminRoutes, initializeDefaultAdmin, parseUserAgent } from "./a
 const createRoomSchema = z.object({
   password: z.string().optional(),
   createdBy: z.string().optional(),
-  creatorPeerId: z.string().optional(),
 });
 
 const joinRoomSchema = z.object({
@@ -111,7 +110,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: roomId,
         password: body.password || null,
         createdBy: body.createdBy || null,
-        creatorPeerId: body.creatorPeerId || null,
         expiresAt,
         peer1: null,
         peer2: null,
@@ -209,8 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ 
         success: true, 
         hasPassword: !!room.password, 
-        isCreator,
-        creatorPeerId: room.creatorPeerId || null
+        isCreator
       });
     } catch (error) {
       console.error("Error joining room:", error);

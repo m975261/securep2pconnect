@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { HelperPrompt } from "@/components/helper-prompt";
 
 export default function CreateRoom() {
   const [_, setLocation] = useLocation();
@@ -17,8 +16,6 @@ export default function CreateRoom() {
   const [password, setPassword] = useState("");
   const [nickname, setNickname] = useState("");
   const [peerId] = useState(() => Math.random().toString(36).substring(7));
-  const [showHelperPrompt, setShowHelperPrompt] = useState(false);
-  const [helperPeerId, setHelperPeerId] = useState<string>("");
   const [language, setLanguage] = useState<'en' | 'ar'>(() => {
     return (localStorage.getItem('app-language') as 'en' | 'ar') || 'en';
   });
@@ -78,13 +75,6 @@ export default function CreateRoom() {
       return;
     }
     
-    // P2P-only: Always show helper prompt
-    setShowHelperPrompt(true);
-  };
-
-  const handleHelperConnected = async (connectedPeerId: string) => {
-    setHelperPeerId(connectedPeerId);
-    setShowHelperPrompt(false);
     setLoading(true);
 
     try {
@@ -94,7 +84,6 @@ export default function CreateRoom() {
         body: JSON.stringify({
           password: passwordEnabled && password ? password : undefined,
           createdBy: peerId,
-          creatorPeerId: connectedPeerId,
         }),
       });
 
@@ -104,7 +93,7 @@ export default function CreateRoom() {
 
       const data = await response.json();
       localStorage.setItem(`creator_${data.roomId}`, peerId);
-      setLocation(`/room/${data.roomId}?nickname=${encodeURIComponent(nickname.trim())}&mode=p2p`);
+      setLocation(`/room/${data.roomId}?nickname=${encodeURIComponent(nickname.trim())}`);
     } catch (error) {
       console.error('Error creating room:', error);
       toast.error(t.failedToCreate);
@@ -220,13 +209,6 @@ export default function CreateRoom() {
           {t.agreement}
         </p>
       </motion.div>
-
-      {/* Helper Prompt Modal */}
-      <HelperPrompt
-        open={showHelperPrompt}
-        onHelperConnected={handleHelperConnected}
-        onCancel={() => setShowHelperPrompt(false)}
-      />
     </div>
   );
 }

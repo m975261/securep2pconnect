@@ -11,7 +11,7 @@ import QRCode from "react-qr-code";
 import { ChatInterface } from "@/components/chat-interface";
 import { FileTransfer } from "@/components/file-transfer";
 import { DebugPanel } from "@/components/debug-panel";
-import { useWebRTCP2P } from "@/lib/webrtc-p2p";
+import { useWebRTC } from "@/lib/webrtc";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -27,7 +27,6 @@ export default function Room() {
   const roomId = params?.id || "";
   const searchParams = new URLSearchParams(window.location.search);
   const nicknameFromUrl = searchParams.get('nickname') || '';
-  const creatorPeerIdFromUrl = searchParams.get('creatorPeerId') || '';
   const [peerId] = useState(() => {
     const stored = localStorage.getItem(`creator_${roomId}`);
     if (stored) return stored;
@@ -291,36 +290,22 @@ export default function Room() {
     }
   }, []);
 
-  const onP2PPeerConnected = useCallback((peerInfo?: { peerId?: string }) => {
-    if (peerInfo?.peerId) {
-      toast.success(`Peer ${peerInfo.peerId.substring(0, 8)} connected!`);
-    } else {
-      toast.success('Peer connected!');
-    }
-  }, []);
-
   const onPeerDisconnected = useCallback(() => {
     toast.error('Peer disconnected');
     setPeerNickname('');
   }, []);
 
-  const p2pConfig = useMemo(() => ({
+  const webrtcConfig = useMemo(() => ({
+    roomId: passwordVerified ? roomId : '',
+    peerId: passwordVerified ? peerId : '',
+    nickname: passwordVerified ? nickname : '',
     onMessage,
     onFileReceive,
-    onPeerConnected: onP2PPeerConnected,
+    onPeerConnected,
     onPeerDisconnected,
-  }), [onMessage, onFileReceive, onP2PPeerConnected, onPeerDisconnected]);
+  }), [passwordVerified, roomId, peerId, nickname, onMessage, onFileReceive, onPeerConnected, onPeerDisconnected]);
 
-  // P2P-only: Always use P2P hook
-  const { connectionState, remoteStream, sendMessage, sendFile, startVoiceChat, stopVoiceChat, connectToPeer, helperConnected } = useWebRTCP2P(p2pConfig);
-
-  // Connect to peer if we're the joiner (have creatorPeerId)
-  useEffect(() => {
-    if (passwordVerified && creatorPeerIdFromUrl && helperConnected) {
-      console.log('Joiner: Connecting to creator peer:', creatorPeerIdFromUrl);
-      connectToPeer(creatorPeerIdFromUrl);
-    }
-  }, [passwordVerified, creatorPeerIdFromUrl, helperConnected, connectToPeer]);
+  const { connectionState, remoteStream, sendMessage, sendFile, startVoiceChat, stopVoiceChat } = useWebRTC(webrtcConfig);
 
   // Attach remote audio stream to audio element
   useEffect(() => {

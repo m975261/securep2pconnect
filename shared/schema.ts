@@ -7,7 +7,6 @@ export const rooms = pgTable("rooms", {
   id: varchar("id").primaryKey(),
   password: text("password"),
   createdBy: text("created_by"),
-  creatorPeerId: text("creator_peer_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   expiresAt: timestamp("expires_at").notNull(),
   peer1: text("peer1"),

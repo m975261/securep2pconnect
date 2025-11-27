@@ -8,7 +8,6 @@ import { Card } from "@/components/ui/card";
 import { QRCodeScanner } from "@/components/qr-scanner";
 import { toast } from "sonner";
 import jsQR from "jsqr";
-import { HelperPrompt } from "@/components/helper-prompt";
 
 export default function JoinRoom() {
   const [_, setLocation] = useLocation();
@@ -20,8 +19,6 @@ export default function JoinRoom() {
   const [nickname, setNickname] = useState("");
   const [needsPassword, setNeedsPassword] = useState(false);
   const [password, setPassword] = useState("");
-  const [showHelperPrompt, setShowHelperPrompt] = useState(false);
-  const [helperPeerId, setHelperPeerId] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [language, setLanguage] = useState<'en' | 'ar'>(() => {
     return (localStorage.getItem('app-language') as 'en' | 'ar') || 'en';
@@ -95,13 +92,6 @@ export default function JoinRoom() {
       return;
     }
     
-    // Show helper prompt before joining
-    setShowHelperPrompt(true);
-  };
-
-  const handleHelperConnected = async (connectedPeerId: string) => {
-    setHelperPeerId(connectedPeerId);
-    setShowHelperPrompt(false);
     setLoading(true);
 
     try {
@@ -137,7 +127,7 @@ export default function JoinRoom() {
         return;
       }
 
-      setLocation(`/room/${code}?nickname=${encodeURIComponent(nickname.trim())}&mode=p2p&creatorPeerId=${data.creatorPeerId || ''}`);
+      setLocation(`/room/${code}?nickname=${encodeURIComponent(nickname.trim())}`);
     } catch (error) {
       console.error('Error joining room:', error);
       toast.error(t.failedToJoin);
@@ -330,13 +320,6 @@ export default function JoinRoom() {
           </div>
         </div>
       </motion.div>
-
-      {/* Helper Prompt Modal */}
-      <HelperPrompt
-        open={showHelperPrompt}
-        onHelperConnected={handleHelperConnected}
-        onCancel={() => setShowHelperPrompt(false)}
-      />
     </div>
   );
 }
