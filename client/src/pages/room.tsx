@@ -11,7 +11,7 @@ import QRCode from "react-qr-code";
 import { ChatInterface } from "@/components/chat-interface";
 import { FileTransfer } from "@/components/file-transfer";
 import { DebugPanel } from "@/components/debug-panel";
-import { useWebRTC } from "@/lib/webrtc";
+import { useWebRTC, type TurnConfig } from "@/lib/webrtc";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -67,6 +67,10 @@ export default function Room() {
   const lastMicToggleRef = useRef<number>(0); // Debounce voice toggle
   const [language, setLanguage] = useState<'en' | 'ar'>(() => {
     return (localStorage.getItem('app-language') as 'en' | 'ar') || 'en';
+  });
+  const [turnConfig] = useState<TurnConfig | null>(() => {
+    const stored = localStorage.getItem('turn-config');
+    return stored ? JSON.parse(stored) : null;
   });
 
   useEffect(() => {
@@ -299,11 +303,12 @@ export default function Room() {
     roomId: passwordVerified ? roomId : '',
     peerId: passwordVerified ? peerId : '',
     nickname: passwordVerified ? nickname : '',
+    turnConfig: turnConfig || undefined,
     onMessage,
     onFileReceive,
     onPeerConnected,
     onPeerDisconnected,
-  }), [passwordVerified, roomId, peerId, nickname, onMessage, onFileReceive, onPeerConnected, onPeerDisconnected]);
+  }), [passwordVerified, roomId, peerId, nickname, turnConfig, onMessage, onFileReceive, onPeerConnected, onPeerDisconnected]);
 
   const { connectionState, remoteStream, sendMessage, sendFile, startVoiceChat, stopVoiceChat } = useWebRTC(webrtcConfig);
 

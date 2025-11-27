@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { QRCodeScanner } from "@/components/qr-scanner";
 import { toast } from "sonner";
 import jsQR from "jsqr";
+import { TurnConfigModal, type TurnConfig } from "@/components/turn-config-modal";
 
 export default function JoinRoom() {
   const [_, setLocation] = useLocation();
@@ -19,6 +20,11 @@ export default function JoinRoom() {
   const [nickname, setNickname] = useState("");
   const [needsPassword, setNeedsPassword] = useState(false);
   const [password, setPassword] = useState("");
+  const [showTurnConfig, setShowTurnConfig] = useState(false);
+  const [turnConfig, setTurnConfig] = useState<TurnConfig | null>(() => {
+    const stored = localStorage.getItem('turn-config');
+    return stored ? JSON.parse(stored) : null;
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [language, setLanguage] = useState<'en' | 'ar'>(() => {
     return (localStorage.getItem('app-language') as 'en' | 'ar') || 'en';
@@ -89,6 +95,12 @@ export default function JoinRoom() {
       if (!nickname.trim()) {
         toast.error(t.pleaseEnterNickname);
       }
+      return;
+    }
+
+    // Check if TURN configuration exists
+    if (!turnConfig) {
+      setShowTurnConfig(true);
       return;
     }
     
@@ -320,6 +332,18 @@ export default function JoinRoom() {
           </div>
         </div>
       </motion.div>
+
+      {/* TURN Configuration Modal */}
+      <TurnConfigModal
+        open={showTurnConfig}
+        onConfigured={(config) => {
+          setTurnConfig(config);
+          setShowTurnConfig(false);
+          toast.success("TURN server configured successfully");
+        }}
+        onCancel={() => setShowTurnConfig(false)}
+        language={language}
+      />
     </div>
   );
 }

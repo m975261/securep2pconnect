@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
+import { TurnConfigModal, type TurnConfig } from "@/components/turn-config-modal";
 
 export default function CreateRoom() {
   const [_, setLocation] = useLocation();
@@ -16,6 +17,11 @@ export default function CreateRoom() {
   const [password, setPassword] = useState("");
   const [nickname, setNickname] = useState("");
   const [peerId] = useState(() => Math.random().toString(36).substring(7));
+  const [showTurnConfig, setShowTurnConfig] = useState(false);
+  const [turnConfig, setTurnConfig] = useState<TurnConfig | null>(() => {
+    const stored = localStorage.getItem('turn-config');
+    return stored ? JSON.parse(stored) : null;
+  });
   const [language, setLanguage] = useState<'en' | 'ar'>(() => {
     return (localStorage.getItem('app-language') as 'en' | 'ar') || 'en';
   });
@@ -74,6 +80,12 @@ export default function CreateRoom() {
       toast.error(t.pleaseEnterNickname);
       return;
     }
+
+    // Check if TURN configuration exists
+    if (!turnConfig) {
+      setShowTurnConfig(true);
+      return;
+    }
     
     setLoading(true);
 
@@ -99,6 +111,12 @@ export default function CreateRoom() {
       toast.error(t.failedToCreate);
       setLoading(false);
     }
+  };
+
+  const handleTurnConfigured = (config: TurnConfig) => {
+    setTurnConfig(config);
+    setShowTurnConfig(false);
+    toast.success("TURN server configured successfully");
   };
 
   return (
@@ -209,6 +227,14 @@ export default function CreateRoom() {
           {t.agreement}
         </p>
       </motion.div>
+
+      {/* TURN Configuration Modal */}
+      <TurnConfigModal
+        open={showTurnConfig}
+        onConfigured={handleTurnConfigured}
+        onCancel={() => setShowTurnConfig(false)}
+        language={language}
+      />
     </div>
   );
 }

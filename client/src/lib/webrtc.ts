@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 
+export interface TurnConfig {
+  urls: string[];
+  username: string;
+  credential: string;
+}
+
 interface WebRTCConfig {
   roomId: string;
   peerId: string;
   nickname?: string;
+  turnConfig?: TurnConfig;
   onMessage?: (message: any) => void;
   onFileReceive?: (file: { name: string; type: string; size: number; data: ArrayBuffer; from?: string; fromNickname?: string }) => void;
   onPeerConnected?: (peerInfo?: { nickname?: string }) => void;
@@ -258,54 +265,19 @@ export function useWebRTC(config: WebRTCConfig) {
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
-    // Simple WebRTC peer connection for voice only
+    // TURN-relay-only WebRTC peer connection (no IP leakage)
+    const iceServers = configRef.current.turnConfig ? [
+      {
+        urls: configRef.current.turnConfig.urls,
+        username: configRef.current.turnConfig.username,
+        credential: configRef.current.turnConfig.credential,
+      }
+    ] : [];
+
     const pc = new RTCPeerConnection({
-      iceServers: [
-        // Google STUN servers
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' },
-        // Twilio STUN
-        { urls: 'stun:global.stun.twilio.com:3478' },
-        // Multiple TURN servers for better reliability
-        // OpenRelay
-        {
-          urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443'],
-          username: 'openrelayproject',
-          credential: 'openrelayproject',
-        },
-        {
-          urls: 'turns:openrelay.metered.ca:443?transport=tcp',
-          username: 'openrelayproject',
-          credential: 'openrelayproject',
-        },
-        // Viagenie
-        {
-          urls: 'turn:numb.viagenie.ca',
-          username: 'webrtc@live.com',
-          credential: 'muazkh',
-        },
-        // Stunprotocol.org
-        {
-          urls: 'turn:turn.anyfirewall.com:443?transport=tcp',
-          username: 'webrtc',
-          credential: 'webrtc',
-        },
-        // Additional relay servers
-        {
-          urls: ['stun:relay.metered.ca:80', 'turn:relay.metered.ca:80'],
-          username: 'openrelayproject',
-          credential: 'openrelayproject',
-        },
-        {
-          urls: 'turn:relay.metered.ca:443',
-          username: 'openrelayproject',
-          credential: 'openrelayproject',
-        },
-      ],
-      iceTransportPolicy: 'all', // Try all connection types
+      iceServers,
+      // Force relay-only mode to prevent IP leakage
+      iceTransportPolicy: 'relay',
       iceCandidatePoolSize: 10,
     });
     pcRef.current = pc;
