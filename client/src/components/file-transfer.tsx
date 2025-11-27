@@ -1,6 +1,6 @@
 import { useDropzone } from "react-dropzone";
-import { Upload, File as FileIcon, X, Check, Download, ArrowDown, ArrowUp } from "lucide-react";
-import { useState } from "react";
+import { Upload, File as FileIcon, X, Check, Download, ArrowDown, ArrowUp, Plus } from "lucide-react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
@@ -18,6 +18,7 @@ interface FileTransferProps {
 
 export function FileTransfer({ onSendFile, transferredFiles }: FileTransferProps) {
   const [files, setFiles] = useState<Array<{ id: string; name: string; size: string; progress: number; status: 'uploading' | 'completed' }>>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const onDrop = async (acceptedFiles: File[]) => {
     for (const file of acceptedFiles) {
@@ -54,23 +55,79 @@ export function FileTransfer({ onSendFile, transferredFiles }: FileTransferProps
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
+  const handleFileButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = e.target.files;
+    if (selectedFiles && selectedFiles.length > 0) {
+      onDrop(Array.from(selectedFiles));
+      e.target.value = ''; // Reset input
+    }
+  };
+
+  const lastTransferredFile = transferredFiles.length > 0 ? transferredFiles[transferredFiles.length - 1] : null;
+
   return (
     <div className="space-y-4 h-full flex flex-col">
-      <div
-        {...getRootProps()}
-        className={`
-          border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer h-32 flex flex-col items-center justify-center
-          ${isDragActive 
-            ? "border-primary bg-primary/5 text-primary" 
-            : "border-white/10 hover:border-white/20 text-muted-foreground"
-          }
-        `}
-        data-testid="dropzone-files"
-      >
-        <input {...getInputProps()} />
-        <Upload className={`w-8 h-8 mb-2 ${isDragActive ? "animate-bounce" : ""}`} />
-        <p className="text-xs font-mono">DROP FILES TO ENCRYPT & SEND</p>
-      </div>
+      {transferredFiles.length === 0 ? (
+        <div
+          {...getRootProps()}
+          className={`
+            border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer h-32 flex flex-col items-center justify-center
+            ${isDragActive 
+              ? "border-primary bg-primary/5 text-primary" 
+              : "border-white/10 hover:border-white/20 text-muted-foreground"
+            }
+          `}
+          data-testid="dropzone-files"
+        >
+          <input {...getInputProps()} />
+          <Upload className={`w-8 h-8 mb-2 ${isDragActive ? "animate-bounce" : ""}`} />
+          <p className="text-xs font-mono">DROP FILES TO ENCRYPT & SEND</p>
+        </div>
+      ) : (
+        <div className="border border-white/10 rounded-xl p-4 bg-white/5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 overflow-hidden flex-1 min-w-0">
+              <div className="p-2 bg-black/50 rounded">
+                {lastTransferredFile?.type === 'sent' ? (
+                  <ArrowUp className="w-4 h-4 text-blue-400" />
+                ) : (
+                  <ArrowDown className="w-4 h-4 text-green-400" />
+                )}
+              </div>
+              <div className="truncate flex-1 min-w-0">
+                <div className="text-sm font-mono truncate text-white/90" data-testid="last-file-name">
+                  {lastTransferredFile?.name}
+                </div>
+                <div className="text-[10px] text-muted-foreground">
+                  {lastTransferredFile && (lastTransferredFile.size / 1024 / 1024).toFixed(2)} MB • {lastTransferredFile?.type === 'sent' ? 'Sent' : 'Received'}
+                </div>
+              </div>
+            </div>
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                onChange={handleFileInputChange}
+                className="hidden"
+                data-testid="file-input-hidden"
+              />
+              <Button
+                size="sm"
+                onClick={handleFileButtonClick}
+                className="bg-accent hover:bg-accent/90 text-black font-bold text-xs gap-1"
+                data-testid="button-send-new-file"
+              >
+                <Plus className="w-3 h-3" />
+                SEND NEW FILE
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto space-y-2">
         <AnimatePresence>
