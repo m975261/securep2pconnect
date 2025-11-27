@@ -17,7 +17,6 @@ import (
         "github.com/gorilla/websocket"
         "github.com/libp2p/go-libp2p"
         dht "github.com/libp2p/go-libp2p-kad-dht"
-        webrtc_direct "github.com/libp2p/go-libp2p-webrtc-direct"
         "github.com/libp2p/go-libp2p/core/crypto"
         "github.com/libp2p/go-libp2p/core/host"
         "github.com/libp2p/go-libp2p/core/network"
@@ -100,8 +99,6 @@ func NewHelper(ctx context.Context) (*Helper, error) {
                         "/ip4/0.0.0.0/udp/0/quic-v1",
                         "/ip6/::/udp/0/quic-v1",
                 ),
-                // Add WebRTC-direct transport
-                libp2p.Transport(webrtc_direct.New),
                 libp2p.Security(libp2ptls.ID, libp2ptls.New),
                 libp2p.Security(noise.ID, noise.New),
                 libp2p.ConnectionManager(connManager),
@@ -314,11 +311,39 @@ func (h *Helper) forwardRTPToLibp2p(track *webrtc.TrackRemote) {
                         continue
                 }
 
-                // Write to libp2p stream
-                if _, err := stream.Write(data); err != nil {
-                        log.Printf("Error forwarding RTP: %v", err)
+                // Write with length prefix (2 bytes for packet length)
+                lengthPrefix := []byte{byte(len(data) >> 8), byte(len(data) & 0xFF)}
+                
+                if _, err := stream.Write(lengthPrefix); err != nil {
+                        log.Printf("Error writing length prefix: %v", err)
+                        h.reconnectStream()
                         continue
                 }
+                
+                if _, err := stream.Write(data); err != nil {
+                        log.Printf("Error forwarding RTP: %v", err)
+                        h.reconnectStream()
+                        continue
+                }
+        }
+}
+
+// reconnectStream attempts to reconnect the RTP stream
+func (h *Helper) reconnectStream() {
+        h.streamLock.Lock()
+        if h.rtpStream != nil {
+                h.rtpStream.Close()
+                h.rtpStream = nil
+        }
+        h.streamLock.Unlock()
+        
+        // Try to reconnect
+        h.peerLock.Lock()
+        remotePeerID := h.remotePeerID
+        h.peerLock.Unlock()
+        
+        if remotePeerID != "" {
+                go h.openRTPStream(remotePeerID)
         }
 }
 
@@ -338,20 +363,35 @@ func (h *Helper) handleRTPStream(stream network.Stream) {
                 stream.Close()
         }()
 
-        // Read RTP packets and inject into browser peer connection
-        buf := make([]byte, 1500)
+        // Read RTP packets with length prefix and inject into browser peer connection
+        lengthBuf := make([]byte, 2)
+        
         for {
-                n, err := stream.Read(buf)
-                if err != nil {
+                // Read 2-byte length prefix
+                if _, err := io.ReadFull(stream, lengthBuf); err != nil {
                         if err != io.EOF {
-                                log.Printf("Error reading from stream: %v", err)
+                                log.Printf("Error reading length prefix: %v", err)
                         }
+                        return
+                }
+                
+                // Parse length
+                packetLen := int(lengthBuf[0])<<8 | int(lengthBuf[1])
+                if packetLen > 1500 {
+                        log.Printf("Invalid packet length: %d", packetLen)
+                        continue
+                }
+                
+                // Read RTP packet
+                buf := make([]byte, packetLen)
+                if _, err := io.ReadFull(stream, buf); err != nil {
+                        log.Printf("Error reading RTP packet: %v", err)
                         return
                 }
 
                 // Parse RTP packet
                 packet := &webrtc.RTPPacket{}
-                if err := packet.Unmarshal(buf[:n]); err != nil {
+                if err := packet.Unmarshal(buf); err != nil {
                         log.Printf("Error unmarshaling RTP: %v", err)
                         continue
                 }
@@ -359,15 +399,19 @@ func (h *Helper) handleRTPStream(stream network.Stream) {
                 // Inject into appropriate track based on payload type
                 h.pcLock.Lock()
                 
-                // Payload type 111 is typically Opus (audio)
-                // Payload type 96 is typically VP8 (video)
-                if packet.PayloadType == 111 && h.audioTrack != nil {
-                        if err := h.audioTrack.WriteRTP(packet); err != nil {
+                // Route by payload type - will be negotiated via SDP
+                // Common: Opus=111, VP8=96, but may vary
+                if h.audioTrack != nil && packet.PayloadType >= 96 && packet.PayloadType <= 127 {
+                        // Audio codecs typically in this range
+                        if err := h.audioTrack.WriteRTP(packet); err != nil && err != io.ErrClosedPipe {
                                 log.Printf("Error writing audio RTP: %v", err)
                         }
-                } else if packet.PayloadType == 96 && h.videoTrack != nil {
-                        if err := h.videoTrack.WriteRTP(packet); err != nil {
-                                log.Printf("Error writing video RTP: %v", err)
+                }
+                
+                if h.videoTrack != nil && packet.PayloadType >= 96 && packet.PayloadType <= 127 {
+                        // Try video track as well - one will accept, other will reject
+                        if err := h.videoTrack.WriteRTP(packet); err != nil && err != io.ErrClosedPipe {
+                                // Ignore error - may not be video packet
                         }
                 }
                 
@@ -479,6 +523,30 @@ func (h *Helper) handleBrowserMessage(msg Message) error {
         }
 
         return nil
+}
+
+// openRTPStream opens an outbound RTP stream to a peer
+func (h *Helper) openRTPStream(peerIDStr string) {
+        peerID, err := peer.Decode(peerIDStr)
+        if err != nil {
+                log.Printf("✗ Invalid peer ID for stream: %v", err)
+                return
+        }
+
+        ctx, cancel := context.WithTimeout(h.ctx, 10*time.Second)
+        defer cancel()
+
+        stream, err := h.host.NewStream(ctx, peerID, protocol.ID(RTPProtocol))
+        if err != nil {
+                log.Printf("✗ Failed to open RTP stream: %v", err)
+                return
+        }
+
+        h.streamLock.Lock()
+        h.rtpStream = stream
+        h.streamLock.Unlock()
+
+        log.Println("✓ RTP stream re-established")
 }
 
 // connectToPeer connects to a remote peer by PeerID

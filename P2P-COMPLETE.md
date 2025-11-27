@@ -19,6 +19,9 @@
    - ✅ RTP packet extraction from browser
    - ✅ RTP packet injection to browser
    - ✅ Bidirectional media forwarding
+   - ✅ Length-prefixed framing for stream integrity
+   - ✅ Automatic stream reconnection on failure
+   - ✅ Outbound and inbound stream handling
 
 3. **Media Relay Logic**
    ```

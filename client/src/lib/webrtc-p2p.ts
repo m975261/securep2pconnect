@@ -247,11 +247,14 @@ export function useWebRTCP2P(config: WebRTCP2PConfig) {
     }
 
     console.log('Requesting connection to peer:', peerIdToConnect);
+    
+    // Update ref immediately to avoid stale closure in performNegotiation
+    remotePeerIdRef.current = peerIdToConnect;
     setRemotePeerId(peerIdToConnect);
     
     ws.send(JSON.stringify({
       type: 'connect-peer',
-      to: peerIdToConnect,
+      data: JSON.stringify(peerIdToConnect),
     }));
   }, []);
 
