@@ -1,23 +1,21 @@
 # Overview
 
-SECURE.LINK is an end-to-end encrypted peer-to-peer communication application that enables secure, temporary connections between two users without server-side data storage. The system facilitates real-time text messaging, voice chat, and file transfers through WebRTC technology, with optional password protection and automatic room expiration.
+SECURE.LINK is a WebRTC communication application that enables secure, temporary connections between two users through TURN relay servers (relay-only mode to prevent IP leakage). The system facilitates real-time text messaging, voice chat, and file transfers through WebRTC technology, with optional password protection and automatic room expiration. Users provide their own TURN server configuration for complete privacy control.
 
 ## Recent Updates
 
-### November 27, 2025 - P2P System Complete
-- **Complete P2P Mode**: Native helper application for true peer-to-peer with IP hiding
-- **Audio + Video Support**: Full duplex media streaming through libp2p overlay network
-- **Go Helper**: Pion WebRTC bridge between browser and libp2p (main-refactored.go)
-- **RTP Packet Framing**: Length-prefixed framing for reliable stream delivery
-- **Stream Reconnection**: Automatic recovery on connection failures
-- **Build Requirement**: Go 1.21+ required for compilation (documented in README)
-- **Cross-Platform**: Build scripts for Windows, macOS (Intel/ARM), Linux
+### November 27, 2025 - TURN-Relay-Only Architecture
+- **P2P Infrastructure Removed**: Deleted all P2P helper code (helper/, webrtc-p2p.ts, p2p-room.tsx)
+- **User-Provided TURN Servers**: TurnConfigModal component for users to input their own TURN server credentials
+- **Relay-Only Mode**: WebRTC forced to `iceTransportPolicy: 'relay'` - no direct P2P connections, no IP leakage
+- **No Default TURN Servers**: Users must configure their own TURN server before creating/joining rooms
+- **CoTURN Docker Setup**: Production-ready self-hosted TURN server with Docker Compose and Unraid deployment guide
+- **Database Schema Update**: Removed `creatorPeerId` field (no longer needed without P2P mode)
+- **Bilingual Support**: English/Arabic with RTL layout support in all UI components
 
-### November 20, 2025 - Traditional Mode
+### November 20, 2025 - Traditional Mode (Deprecated - Replaced by TURN-Only)
 - **Peer Nicknames**: Users enter nicknames before joining/creating rooms
 - **Dynamic Password Setting**: Room creators can update passwords in real-time
-- **Creator Privileges**: Bypass authentication with localStorage persistence
-- **TURN Server Integration**: Port 443 relay servers for firewall traversal
 - **Admin Panel**: Secure dashboard with 2FA for monitoring
 - **Password Protection on Links**: Direct room links require password verification
 - **Peer Tracking**: Real-time device information tracking
@@ -47,27 +45,24 @@ Preferred communication style: Simple, everyday language.
 
 ### Page Structure
 - **Home**: Landing page with navigation to create/join rooms
-- **Create Room**: Form to initialize new secure rooms with optional password
-- **Join Room**: Interface to connect to existing rooms via room ID
+- **Create Room**: Form to initialize new secure rooms with optional password, requires TURN configuration
+- **Join Room**: Interface to connect to existing rooms via room ID, requires TURN configuration
 - **Room**: Main communication interface with chat, file transfer, and voice capabilities
-- **P2P Room** (`/p2p`): Privacy-enhanced mode using native helper application
+- **Admin Login**: Secure admin authentication with 2FA support
+- **Admin Dashboard**: Room monitoring and analytics
 - **Not Found**: 404 error page
 
 ### Communication Features
 
-**Traditional Mode (TURN-based):**
+**TURN-Relay-Only Mode:**
 - Chat interface with message history
-- File transfer with drag-and-drop support
-- QR code scanning for room joining
-- Voice chat toggle functionality
-- TURN relay servers for firewall traversal
-
-**P2P Mode (Helper-based):**
-- Complete IP hiding (PeerID only)
-- Audio and video support
-- No STUN/TURN servers needed
-- Encrypted libp2p streams
-- Requires native helper application
+- File transfer with drag-and-drop support (via WebSocket signaling)
+- QR code generation and scanning for room joining
+- Voice chat toggle functionality (audio only)
+- **User-configured TURN servers**: Users provide their own TURN server URLs, username, and credentials
+- **No IP leakage**: All WebRTC traffic forced through TURN relay (iceTransportPolicy: 'relay')
+- **TurnConfigModal**: Bilingual modal for TURN server configuration, stored in localStorage
+- **Self-hosted option**: Complete CoTURN Docker setup included in `turn-server/` directory
 
 ## Backend Architecture
 
@@ -103,12 +98,15 @@ Preferred communication style: Simple, everyday language.
 
 **Room Protection**
 - Optional password protection for rooms
-- Room creator bypass: Creators skip password authentication (validated server-side)
-- Dynamic password setting: Creators can add/update passwords via secure API endpoint
-- Creator identity persistence: peerId stored in localStorage to maintain creator status across page refreshes (same device/browser only)
 - Failed attempt tracking with progressive penalties
 - IP-based banning after multiple failed attempts (configurable hours)
 - Automatic room expiration (24-hour default TTL)
+
+**IP Privacy**
+- **Relay-only WebRTC**: `iceTransportPolicy: 'relay'` enforced on all peer connections
+- **No STUN servers**: Application does not use any STUN servers to prevent local IP discovery
+- **User-controlled TURN servers**: Users provide their own TURN relay servers for complete control
+- **No default relays**: Application ships with no built-in TURN server credentials
 
 **Rate Limiting**
 - Tracks failed password attempts per IP per room
@@ -116,12 +114,14 @@ Preferred communication style: Simple, everyday language.
 - Automatic cleanup of expired ban records
 
 ### WebRTC Signaling Flow
-1. Client connects to WebSocket server
-2. Client sends join message with room ID
-3. Server validates room existence and password (if required)
-4. Server facilitates ICE candidate and SDP offer/answer exchange
-5. Peers establish direct P2P connection
-6. Server notifies peers of connection/disconnection events
+1. User configures TURN server via TurnConfigModal (stored in localStorage)
+2. Client connects to WebSocket server
+3. Client sends join message with room ID
+4. Server validates room existence and password (if required)
+5. Server facilitates ICE candidate and SDP offer/answer exchange
+6. WebRTC establishes TURN relay connection (forced via iceTransportPolicy: 'relay')
+7. All media/data flows through user-provided TURN server (no direct P2P)
+8. Server notifies peers of connection/disconnection events
 
 ## Database Schema
 
@@ -136,6 +136,7 @@ Preferred communication style: Simple, everyday language.
 - `peer1`: First connected peer identifier (text, nullable)
 - `peer2`: Second connected peer identifier (text, nullable)
 - `isActive`: Room availability status (boolean, default true)
+- **Note**: `creatorPeerId` field was removed (no longer needed in TURN-only mode)
 
 **peer_connections**
 - `id`: UUID identifier (generated)
@@ -186,9 +187,17 @@ Preferred communication style: Simple, everyday language.
 
 ### WebRTC
 - Native browser WebRTC APIs (no external library)
-- STUN/TURN server configuration not explicitly defined (uses browser defaults)
-- Data channels for text messaging and file transfer
-- Media streams for voice chat functionality
+- **TURN-relay-only mode**: `iceTransportPolicy: 'relay'` enforced
+- **User-provided TURN servers**: No default STUN/TURN servers in codebase
+- Data channels for text messaging (via WebSocket signaling, not RTCDataChannel)
+- Media streams for voice chat functionality (audio tracks through RTCPeerConnection)
+
+### TURN Server (Self-Hosted)
+- **CoTURN**: Open-source TURN/STUN server in Docker container
+- **Location**: `turn-server/` directory with Dockerfile, docker-compose.yml, turnserver.conf
+- **Security**: Blocks all private IP ranges (RFC 1918), runs as non-root user
+- **Ports**: 3478 (TURN TCP/UDP), 5349 (TURNS/TLS), 49152-65535 (relay port range)
+- **Deployment**: Optimized for Unraid with detailed README and configuration examples
 
 ### Session Management
 - **connect-pg-simple**: PostgreSQL session store (imported but not actively used in current implementation)

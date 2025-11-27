@@ -71,8 +71,8 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
   const t = translations[language];
 
   const validateTurnUrl = (url: string): boolean => {
-    // TURN URLs must start with turn: or turns:
-    return /^turns?:\/\/.+:\d+$/.test(url.trim());
+    // TURN URLs format: turn:hostname:port or turns:hostname:port
+    return /^turns?:[^:]+:\d+$/.test(url.trim());
   };
 
   const handleAddUrl = () => {

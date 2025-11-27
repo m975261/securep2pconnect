@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  coturn:
+    build: .
+    container_name: coturn-turn-server
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      # Optional: override settings via environment
+      - REALM=turn.example.com
+    volumes:
+      # Mount configuration file
+      - ./turnserver.conf:/etc/coturn/turnserver.conf:ro
+      # Persist logs (optional)
+      - ./logs:/var/log/coturn
+      # TLS certificates (if using TURNS)
+      # - /path/to/certs:/etc/coturn/certs:ro
+    # Use host network mode for best compatibility with TURN
+    # This exposes all ports directly on the host
+    # Alternative: Use port mapping (less efficient for TURN)
+    # ports:
+    #   - "3478:3478/tcp"
+    #   - "3478:3478/udp"
+    #   - "5349:5349/tcp"
+    #   - "49152-65535:49152-65535/udp"
+    
+    # Resource limits (adjust based on your needs)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "turnutils_uclient", "-v", "127.0.0.1", "-u", "turnuser", "-w", "turnpassword"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
