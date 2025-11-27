@@ -17,7 +17,6 @@ export default function CreateRoom() {
   const [password, setPassword] = useState("");
   const [nickname, setNickname] = useState("");
   const [peerId] = useState(() => Math.random().toString(36).substring(7));
-  const [privacyMode, setPrivacyMode] = useState(false);
   const [showHelperPrompt, setShowHelperPrompt] = useState(false);
   const [helperPeerId, setHelperPeerId] = useState<string>("");
   const [language, setLanguage] = useState<'en' | 'ar'>(() => {
@@ -79,41 +78,8 @@ export default function CreateRoom() {
       return;
     }
     
-    // If Privacy Mode enabled, show helper prompt first
-    if (privacyMode) {
-      setShowHelperPrompt(true);
-      return;
-    }
-    
-    // Otherwise, create room immediately in traditional mode
-    await createRoomTraditional();
-  };
-
-  const createRoomTraditional = async () => {
-    setLoading(true);
-
-    try {
-      const response = await fetch('/api/rooms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          password: passwordEnabled && password ? password : undefined,
-          createdBy: peerId,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create room');
-      }
-
-      const data = await response.json();
-      localStorage.setItem(`creator_${data.roomId}`, peerId);
-      setLocation(`/room/${data.roomId}?nickname=${encodeURIComponent(nickname.trim())}&mode=traditional`);
-    } catch (error) {
-      console.error('Error creating room:', error);
-      toast.error(t.failedToCreate);
-      setLoading(false);
-    }
+    // P2P-only: Always show helper prompt
+    setShowHelperPrompt(true);
   };
 
   const handleHelperConnected = async (connectedPeerId: string) => {
