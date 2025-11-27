@@ -35,6 +35,7 @@ export function useWebRTC(config: WebRTCConfig) {
   // Negotiation state to prevent overlapping offers
   const negotiatingRef = useRef(false);
   const pendingNegotiationRef = useRef(false);
+  const pendingStopRef = useRef(false); // Track pending voice stop during negotiation
   
   // Use refs for callbacks to prevent reconnections on re-renders
   const configRef = useRef(config);
@@ -217,6 +218,13 @@ export function useWebRTC(config: WebRTCConfig) {
   }, [performNegotiation]);
 
   const stopVoiceChat = useCallback(() => {
+    // Prevent stopping voice during active negotiation
+    if (negotiatingRef.current) {
+      console.log('Deferring stopVoiceChat until negotiation completes');
+      pendingStopRef.current = true;
+      return;
+    }
+    
     if (localStreamRef.current) {
       const pc = pcRef.current;
       
@@ -281,6 +289,12 @@ export function useWebRTC(config: WebRTCConfig) {
           urls: 'turns:openrelay.metered.ca:443?transport=tcp',
           username: 'openrelayproject',
           credential: 'openrelayproject',
+        },
+        // Additional free TURN server as fallback
+        {
+          urls: 'turn:numb.viagenie.ca',
+          username: 'webrtc@live.com',
+          credential: 'muazkh',
         },
       ],
       iceTransportPolicy: 'all', // Try all connection types
@@ -443,8 +457,14 @@ export function useWebRTC(config: WebRTCConfig) {
             // Clear negotiating flag when answer is received
             negotiatingRef.current = false;
             
+            // Check if voice stop was requested during negotiation
+            if (pendingStopRef.current) {
+              pendingStopRef.current = false;
+              console.log('Executing deferred stopVoiceChat after negotiation');
+              setTimeout(() => stopVoiceChat(), 100);
+            }
             // Check if there's a pending negotiation
-            if (pendingNegotiationRef.current) {
+            else if (pendingNegotiationRef.current) {
               pendingNegotiationRef.current = false;
               console.log('Performing pending negotiation after answer');
               setTimeout(() => performNegotiation(), 100);

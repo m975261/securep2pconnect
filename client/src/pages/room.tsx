@@ -64,6 +64,7 @@ export default function Room() {
   const [remoteAudioMuted, setRemoteAudioMuted] = useState(true);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
+  const lastMicToggleRef = useRef<number>(0); // Debounce voice toggle
   const [language, setLanguage] = useState<'en' | 'ar'>(() => {
     return (localStorage.getItem('app-language') as 'en' | 'ar') || 'en';
   });
@@ -430,6 +431,14 @@ export default function Room() {
   };
 
   const handleToggleMic = async () => {
+    // Debounce: Prevent rapid toggling during WebRTC negotiation
+    const now = Date.now();
+    if (now - lastMicToggleRef.current < 3000) {
+      toast.info('Please wait a moment before toggling again');
+      return;
+    }
+    lastMicToggleRef.current = now;
+    
     // Mark that user has interacted
     setHasUserInteracted(true);
     
