@@ -94,6 +94,13 @@ export function useWebRTC(config: WebRTCConfig) {
         // Send chunks with small delays to allow UI updates
         const sendChunks = async () => {
           for (let offset = 0; offset < arrayBuffer.byteLength; offset += chunkSize) {
+            // Check if WebSocket is still connected before sending each chunk
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+              console.error('WebSocket disconnected during file transfer');
+              reject(new Error('Connection lost during file transfer'));
+              return;
+            }
+            
             const chunk = arrayBuffer.slice(offset, offset + chunkSize);
             const bytes = new Uint8Array(chunk);
             let binary = '';
@@ -114,6 +121,13 @@ export function useWebRTC(config: WebRTCConfig) {
             await new Promise(resolve => setTimeout(resolve, 0));
           }
           console.log(`Sent ${chunksSent} chunks`);
+          
+          // Final check before sending EOF
+          if (!ws || ws.readyState !== WebSocket.OPEN) {
+            console.error('WebSocket disconnected before sending EOF');
+            reject(new Error('Connection lost before completing file transfer'));
+            return;
+          }
           
           // Send EOF
           console.log('Sending file EOF');

@@ -267,15 +267,25 @@ export default function Room() {
 
   const handleSendFile = async (file: File, onProgress?: (progress: number) => void) => {
     const url = URL.createObjectURL(file);
-    setTransferredFiles(prev => [...prev, {
-      name: file.name,
-      size: file.size,
-      url,
-      type: 'sent' as const,
-      timestamp: new Date(),
-      senderName: nickname || 'You',
-    }]);
-    await sendFile(file, { onProgress });
+    
+    try {
+      await sendFile(file, { onProgress });
+      
+      // Only add to transferredFiles after successful send
+      setTransferredFiles(prev => [...prev, {
+        name: file.name,
+        size: file.size,
+        url,
+        type: 'sent' as const,
+        timestamp: new Date(),
+        senderName: nickname || 'You',
+      }]);
+    } catch (error) {
+      console.error('Failed to send file:', error);
+      toast.error(`Failed to send ${file.name}: Connection lost`);
+      // Clean up the blob URL since we won't be using it
+      URL.revokeObjectURL(url);
+    }
   };
 
   const handleSetPassword = async () => {
