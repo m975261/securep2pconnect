@@ -677,67 +677,65 @@ export default function Room() {
 
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         
-        <div className="max-h-[280px] md:max-h-none md:flex-1 shrink-0 p-3 md:p-4 flex flex-col items-center justify-start md:justify-center relative border-b md:border-b-0 md:border-r border-white/10 bg-black/20 overflow-y-auto">
-          <div className="w-full max-w-sm space-y-3 md:space-y-4">
+        <div className="md:flex-1 shrink-0 p-2 md:p-4 flex flex-col items-center justify-start md:justify-center relative border-b md:border-b-0 md:border-r border-white/10 bg-black/20">
+          <div className="w-full max-w-sm space-y-2 md:space-y-4">
             {/* App Header */}
-            <div className="flex items-center justify-center gap-3 p-2 bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm">
-              <span className="font-mono text-sm font-bold tracking-wider text-primary">SECURE.LINK</span>
-              <div className="w-8 h-8 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
-                <Lock className="w-4 h-4 text-primary" />
+            <div className="flex items-center justify-center gap-2 p-1.5 md:p-2 bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm">
+              <span className="font-mono text-xs md:text-sm font-bold tracking-wider text-primary">SECURE.LINK</span>
+              <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
+                <Lock className="w-3 h-3 md:w-4 md:h-4 text-primary" />
               </div>
             </div>
 
             {/* Peers in One Line */}
-            <div className="p-2 md:p-3 bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm">
-              <div className="flex items-center justify-center gap-4 md:gap-6">
+            <div className="p-1.5 md:p-3 bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm">
+              <div className="flex items-center justify-center gap-3 md:gap-6">
                 {/* Current User */}
-                <div className="flex flex-col items-center gap-1 flex-1">
-                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
-                    <span className="text-primary font-bold text-base md:text-lg">{nickname?.charAt(0).toUpperCase()}</span>
+                <div className="flex flex-col items-center gap-0.5 flex-1">
+                  <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center" data-testid="text-my-nickname">
+                    <span className="text-primary font-bold text-sm md:text-lg">{nickname?.charAt(0).toUpperCase()}</span>
                   </div>
-                  <p className="font-medium text-xs md:text-sm truncate max-w-[100px]" data-testid="text-my-nickname">{nickname}</p>
-                  <p className="text-xs text-muted-foreground">connected</p>
+                  <p className="text-[9px] md:text-xs text-muted-foreground">connected</p>
                 </div>
 
                 {/* Connection Line */}
-                <div className="flex-shrink-0 w-8 h-0.5 bg-primary/30"></div>
+                <div className="flex-shrink-0 w-6 md:w-8 h-0.5 bg-primary/30"></div>
 
                 {/* Peer User */}
-                <div className="flex flex-col items-center gap-1 flex-1">
-                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-accent/20 border-2 border-accent flex items-center justify-center">
-                    <span className="text-accent font-bold text-base md:text-lg">{peerNickname ? peerNickname.charAt(0).toUpperCase() : '?'}</span>
+                <div className="flex flex-col items-center gap-0.5 flex-1">
+                  <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-accent/20 border-2 border-accent flex items-center justify-center" data-testid="text-peer-display-nickname">
+                    <span className="text-accent font-bold text-sm md:text-lg">{peerNickname ? peerNickname.charAt(0).toUpperCase() : '?'}</span>
                   </div>
-                  <p className="font-medium text-xs md:text-sm truncate max-w-[100px]" data-testid="text-peer-display-nickname">{peerNickname || 'Waiting...'}</p>
-                  <p className="text-xs text-muted-foreground">{peerNickname ? 'connected' : 'waiting'}</p>
+                  <p className="text-[9px] md:text-xs text-muted-foreground">{peerNickname ? 'connected' : 'waiting'}</p>
                 </div>
               </div>
             </div>
 
             {/* Encryption Status */}
-            <div className="flex items-center justify-center gap-2 p-2 bg-primary/5 border border-primary/20 rounded-lg">
-              <Lock className="w-3 h-3 text-primary" />
-              <span className="text-xs font-mono text-primary">AES-256 ENCRYPTED</span>
+            <div className="flex items-center justify-center gap-1.5 p-1.5 md:p-2 bg-primary/5 border border-primary/20 rounded-lg">
+              <Lock className="w-2.5 h-2.5 md:w-3 md:h-3 text-primary" />
+              <span className="text-[10px] md:text-xs font-mono text-primary">AES-256 ENCRYPTED</span>
             </div>
 
             {/* Voice Controls */}
-            <div className="flex justify-center gap-3">
+            <div className="flex justify-center gap-2 md:gap-3">
               <Button
                 size="lg"
                 variant={isMicOn ? "default" : "secondary"}
-                className={`rounded-full w-14 h-14 ${isMicOn ? 'bg-primary text-black hover:bg-primary/90' : ''}`}
+                className={`rounded-full w-12 h-12 md:w-14 md:h-14 ${isMicOn ? 'bg-primary text-black hover:bg-primary/90' : ''}`}
                 onClick={handleToggleMic}
                 data-testid="button-mic"
               >
-                {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                {isMicOn ? <Mic className="w-4 h-4 md:w-5 md:h-5" /> : <MicOff className="w-4 h-4 md:w-5 md:h-5" />}
               </Button>
               <Button
                 size="lg"
                 variant={isSpeakerMuted ? "secondary" : "default"}
-                className={`rounded-full w-14 h-14 ${!isSpeakerMuted ? 'bg-accent text-black hover:bg-accent/90' : ''}`}
+                className={`rounded-full w-12 h-12 md:w-14 md:h-14 ${!isSpeakerMuted ? 'bg-accent text-black hover:bg-accent/90' : ''}`}
                 onClick={handleToggleSpeaker}
                 data-testid="button-speaker"
               >
-                {isSpeakerMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                {isSpeakerMuted ? <VolumeX className="w-4 h-4 md:w-5 md:h-5" /> : <Volume2 className="w-4 h-4 md:w-5 md:h-5" />}
               </Button>
             </div>
           </div>
