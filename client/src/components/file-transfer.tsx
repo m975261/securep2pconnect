@@ -88,140 +88,117 @@ export function FileTransfer({ onSendFile, transferredFiles }: FileTransferProps
           <p className="text-xs font-mono">DROP FILES TO ENCRYPT & SEND</p>
         </div>
       ) : (
-        <div className="border border-white/10 rounded-xl p-4 bg-white/5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 overflow-hidden flex-1 min-w-0">
-              <div className="p-2 bg-black/50 rounded">
-                {lastTransferredFile?.type === 'sent' ? (
-                  <ArrowUp className="w-4 h-4 text-blue-400" />
-                ) : (
-                  <ArrowDown className="w-4 h-4 text-green-400" />
-                )}
-              </div>
-              <div className="truncate flex-1 min-w-0">
-                <div className="text-sm font-mono truncate text-white/90" data-testid="last-file-name">
-                  {lastTransferredFile?.name}
-                </div>
-                <div className="text-[10px] text-muted-foreground">
-                  {lastTransferredFile && (lastTransferredFile.size / 1024 / 1024).toFixed(2)} MB • {lastTransferredFile?.type === 'sent' ? 'Sent' : 'Received'}
-                </div>
-              </div>
-            </div>
-            <div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                onChange={handleFileInputChange}
-                className="hidden"
-                data-testid="file-input-hidden"
-              />
-              <Button
-                size="sm"
-                onClick={handleFileButtonClick}
-                className="bg-accent hover:bg-accent/90 text-black font-bold text-xs gap-1"
-                data-testid="button-send-new-file"
-              >
-                <Plus className="w-3 h-3" />
-                SEND NEW FILE
-              </Button>
-            </div>
-          </div>
+        <div className="border border-white/10 rounded-xl p-4 bg-white/5 flex justify-center">
+          <input
+            ref={fileInputRef}
+            type="file"
+            onChange={handleFileInputChange}
+            className="hidden"
+            data-testid="file-input-hidden"
+          />
+          <Button
+            size="sm"
+            onClick={handleFileButtonClick}
+            className="bg-accent hover:bg-accent/90 text-black font-bold text-xs gap-1"
+            data-testid="button-send-new-file"
+          >
+            <Plus className="w-3 h-3" />
+            SEND NEW FILE
+          </Button>
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto space-y-2">
-        <AnimatePresence>
-          {files.map((file) => (
-            <motion.div
-              key={file.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              className="bg-white/5 border border-white/5 rounded-lg p-3"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2 overflow-hidden">
-                  <div className="p-1.5 bg-black/50 rounded">
-                    <FileIcon className="w-3 h-3 text-accent" />
-                  </div>
-                  <div className="truncate">
-                    <div className="text-xs font-mono truncate text-white/90" data-testid={`text-filename-${file.id}`}>{file.name}</div>
-                    <div className="text-[10px] text-muted-foreground">{file.size}</div>
-                  </div>
+      <AnimatePresence>
+        {files.map((file) => (
+          <motion.div
+            key={file.id}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -10 }}
+            className="bg-white/5 border border-white/5 rounded-lg p-3"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <div className="p-1.5 bg-black/50 rounded">
+                  <FileIcon className="w-3 h-3 text-accent" />
                 </div>
-                {file.status === 'completed' ? (
-                  <Check className="w-4 h-4 text-primary" />
-                ) : (
-                  <span className="text-xs font-mono text-accent font-bold" data-testid={`text-progress-${file.id}`}>{file.progress}%</span>
-                )}
+                <div className="truncate">
+                  <div className="text-xs font-mono truncate text-white/90" data-testid={`text-filename-${file.id}`}>{file.name}</div>
+                  <div className="text-[10px] text-muted-foreground">{file.size}</div>
+                </div>
               </div>
-              
-              <div className="h-1.5 bg-black/50 rounded-full overflow-hidden">
-                <motion.div 
-                  className="h-full bg-gradient-to-r from-accent to-green-400"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${file.progress}%` }}
-                  transition={{ duration: 0.3 }}
-                />
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+              {file.status === 'completed' ? (
+                <Check className="w-4 h-4 text-primary" />
+              ) : (
+                <span className="text-xs font-mono text-accent font-bold" data-testid={`text-progress-${file.id}`}>{file.progress}%</span>
+              )}
+            </div>
+            
+            <div className="h-1.5 bg-black/50 rounded-full overflow-hidden">
+              <motion.div 
+                className="h-full bg-gradient-to-r from-accent to-green-400"
+                initial={{ width: 0 }}
+                animate={{ width: `${file.progress}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
+          </motion.div>
+        ))}
+      </AnimatePresence>
 
-        {transferredFiles.length > 0 && (
-          <div className="pt-2 border-t border-white/5 mt-2">
-            <h3 className="text-[10px] font-mono text-muted-foreground mb-2 uppercase sticky top-0 bg-background z-10">Transfer History</h3>
-            <div className="space-y-2 max-h-96 overflow-y-auto pr-1" data-testid="transfer-history-list">
-              {transferredFiles.slice().reverse().map((file, idx) => (
-                <motion.div
-                  key={`${file.name}-${file.timestamp.getTime()}-${file.type}`}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white/5 border border-white/5 rounded-lg p-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
-                      <div className="p-1.5 bg-black/50 rounded">
-                        {file.type === 'sent' ? (
-                          <ArrowUp className="w-3 h-3 text-blue-400" />
-                        ) : (
-                          <ArrowDown className="w-3 h-3 text-green-400" />
-                        )}
+      {transferredFiles.length > 0 && (
+        <div className="flex-1 min-h-0 pt-2 border-t border-white/5 mt-2 flex flex-col">
+          <h3 className="text-[10px] font-mono text-muted-foreground mb-2 uppercase">Transfer History</h3>
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1" data-testid="transfer-history-list">
+            {transferredFiles.slice().reverse().map((file, idx) => (
+              <motion.div
+                key={`${file.name}-${file.timestamp.getTime()}-${file.type}`}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white/5 border border-white/5 rounded-lg p-3"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
+                    <div className="p-1.5 bg-black/50 rounded">
+                      {file.type === 'sent' ? (
+                        <ArrowUp className="w-3 h-3 text-blue-400" />
+                      ) : (
+                        <ArrowDown className="w-3 h-3 text-green-400" />
+                      )}
+                    </div>
+                    <div className="truncate flex-1 min-w-0">
+                      <div className="text-xs font-mono truncate text-white/90" data-testid={`file-${file.type}-${idx}`}>
+                        {file.name}
                       </div>
-                      <div className="truncate flex-1 min-w-0">
-                        <div className="text-xs font-mono truncate text-white/90" data-testid={`file-${file.type}-${idx}`}>
-                          {file.name}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type === 'sent' ? `Sent by ${file.senderName || 'You'}` : `Received from ${file.senderName || 'Peer'}`}
-                        </div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type === 'sent' ? `Sent by ${file.senderName || 'You'}` : `Received from ${file.senderName || 'Peer'}`}
                       </div>
                     </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 shrink-0"
-                      onClick={() => {
-                        // Use the existing blob URL directly for download
-                        const a = document.createElement('a');
-                        a.href = file.url;
-                        a.download = file.name;
-                        a.style.display = 'none';
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                      }}
-                      data-testid={`button-download-${idx}`}
-                    >
-                      <Download className="w-3 h-3" />
-                    </Button>
                   </div>
-                </motion.div>
-              ))}
-            </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => {
+                      // Use the existing blob URL directly for download
+                      const a = document.createElement('a');
+                      a.href = file.url;
+                      a.download = file.name;
+                      a.style.display = 'none';
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                    }}
+                    data-testid={`button-download-${idx}`}
+                  >
+                    <Download className="w-3 h-3" />
+                  </Button>
+                </div>
+              </motion.div>
+            ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
