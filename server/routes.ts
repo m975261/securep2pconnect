@@ -204,7 +204,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.resetFailedAttempts(id, ipAddress);
 
-      res.json({ success: true, hasPassword: !!room.password, isCreator });
+      res.json({ 
+        success: true, 
+        hasPassword: !!room.password, 
+        isCreator,
+        creatorPeerId: room.creatorPeerId || null
+      });
     } catch (error) {
       console.error("Error joining room:", error);
       res.status(500).json({ error: "Failed to join room" });
