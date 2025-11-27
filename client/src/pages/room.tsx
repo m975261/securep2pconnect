@@ -628,7 +628,7 @@ export default function Room() {
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         
         <div className="flex-1 p-6 flex flex-col items-center justify-center relative border-b md:border-b-0 md:border-r border-white/10 bg-black/20">
-          <div className="relative w-64 h-64 flex items-center justify-center">
+          <div className="relative w-48 h-48 flex items-center justify-center">
             {[1, 2, 3].map((i) => (
               <motion.div
                 key={i}
@@ -646,7 +646,7 @@ export default function Room() {
               />
             ))}
             
-            <div className="relative z-10 w-32 h-32 rounded-full bg-black border-2 border-primary/50 flex items-center justify-center shadow-[0_0_30px_rgba(0,255,157,0.2)]">
+            <div className="relative z-10 w-24 h-24 rounded-full bg-black border-2 border-primary/50 flex items-center justify-center shadow-[0_0_30px_rgba(0,255,157,0.2)]">
               {isMicOn ? (
                 <div className="flex gap-1 items-end h-12">
                   {[...Array(5)].map((_, i) => (
@@ -669,7 +669,7 @@ export default function Room() {
             </div>
           </div>
 
-          <div className="mt-12 flex gap-4">
+          <div className="mt-6 flex gap-4">
             <Button
               size="lg"
               variant={isMicOn ? "default" : "secondary"}
@@ -724,7 +724,7 @@ export default function Room() {
           </div>
 
           <div className="flex-1 p-4 overflow-hidden relative">
-            <div className={`h-full ${activeTab === 'chat' ? 'block' : 'hidden'}`}>
+            <div className={`absolute inset-0 p-4 ${activeTab === 'chat' ? 'block' : 'hidden'}`}>
               <ChatInterface 
                 messages={messages} 
                 onSendMessage={handleSendMessage}
@@ -732,7 +732,7 @@ export default function Room() {
                 connectionState={connectionState}
               />
             </div>
-            <div className={`h-full ${activeTab === 'files' ? 'block' : 'hidden'}`}>
+            <div className={`absolute inset-0 p-4 ${activeTab === 'files' ? 'block' : 'hidden'}`}>
               <FileTransfer 
                 onSendFile={handleSendFile}
                 transferredFiles={transferredFiles}

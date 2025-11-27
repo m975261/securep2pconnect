@@ -147,7 +147,7 @@ export function FileTransfer({ onSendFile, transferredFiles }: FileTransferProps
       </AnimatePresence>
 
       {transferredFiles.length > 0 && (
-        <div className="pt-2 border-t border-white/5 mt-2 flex flex-col flex-1 min-h-0 max-h-[50vh]">
+        <div className="pt-2 border-t border-white/5 mt-2 flex flex-col flex-1 min-h-0">
           <h3 className="text-[10px] font-mono text-muted-foreground mb-2 uppercase shrink-0">Transfer History</h3>
           <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1" data-testid="transfer-history-list">
             {transferredFiles.slice().reverse().map((file, idx) => (
