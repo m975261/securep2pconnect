@@ -116,10 +116,11 @@ export function FileTransfer({ onSendFile, transferredFiles }: FileTransferProps
               <div className="space-y-2 max-h-96 overflow-y-auto pr-1" data-testid="transfer-history-list">
                 {transferredFiles.slice().reverse().map((file, idx) => (
                   <motion.div
-                    key={`${file.timestamp.getTime()}-${idx}`}
+                    key={`${file.name}-${file.timestamp.getTime()}-${file.type}`}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="bg-white/5 border border-white/5 rounded-lg p-3"
+                    layout
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">

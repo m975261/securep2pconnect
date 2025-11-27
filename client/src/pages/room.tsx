@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Mic, MicOff, PhoneOff, 
-  Share2, MessageSquare, FileText, Copy, Check, Lock
+  Share2, MessageSquare, FileText, Copy, Check, Lock, Volume2, VolumeX
 } from "lucide-react";
 import { useLocation, useRoute } from "wouter";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
@@ -61,6 +61,7 @@ export default function Room() {
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const [remoteAudioMuted, setRemoteAudioMuted] = useState(true);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && roomId) {
@@ -224,18 +225,18 @@ export default function Room() {
       // Start muted to comply with autoplay policies
       remoteAudioRef.current.muted = true;
       remoteAudioRef.current.play().then(() => {
-        // Auto-unmute if user has already interacted
-        if (hasUserInteracted && remoteAudioRef.current) {
+        // Auto-unmute if user has already interacted and speaker is not manually muted
+        if (hasUserInteracted && remoteAudioRef.current && !isSpeakerMuted) {
           remoteAudioRef.current.muted = false;
           setRemoteAudioMuted(false);
-        } else {
+        } else if (!hasUserInteracted) {
           // Show notification to enable audio
           toast.info('Peer audio available - click to enable', {
             duration: 5000,
             action: {
               label: 'Enable',
               onClick: () => {
-                if (remoteAudioRef.current) {
+                if (remoteAudioRef.current && !isSpeakerMuted) {
                   remoteAudioRef.current.muted = false;
                   setRemoteAudioMuted(false);
                   toast.success('Peer audio enabled');
@@ -249,7 +250,7 @@ export default function Room() {
         toast.error('Failed to play peer audio');
       });
     }
-  }, [remoteStream, hasUserInteracted]);
+  }, [remoteStream, hasUserInteracted, isSpeakerMuted]);
 
   const handleSendMessage = (text: string) => {
     const messageData = { text, senderName: nickname || 'Anonymous' };
@@ -341,8 +342,8 @@ export default function Room() {
         setIsMicOn(true);
         toast.success('Microphone enabled');
         
-        // Auto-unmute remote audio if it's muted
-        if (remoteStream && remoteAudioRef.current && remoteAudioRef.current.muted) {
+        // Auto-unmute remote audio if it's muted due to autoplay
+        if (remoteStream && remoteAudioRef.current && remoteAudioRef.current.muted && !isSpeakerMuted) {
           remoteAudioRef.current.muted = false;
           setRemoteAudioMuted(false);
         }
@@ -354,6 +355,18 @@ export default function Room() {
       setAudioStream(null);
       setIsMicOn(false);
       toast.info('Microphone disabled');
+    }
+  };
+
+  const handleToggleSpeaker = () => {
+    if (remoteAudioRef.current) {
+      const newMutedState = !isSpeakerMuted;
+      remoteAudioRef.current.muted = newMutedState;
+      setIsSpeakerMuted(newMutedState);
+      setRemoteAudioMuted(newMutedState);
+      toast.info(newMutedState ? 'Speaker muted' : 'Speaker unmuted');
+    } else {
+      toast.error('No remote audio available');
     }
   };
 
@@ -665,6 +678,15 @@ export default function Room() {
               data-testid="button-mic"
             >
               {isMicOn ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
+            </Button>
+            <Button
+              size="lg"
+              variant={isSpeakerMuted ? "secondary" : "default"}
+              className={`rounded-full w-16 h-16 ${!isSpeakerMuted ? 'bg-accent text-black hover:bg-accent/90' : ''}`}
+              onClick={handleToggleSpeaker}
+              data-testid="button-speaker"
+            >
+              {isSpeakerMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
             </Button>
           </div>
 
