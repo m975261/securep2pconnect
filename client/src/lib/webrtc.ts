@@ -408,7 +408,9 @@ export function useWebRTC(config: WebRTCConfig) {
         } else if (message.type === 'offer') {
           if (currentPc && currentWs && currentWs.readyState === WebSocket.OPEN) {
             console.log('Received offer, setting remote description');
+            console.log('Current signaling state before offer:', currentPc.signalingState);
             await currentPc.setRemoteDescription(new RTCSessionDescription(message.data));
+            console.log('Remote description set from offer, new signaling state:', currentPc.signalingState);
             
             // If we have a local stream, add our tracks before creating the answer
             if (localStreamRef.current) {
@@ -425,6 +427,7 @@ export function useWebRTC(config: WebRTCConfig) {
             console.log('Creating answer');
             const answer = await currentPc.createAnswer();
             await currentPc.setLocalDescription(answer);
+            console.log('Sending answer, signaling state:', currentPc.signalingState);
             currentWs.send(JSON.stringify({
               type: 'answer',
               data: answer,
@@ -434,7 +437,9 @@ export function useWebRTC(config: WebRTCConfig) {
         } else if (message.type === 'answer') {
           if (currentPc) {
             console.log('Received answer, setting remote description');
+            console.log('Current signaling state before answer:', currentPc.signalingState);
             await currentPc.setRemoteDescription(new RTCSessionDescription(message.data));
+            console.log('Remote description set, new signaling state:', currentPc.signalingState);
             // Clear negotiating flag when answer is received
             negotiatingRef.current = false;
             
@@ -445,6 +450,9 @@ export function useWebRTC(config: WebRTCConfig) {
               setTimeout(() => performNegotiation(), 100);
             }
           }
+        } else if (message.type === 'error') {
+          console.error('Server error:', message.error);
+          negotiatingRef.current = false;
         } else if (message.type === 'ice-candidate') {
           if (currentPc) {
             await currentPc.addIceCandidate(new RTCIceCandidate(message.data));
