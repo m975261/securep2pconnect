@@ -6,7 +6,15 @@ import { Button } from "@/components/ui/button";
 import bgImage from "@assets/generated_images/dark_abstract_digital_security_network_background.png";
 
 export default function Home() {
-  const [language, setLanguage] = useState<'en' | 'ar'>('en');
+  const [language, setLanguage] = useState<'en' | 'ar'>(() => {
+    return (localStorage.getItem('app-language') as 'en' | 'ar') || 'en';
+  });
+
+  const handleLanguageChange = (newLang: 'en' | 'ar') => {
+    setLanguage(newLang);
+    localStorage.setItem('app-language', newLang);
+    window.dispatchEvent(new CustomEvent('languageChange', { detail: newLang }));
+  };
 
   const translations = {
     en: {
@@ -53,7 +61,7 @@ export default function Home() {
           size="sm"
           variant="outline"
           className="border-white/10 bg-white/5 hover:bg-white/10 gap-1"
-          onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+          onClick={() => handleLanguageChange(language === 'en' ? 'ar' : 'en')}
           data-testid="button-language"
         >
           <Languages className="w-4 h-4" />

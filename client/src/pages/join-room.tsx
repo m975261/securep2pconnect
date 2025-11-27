@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Scan, ArrowRight, Loader2, Keyboard, Upload, Home, KeyRound, Languages } from "lucide-react";
 import { useLocation, Link } from "wouter";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -20,7 +20,23 @@ export default function JoinRoom() {
   const [needsPassword, setNeedsPassword] = useState(false);
   const [password, setPassword] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [language, setLanguage] = useState<'en' | 'ar'>('en');
+  const [language, setLanguage] = useState<'en' | 'ar'>(() => {
+    return (localStorage.getItem('app-language') as 'en' | 'ar') || 'en';
+  });
+
+  useEffect(() => {
+    const handleLanguageChange = (e: CustomEvent) => {
+      setLanguage(e.detail);
+    };
+    window.addEventListener('languageChange', handleLanguageChange as any);
+    return () => window.removeEventListener('languageChange', handleLanguageChange as any);
+  }, []);
+
+  const handleLanguageChange = (newLang: 'en' | 'ar') => {
+    setLanguage(newLang);
+    localStorage.setItem('app-language', newLang);
+    window.dispatchEvent(new CustomEvent('languageChange', { detail: newLang }));
+  };
 
   const translations = {
     en: {
@@ -173,7 +189,7 @@ export default function JoinRoom() {
           size="sm"
           variant="outline"
           className="border-white/10 bg-white/5 hover:bg-white/10 gap-1"
-          onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+          onClick={() => handleLanguageChange(language === 'en' ? 'ar' : 'en')}
           data-testid="button-language"
         >
           <Languages className="w-4 h-4" />

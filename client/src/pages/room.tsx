@@ -63,7 +63,23 @@ export default function Room() {
   const [remoteAudioMuted, setRemoteAudioMuted] = useState(true);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
-  const [language, setLanguage] = useState<'en' | 'ar'>('en');
+  const [language, setLanguage] = useState<'en' | 'ar'>(() => {
+    return (localStorage.getItem('app-language') as 'en' | 'ar') || 'en';
+  });
+
+  useEffect(() => {
+    const handleLanguageChange = (e: CustomEvent) => {
+      setLanguage(e.detail);
+    };
+    window.addEventListener('languageChange', handleLanguageChange as any);
+    return () => window.removeEventListener('languageChange', handleLanguageChange as any);
+  }, []);
+
+  const handleLanguageChange = (newLang: 'en' | 'ar') => {
+    setLanguage(newLang);
+    localStorage.setItem('app-language', newLang);
+    window.dispatchEvent(new CustomEvent('languageChange', { detail: newLang }));
+  };
 
   const translations = {
     en: {
@@ -677,7 +693,7 @@ export default function Room() {
             size="sm"
             variant="outline"
             className="border-white/10 bg-white/5 hover:bg-white/10 gap-1"
-            onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+            onClick={() => handleLanguageChange(language === 'en' ? 'ar' : 'en')}
             data-testid="button-language"
           >
             <Languages className="w-4 h-4" />
