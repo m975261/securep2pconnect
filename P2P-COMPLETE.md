@@ -88,12 +88,31 @@
 
 ## Building & Running
 
+### Requirements
+
+**Go 1.21 or higher** is required to build the helper (libp2p dependencies).
+
+Check version:
+```bash
+go version  # Should show "go1.21" or higher
+```
+
+Install Go 1.21+:
+- **macOS**: `brew install go`
+- **Linux**: https://go.dev/doc/install
+- **Windows**: https://go.dev/dl/
+
 ### Build Helper
 
 ```bash
 cd helper
 ./build.sh
 ```
+
+The build script will:
+1. Check Go version (exits if < 1.21)
+2. Download dependencies
+3. Build for all platforms
 
 Output:
 ```

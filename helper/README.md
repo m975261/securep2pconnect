@@ -58,16 +58,34 @@ Browser ↔ WebSocket (127.0.0.1:52100) ↔ Helper ↔ libp2p DHT ↔ Remote Hel
 
 ## Building from Source
 
-Requirements:
-- Go 1.21+
+### Requirements
+- **Go 1.21 or higher** (required by libp2p dependencies)
+
+Check your version:
+```bash
+go version  # Should show "go1.21" or higher
+```
+
+Install Go 1.21+:
+- **macOS**: `brew install go`
+- **Linux**: https://go.dev/doc/install
+- **Windows**: https://go.dev/dl/
+
+### Build Instructions
 
 ```bash
 cd helper
 go mod download
+go mod tidy
 ./build.sh
 ```
 
-Binaries will be in `./builds/`
+Binaries will be in `./builds/` for all platforms (Windows, macOS, Linux)
+
+### Pre-built Binaries
+
+If you don't have Go 1.21+, pre-compiled binaries will be available for download.
+_(Coming soon - GitHub Releases or external hosting)_
 
 ## Technical Details
 
@@ -75,9 +93,12 @@ Binaries will be in `./builds/`
 - **Encryption**: Noise XX + TLS 1.3
 - **NAT Traversal**: AutoNAT + Hole Punching
 - **Transport**: TCP, QUIC
-- **Binary Size**: ~8-12 MB (compressed)
-- **Memory Usage**: ~30-50 MB
+- **Media**: Pion WebRTC for RTP packet bridging
+- **Codecs**: Opus (audio), VP8 (video)
+- **Binary Size**: ~10-15 MB (compressed)
+- **Memory Usage**: ~40-60 MB
 - **Bootstrap**: IPFS public bootstrap nodes
+- **Framing**: Length-prefixed RTP packets for stream integrity
 
 ## Security
 

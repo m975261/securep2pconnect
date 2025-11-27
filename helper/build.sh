@@ -6,6 +6,19 @@ set -e
 echo "🔨 Building SECURE.LINK P2P Helper (Refactored)..."
 echo ""
 
+# Check Go version
+GO_VERSION=$(go version | awk '{print $3}' | sed 's/go//')
+REQUIRED_VERSION="1.21"
+
+if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$GO_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]; then
+    echo "❌ Error: Go $REQUIRED_VERSION or higher required (found $GO_VERSION)"
+    echo "Install Go 1.21+: https://go.dev/dl/"
+    exit 1
+fi
+
+echo "✓ Using Go $GO_VERSION"
+echo ""
+
 # Create builds directory
 mkdir -p builds
 

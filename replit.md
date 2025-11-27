@@ -2,15 +2,25 @@
 
 SECURE.LINK is an end-to-end encrypted peer-to-peer communication application that enables secure, temporary connections between two users without server-side data storage. The system facilitates real-time text messaging, voice chat, and file transfers through WebRTC technology, with optional password protection and automatic room expiration.
 
-## Recent Updates (November 20, 2025)
+## Recent Updates
 
-- **Peer Nicknames**: Users enter nicknames before joining/creating rooms, displayed in chat and room header
-- **Dynamic Password Setting**: Room creators can add/update passwords without leaving the room via "SET PASSWORD" button
-- **Creator Privileges with Persistence**: Room creators bypass password authentication and maintain creator status across page refreshes via localStorage (persists for 24-hour room lifetime on same device/browser)
-- **TURN Server Integration**: Added relay servers on port 443 (HTTPS) to ensure connections work through restrictive firewalls
-- **Admin Panel**: Secure admin dashboard with 2FA support for monitoring peer connections
-- **Password Protection on Shared Links**: Direct room links now require password verification before allowing access
-- **Peer Tracking**: Real-time device information (IP, OS, browser, device type) tracking for admin monitoring
+### November 27, 2025 - P2P System Complete
+- **Complete P2P Mode**: Native helper application for true peer-to-peer with IP hiding
+- **Audio + Video Support**: Full duplex media streaming through libp2p overlay network
+- **Go Helper**: Pion WebRTC bridge between browser and libp2p (main-refactored.go)
+- **RTP Packet Framing**: Length-prefixed framing for reliable stream delivery
+- **Stream Reconnection**: Automatic recovery on connection failures
+- **Build Requirement**: Go 1.21+ required for compilation (documented in README)
+- **Cross-Platform**: Build scripts for Windows, macOS (Intel/ARM), Linux
+
+### November 20, 2025 - Traditional Mode
+- **Peer Nicknames**: Users enter nicknames before joining/creating rooms
+- **Dynamic Password Setting**: Room creators can update passwords in real-time
+- **Creator Privileges**: Bypass authentication with localStorage persistence
+- **TURN Server Integration**: Port 443 relay servers for firewall traversal
+- **Admin Panel**: Secure dashboard with 2FA for monitoring
+- **Password Protection on Links**: Direct room links require password verification
+- **Peer Tracking**: Real-time device information tracking
 
 # User Preferences
 
@@ -40,13 +50,24 @@ Preferred communication style: Simple, everyday language.
 - **Create Room**: Form to initialize new secure rooms with optional password
 - **Join Room**: Interface to connect to existing rooms via room ID
 - **Room**: Main communication interface with chat, file transfer, and voice capabilities
+- **P2P Room** (`/p2p`): Privacy-enhanced mode using native helper application
 - **Not Found**: 404 error page
 
 ### Communication Features
+
+**Traditional Mode (TURN-based):**
 - Chat interface with message history
 - File transfer with drag-and-drop support
-- QR code scanning for room joining (simulated)
+- QR code scanning for room joining
 - Voice chat toggle functionality
+- TURN relay servers for firewall traversal
+
+**P2P Mode (Helper-based):**
+- Complete IP hiding (PeerID only)
+- Audio and video support
+- No STUN/TURN servers needed
+- Encrypted libp2p streams
+- Requires native helper application
 
 ## Backend Architecture
 
