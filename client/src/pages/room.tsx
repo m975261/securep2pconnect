@@ -677,11 +677,11 @@ export default function Room() {
 
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         
-        <div className="h-[180px] md:h-auto md:flex-1 p-4 flex flex-col items-center justify-center relative border-b md:border-b-0 md:border-r border-white/10 bg-black/20">
-          <div className="w-full max-w-sm space-y-4">
-            <div className="flex flex-col gap-3">
+        <div className="max-h-[280px] md:max-h-none md:flex-1 shrink-0 p-3 md:p-4 flex flex-col items-center justify-start md:justify-center relative border-b md:border-b-0 md:border-r border-white/10 bg-black/20 overflow-y-auto">
+          <div className="w-full max-w-sm space-y-2 md:space-y-4">
+            <div className="flex flex-col gap-2">
               {/* Current User */}
-              <div className="flex items-center justify-between p-3 bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm">
+              <div className="flex items-center justify-between p-2 md:p-3 bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
                     <span className="text-primary font-bold text-sm">{nickname?.charAt(0).toUpperCase()}</span>
@@ -702,7 +702,7 @@ export default function Room() {
               </div>
 
               {/* Peer User */}
-              <div className="flex items-center justify-between p-3 bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm">
+              <div className="flex items-center justify-between p-2 md:p-3 bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="flex-shrink-0 w-10 h-10 rounded-full bg-accent/20 border-2 border-accent flex items-center justify-center">
                     <span className="text-accent font-bold text-sm">{peerNickname ? peerNickname.charAt(0).toUpperCase() : '?'}</span>
@@ -730,7 +730,7 @@ export default function Room() {
             </div>
 
             {/* Voice Controls */}
-            <div className="flex justify-center gap-3 pt-2">
+            <div className="flex justify-center gap-3 pt-1 md:pt-2">
               <Button
                 size="lg"
                 variant={isMicOn ? "default" : "secondary"}
