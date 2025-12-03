@@ -152,7 +152,8 @@ export default function Room() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && roomId) {
-      setShareLink(`${window.location.origin}/room/${roomId}`);
+      // Share link goes to join page so joiner receives TURN config from server
+      setShareLink(`${window.location.origin}/join-room?room=${roomId}`);
     }
   }, [roomId]);
 

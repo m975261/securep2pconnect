@@ -1,0 +1,60 @@
+10:54 PMTURN config available: false
+1:10:54 PMICE servers config: []
+1:10:54 PMNo TURN servers configured - audio/video will not work in relay-only mode
+1:10:55 PMWebSocket connected
+1:10:56 PM[JOINER] Joined room, existing peers: [object Object]
+1:10:56 PM[JOINER] ICE servers count: 0
+1:10:56 PM[JOINER] Creating initial offer...
+1:10:56 PM[JOINER] PC ICE gathering state before offer: new
+1:10:56 PMWebRTC signaling state: have-local-offer
+1:10:56 PM[JOINER] Local description set, ICE gathering state: new
+1:10:56 PM[JOINER] Offer sent, waiting for ICE candidates...
+1:10:56 PMReceived answer, setting remote description
+1:10:56 PMCurrent signaling state before answer: have-local-offer
+1:10:56 PMWebRTC signaling state: stable
+1:10:56 PMRemote description set, new signaling state: stable
+1:10:57 PMAdding audio track to peer connection
+1:10:57 PMCreating offer for negotiation, signalingState: stable
+1:10:57 PMWebRTC signaling state: have-local-offer
+1:10:57 PMOffer sent, waiting for answer
+1:10:57 PMChecking remote audio state: [object Object]
+1:10:57 PMICE gathering state: gathering
+1:10:57 PMICE gathering complete, total candidates: 0
+1:10:57 PMNO ICE candidates generated! TURN server may be unreachable or credentials invalid.
+1:10:57 PMICE gathering state: complete
+1:10:58 PMReceived answer, setting remote description
+1:10:58 PMCurrent signaling state before answer: have-local-offer
+1:10:58 PMWebRTC signaling state: stable
+1:10:58 PMRemote description set, new signaling state: stable
+1:10:59 PMReceived ICE candidate from peer: 
+1:10:59 PMAdded ICE candidate successfully
+1:11:05 PMRemoving audio track from peer connection
+1:11:05 PMCreating offer for negotiation, signalingState: stable
+1:11:05 PMWebRTC signaling state: have-local-offer
+1:11:05 PMOffer sent, waiting for answer
+1:11:06 PMReceived answer, setting remote description
+1:11:06 PMCurrent signaling state before answer: have-local-offer
+1:11:06 PMWebRTC signaling state: stable
+1:11:06 PMRemote description set, new signaling state: stable
+1:11:11 PMReceived offer, setting remote description
+1:11:11 PMCurrent signaling state before offer: stable
+1:11:11 PMWebRTC signaling state: have-remote-offer
+1:11:11 PMReceived remote audio track, track kind: audio
+1:11:11 PMRemote description set from offer, new signaling state: have-remote-offer
+1:11:11 PMCreating answer
+1:11:11 PMWebRTC signaling state: stable
+1:11:11 PMSending answer, signaling state: stable
+1:11:11 PMAnswer sent
+1:11:11 PMSetting up remote audio stream, tracks: 1 enabled: true
+1:11:11 PMRemote audio playing, hasUserInteracted: true isSpeakerMuted: false
+1:11:11 PMAuto-unmuting remote audio
+1:11:16 PMReceived offer, setting remote description
+1:11:16 PMCurrent signaling state before offer: stable
+1:11:16 PMWebRTC signaling state: have-remote-offer
+1:11:16 PMRemote description set from offer, new signaling state: have-remote-offer
+1:11:16 PMCreating answer
+1:11:16 PMWebRTC signaling state: stable
+1:11:16 PMSending answer, signaling state: stable
+1:11:16 PMAnswer sent
+1:11:17 PMSetting up remote audio stream, tracks: 0 enabled: 
+1:11:17 PMNo audio tracks in remote stream
