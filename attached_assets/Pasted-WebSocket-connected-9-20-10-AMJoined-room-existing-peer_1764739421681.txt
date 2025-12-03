@@ -1,0 +1,67 @@
+WebSocket connected
+9:20:10 AMJoined room, existing peers:
+9:20:11 AMWarning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+9:20:56 AMPeer joined: craqf6 2
+9:20:56 AMReceived offer, setting remote description
+9:20:56 AMCurrent signaling state before offer: stable
+9:20:56 AMWebRTC signaling state: have-remote-offer
+9:20:56 AMRemote description set from offer, new signaling state: have-remote-offer
+9:20:56 AMCreating answer
+9:20:56 AMWebRTC signaling state: stable
+9:20:56 AMSending answer, signaling state: stable
+9:20:56 AMAnswer sent
+9:21:05 AMReceived chat message: [object Object]
+9:21:09 AMSending message: [object Object]
+9:21:24 AMStarting file transfer: Screenshot 2025-11-26 111831.png Size: 1134399
+9:21:24 AMSending file metadata: [object Object]
+9:21:24 AMSending 70 chunks...
+9:21:25 AMSent 70 chunks
+9:21:25 AMSending file EOF
+9:21:25 AMFile transfer complete: Screenshot 2025-11-26 111831.png
+9:21:35 AMPeer left: craqf6
+9:21:39 AMPeer joined: craqf6 2
+9:21:39 AMReceived offer, setting remote description
+9:21:39 AMCurrent signaling state before offer: stable
+9:21:39 AMWebRTC signaling state: have-remote-offer
+9:21:39 AMRemote description set from offer, new signaling state: have-remote-offer
+9:21:39 AMCreating answer
+9:21:39 AMWebRTC signaling state: stable
+9:21:39 AMSending answer, signaling state: stable
+9:21:39 AMAnswer sent
+9:22:05 AMReceived offer, setting remote description
+9:22:05 AMCurrent signaling state before offer: stable
+9:22:05 AMWebRTC signaling state: have-remote-offer
+9:22:05 AMReceived remote audio track
+9:22:05 AMRemote description set from offer, new signaling state: have-remote-offer
+9:22:05 AMCreating answer
+9:22:06 AMWebRTC signaling state: stable
+9:22:06 AMSending answer, signaling state: stable
+9:22:06 AMAnswer sent
+9:22:06 AMICE gathering state: gathering
+9:22:06 AMICE gathering state: complete
+9:22:06 AMICE gathering complete
+9:22:15 AMReceived offer, setting remote description
+9:22:15 AMCurrent signaling state before offer: stable
+9:22:15 AMWebRTC signaling state: have-remote-offer
+9:22:15 AMRemote description set from offer, new signaling state: have-remote-offer
+9:22:15 AMCreating answer
+9:22:15 AMWebRTC signaling state: stable
+9:22:15 AMSending answer, signaling state: stable
+9:22:15 AMAnswer sent
+9:22:27 AMError playing remote audio: AbortError: The play() request was interrupted by a new load request. https://goo.gl/LdLk22
+9:22:28 AMAdding audio track to peer connection
+9:22:28 AMCreating offer for negotiation, signalingState: stable
+9:22:28 AMWebRTC signaling state: have-local-offer
+9:22:28 AMOffer sent, waiting for answer
+9:22:28 AMReceived answer, setting remote description
+9:22:28 AMCurrent signaling state before answer: have-local-offer
+9:22:28 AMWebRTC signaling state: stable
+9:22:28 AMRemote description set, new signaling state: stable
+9:22:44 AMRemoving audio track from peer connection
+9:22:44 AMCreating offer for negotiation, signalingState: stable
+9:22:44 AMWebRTC signaling state: have-local-offer
+9:22:44 AMOffer sent, waiting for answer
+9:22:44 AMReceived answer, setting remote description
+9:22:44 AMCurrent signaling state before answer: have-local-offer
+9:22:44 AMWebRTC signaling state: stable
+9:22:44 AMRemote description set, new signaling state: stable

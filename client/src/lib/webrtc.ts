@@ -308,12 +308,23 @@ export function useWebRTC(config: WebRTCConfig) {
       console.log('ICE gathering state:', pc.iceGatheringState);
     };
 
+    // Keep track of the remote stream to prevent unnecessary state updates
+    let currentRemoteStream: MediaStream | null = null;
+    
     pc.ontrack = (event) => {
-      console.log('Received remote audio track');
+      console.log('Received remote audio track, track kind:', event.track.kind);
       // Expose remote stream to UI for playback
       if (event.streams && event.streams[0]) {
-        setRemoteStream(event.streams[0]);
-        configRef.current.onRemoteStream?.(event.streams[0]);
+        const newStream = event.streams[0];
+        // Only update if this is a different stream (prevents unnecessary re-renders)
+        if (currentRemoteStream !== newStream) {
+          console.log('Setting new remote stream');
+          currentRemoteStream = newStream;
+          setRemoteStream(newStream);
+          configRef.current.onRemoteStream?.(newStream);
+        } else {
+          console.log('Same remote stream, skipping update');
+        }
       }
     };
 
