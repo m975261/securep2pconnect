@@ -12,6 +12,9 @@ export const rooms = pgTable("rooms", {
   peer1: text("peer1"),
   peer2: text("peer2"),
   isActive: boolean("is_active").notNull().default(true),
+  turnUrls: text("turn_urls"),
+  turnUsername: text("turn_username"),
+  turnCredential: text("turn_credential"),
 });
 
 export const failedAttempts = pgTable("failed_attempts", {
