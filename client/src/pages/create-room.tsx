@@ -88,6 +88,11 @@ export default function CreateRoom() {
   const [pendingCreate, setPendingCreate] = useState(false);
 
   const createRoom = async () => {
+    if (!turnConfig) {
+      toast.error(t.turnServerRequired);
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -97,11 +102,17 @@ export default function CreateRoom() {
         body: JSON.stringify({
           password: passwordEnabled && password ? password : undefined,
           createdBy: peerId,
+          turnConfig: {
+            urls: turnConfig.urls,
+            username: turnConfig.username,
+            credential: turnConfig.credential,
+          },
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create room');
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to create room');
       }
 
       const data = await response.json();
