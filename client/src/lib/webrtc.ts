@@ -720,6 +720,15 @@ export function useWebRTC(config: WebRTCConfig) {
               data: answer,
             }));
             console.log('Answer sent');
+            
+            // Trigger mode detection after answer is sent (for creator/hoster)
+            // Wait a bit for ICE to establish connection
+            setTimeout(() => {
+              if (connectionModeRef.current === 'pending') {
+                console.log('[CREATOR] Triggering delayed mode detection after sending answer');
+                detectModeFromStats();
+              }
+            }, 1000);
           }
         } else if (message.type === 'answer') {
           if (currentPc) {
@@ -732,6 +741,14 @@ export function useWebRTC(config: WebRTCConfig) {
               console.log('Remote description set, new signaling state:', currentPc.signalingState);
               // Clear negotiating flag when answer is received
               negotiatingRef.current = false;
+              
+              // Trigger mode detection after answer is received (for joiner)
+              setTimeout(() => {
+                if (connectionModeRef.current === 'pending') {
+                  console.log('[JOINER] Triggering delayed mode detection after receiving answer');
+                  detectModeFromStats();
+                }
+              }, 1000);
               
               // Check if voice stop was requested during negotiation
               if (pendingStopRef.current) {
