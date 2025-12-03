@@ -1,0 +1,115 @@
+
+Reconnecting...
+
+
+Chat
+File Transfer
+ENCRYPTED CHANNEL
+P2P-WEBRTC-V2
+Type secure message...
+
+DEBUG LOGS
+(100)
+CLEAR
+
+
+2:21:03 PM[CREATOR] Stopping poll - mode: p2p attempts: 1
+2:21:05 PMReceived offer, setting remote description
+2:21:05 PMCurrent signaling state before offer: stable
+2:21:05 PMWebRTC signaling state: have-remote-offer
+2:21:05 PMRemote description set from offer, new signaling state: have-remote-offer
+2:21:05 PMCreating answer
+2:21:05 PMWebRTC signaling state: stable
+2:21:05 PMSending answer, signaling state: stable
+2:21:05 PMAnswer sent
+2:21:05 PM[CREATOR] Polling for connection mode, attempt: 1 pc state: connected
+2:21:05 PM[CREATOR] Stopping poll - mode: p2p attempts: 1
+2:21:57 PMWarning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+2:22:16 PMPeer left: pf3zdc
+2:22:19 PMICE connection state: disconnected
+2:22:19 PMICE connection issue detected, may need to restart
+2:22:19 PMWebRTC connection state: disconnected
+2:22:29 PMWebRTC connection state: failed
+2:22:29 PMWebRTC connection failed, attempting ICE restart
+2:22:29 PMWebRTC signaling state: have-local-offer
+2:22:29 PMICE gathering state: gathering
+2:22:29 PMICE candidate: host udp 100.100.229.13
+2:22:29 PMSending ICE candidate to peer
+2:22:29 PMWebRTC connection state: disconnected
+2:22:29 PMICE candidate: host udp 172.30.0.1
+2:22:29 PMSending ICE candidate to peer
+2:22:29 PMICE candidate: host udp 192.168.1.245
+2:22:29 PMSending ICE candidate to peer
+2:22:29 PMICE candidate: host udp [fd7a:115c:a1e0::4235:e50d]
+2:22:29 PMSending ICE candidate to peer
+2:22:29 PMICE candidate: host tcp 100.100.229.13
+2:22:29 PMSending ICE candidate to peer
+2:22:29 PMICE candidate: host tcp 172.30.0.1
+2:22:29 PMSending ICE candidate to peer
+2:22:29 PMICE candidate: host tcp 192.168.1.245
+2:22:29 PMSending ICE candidate to peer
+2:22:29 PMICE candidate: host tcp [fd7a:115c:a1e0::4235:e50d]
+2:22:29 PMSending ICE candidate to peer
+2:22:30 PMICE candidate: srflx udp 91.73.56.69
+2:22:30 PMSending ICE candidate to peer
+2:22:30 PMICE candidate: relay udp 134.209.150.51
+2:22:30 PMSending ICE candidate to peer
+2:22:37 PMPeer joined: pf3zdc 2
+2:22:37 PMReceived offer, setting remote description
+2:22:37 PMCurrent signaling state before offer: have-local-offer
+2:22:37 PMWebRTC signaling state: stable
+2:22:37 PMWebRTC signaling state: have-remote-offer
+2:22:37 PMRemote description set from offer, new signaling state: have-remote-offer
+2:22:37 PMCreating answer
+2:22:37 PMWebRTC signaling state: stable
+2:22:37 PMSending answer, signaling state: stable
+2:22:37 PMAnswer sent
+2:22:37 PMICE candidate: host udp 100.100.229.13
+2:22:37 PMSending ICE candidate to peer
+2:22:37 PMICE candidate: host udp 172.30.0.1
+2:22:37 PMSending ICE candidate to peer
+2:22:37 PMICE candidate: host udp 192.168.1.245
+2:22:37 PMSending ICE candidate to peer
+2:22:37 PMICE candidate: host udp [fd7a:115c:a1e0::4235:e50d]
+2:22:37 PMSending ICE candidate to peer
+2:22:37 PMICE candidate: host tcp 100.100.229.13
+2:22:37 PMSending ICE candidate to peer
+2:22:37 PMICE candidate: host tcp 172.30.0.1
+2:22:37 PMSending ICE candidate to peer
+2:22:37 PMICE candidate: host tcp 192.168.1.245
+2:22:37 PMSending ICE candidate to peer
+2:22:37 PMICE candidate: host tcp [fd7a:115c:a1e0::4235:e50d]
+2:22:37 PMSending ICE candidate to peer
+2:22:38 PMICE candidate: srflx udp 91.73.56.69
+2:22:38 PMSending ICE candidate to peer
+2:22:38 PM[CREATOR] Polling for connection mode, attempt: 1 pc state: disconnected
+2:22:38 PM[CREATOR] Stopping poll - mode: reconnecting attempts: 1
+2:22:38 PMICE candidate: relay udp 134.209.150.51
+2:22:38 PMSending ICE candidate to peer
+2:22:39 PMPeer left: pf3zdc
+2:22:45 PMPeer joined: pf3zdc 2
+2:22:45 PMReceived offer, setting remote description
+2:22:45 PMCurrent signaling state before offer: stable
+2:22:45 PMWebSocket message error: InvalidAccessError: Failed to execute 'setRemoteDescription' on 'RTCPeerConnection': Failed to set remote offer sdp: The order of m-lines in subsequent offer doesn't match order from previous offer/answer.
+2:22:45 PMReceived ICE candidate from peer:
+2:22:45 PMAdded ICE candidate successfully
+2:22:45 PMReceived ICE candidate from peer:
+2:22:45 PMAdded ICE candidate successfully
+2:22:45 PMReceived ICE candidate from peer:
+2:22:45 PMAdded ICE candidate successfully
+2:22:47 PMReceived ICE candidate from peer:
+2:22:47 PMAdded ICE candidate successfully
+2:22:50 PMReceived offer, setting remote description
+2:22:50 PMCurrent signaling state before offer: stable
+2:22:50 PMReceived ICE candidate from peer:
+2:22:50 PMReceived ICE candidate from peer:
+2:22:50 PMWebSocket message error: InvalidAccessError: Failed to execute 'setRemoteDescription' on 'RTCPeerConnection': Failed to set remote offer sdp: The order of m-lines in subsequent offer doesn't match order from previous offer/answer.
+2:22:50 PMAdded ICE candidate successfully
+2:22:50 PMAdded ICE candidate successfully
+2:22:50 PMReceived ICE candidate from peer:
+2:22:50 PMAdded ICE candidate successfully
+2:22:51 PMReceived ICE candidate from peer:
+2:22:51 PMAdded ICE candidate successfully
+2:23:17 PMICE gathering state: complete
+2:23:17 PMICE gathering complete, total candidates: 30
+2:24:08 PMPeer left: pf3zdc

@@ -926,20 +926,12 @@ export default function Room() {
                   </DialogHeader>
                   <div className="space-y-3 py-4">
                     {connectionMode === 'p2p' ? (
-                      <>
-                        <div className="flex justify-between items-center p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-                          <span className="text-sm text-muted-foreground">{t.yourIP}</span>
-                          <span className="font-mono text-sm text-green-500">
-                            {connectionDetails.localIP || 'N/A'}:{connectionDetails.localPort || ''}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-                          <span className="text-sm text-muted-foreground">{t.peerIP}</span>
-                          <span className="font-mono text-sm text-green-500">
-                            {connectionDetails.remoteIP || 'N/A'}:{connectionDetails.remotePort || ''}
-                          </span>
-                        </div>
-                      </>
+                      <div className="flex justify-between items-center p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                        <span className="text-sm text-muted-foreground">{t.peerIP}</span>
+                        <span className="font-mono text-sm text-green-500">
+                          {connectionDetails.remoteIP || 'N/A'}{connectionDetails.remotePort ? `:${connectionDetails.remotePort}` : ''}
+                        </span>
+                      </div>
                     ) : connectionMode === 'turn' ? (
                       <div className="flex justify-between items-center p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
                         <span className="text-sm text-muted-foreground">{t.turnServerIP}</span>

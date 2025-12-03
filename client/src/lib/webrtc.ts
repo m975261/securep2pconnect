@@ -568,12 +568,10 @@ export function useWebRTC(config: WebRTCConfig) {
               turnServerIP: turnIP,
             };
           } else {
-            // P2P mode - show both peer IPs
+            // P2P mode - show only remote peer's IP (not our local IP)
             details = {
               mode,
-              localIP,
               remoteIP,
-              localPort,
               remotePort,
               protocol,
             };
@@ -781,7 +779,84 @@ export function useWebRTC(config: WebRTCConfig) {
           if (currentPc && currentWs && currentWs.readyState === WebSocket.OPEN) {
             console.log('Received offer, setting remote description');
             console.log('Current signaling state before offer:', currentPc.signalingState);
-            await currentPc.setRemoteDescription(new RTCSessionDescription(message.data));
+            
+            try {
+              await currentPc.setRemoteDescription(new RTCSessionDescription(message.data));
+            } catch (sdpError: any) {
+              // If SDP error (e.g., m-line order mismatch), we need to recreate the peer connection
+              if (sdpError.message?.includes('m-lines') || sdpError.message?.includes('Failed to set remote')) {
+                console.log('[RECONNECT] SDP incompatible, recreating peer connection...');
+                
+                // Close old peer connection
+                currentPc.close();
+                
+                // Recreate peer connection with same config
+                const newPc = new RTCPeerConnection(currentPc.getConfiguration());
+                pcRef.current = newPc;
+                
+                // Create data channel for ICE gathering
+                const dataChannel = newPc.createDataChannel('connection-init', { negotiated: true, id: 0 });
+                dataChannel.onopen = () => console.log('[DataChannel] Connection channel opened');
+                dataChannel.onclose = () => console.log('[DataChannel] Connection channel closed');
+                
+                // Re-add local stream if exists
+                if (localStreamRef.current) {
+                  localStreamRef.current.getTracks().forEach(track => {
+                    newPc.addTrack(track, localStreamRef.current!);
+                  });
+                }
+                
+                // Setup event handlers on new PC
+                newPc.onicecandidate = (event) => {
+                  if (event.candidate && currentWs.readyState === WebSocket.OPEN) {
+                    console.log('ICE candidate:', event.candidate.type, event.candidate.protocol, event.candidate.address);
+                    currentWs.send(JSON.stringify({ type: 'ice-candidate', data: event.candidate }));
+                  }
+                };
+                
+                newPc.oniceconnectionstatechange = () => {
+                  console.log('ICE connection state:', newPc.iceConnectionState);
+                  if (newPc.iceConnectionState === 'connected' || newPc.iceConnectionState === 'completed') {
+                    hasConnectedRef.current = true;
+                    connectionModeRef.current = 'pending';
+                    detectModeFromStats();
+                  }
+                };
+                
+                newPc.onconnectionstatechange = () => {
+                  console.log('WebRTC connection state:', newPc.connectionState);
+                  if (newPc.connectionState === 'connected') {
+                    hasConnectedRef.current = true;
+                    detectModeFromStats();
+                  }
+                };
+                
+                newPc.ontrack = (event) => {
+                  console.log('Received remote audio track');
+                  if (event.streams && event.streams[0]) {
+                    setRemoteStream(event.streams[0]);
+                    configRef.current.onRemoteStream?.(event.streams[0]);
+                  }
+                };
+                
+                // Now set the remote description on the new PC
+                await newPc.setRemoteDescription(new RTCSessionDescription(message.data));
+                console.log('[RECONNECT] Remote description set on new peer connection');
+                
+                // Create and send answer
+                const answer = await newPc.createAnswer();
+                await newPc.setLocalDescription(answer);
+                currentWs.send(JSON.stringify({ type: 'answer', data: answer }));
+                console.log('[RECONNECT] Answer sent');
+                
+                // Reset connection mode
+                connectionModeRef.current = 'pending';
+                setConnectionMode('pending');
+                return;
+              }
+              throw sdpError;
+            }
+            
             console.log('Remote description set from offer, new signaling state:', currentPc.signalingState);
             
             // If we have a local stream, add our tracks before creating the answer
