@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Scan, ArrowRight, Loader2, Keyboard, Upload, Home, KeyRound, Languages, Server, AlertTriangle, CheckCircle2, Settings } from "lucide-react";
+import { Scan, ArrowRight, Loader2, Keyboard, Upload, Home, KeyRound, Languages } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { QRCodeScanner } from "@/components/qr-scanner";
 import { toast } from "sonner";
 import jsQR from "jsqr";
-import { TurnConfigModal, type TurnConfig } from "@/components/turn-config-modal";
+import { type TurnConfig } from "@/components/turn-config-modal";
 
 export default function JoinRoom() {
   const [_, setLocation] = useLocation();
@@ -20,8 +20,7 @@ export default function JoinRoom() {
   const [nickname, setNickname] = useState("");
   const [needsPassword, setNeedsPassword] = useState(false);
   const [password, setPassword] = useState("");
-  const [showTurnConfig, setShowTurnConfig] = useState(false);
-  const [turnConfig, setTurnConfig] = useState<TurnConfig | null>(() => {
+  const [, setTurnConfig] = useState<TurnConfig | null>(() => {
     const stored = localStorage.getItem('turn-config');
     return stored ? JSON.parse(stored) : null;
   });
@@ -64,12 +63,6 @@ export default function JoinRoom() {
       qrReadSuccess: 'QR code read successfully!',
       noQrFound: 'No QR code found in image',
       attemptsRemaining: 'attempts remaining',
-      turnServerRequired: 'TURN Server Required',
-      configureTurnServer: 'Configure your TURN relay server for secure connections',
-      clickToConfigure: 'Click to Configure',
-      turnServerConfigured: 'TURN Server Configured',
-      connectedTo: 'Connected to',
-      change: 'Change',
     },
     ar: {
       backToHome: 'العودة للرئيسية',
@@ -90,17 +83,10 @@ export default function JoinRoom() {
       qrReadSuccess: 'تم قراءة رمز QR بنجاح!',
       noQrFound: 'لم يتم العثور على رمز QR في الصورة',
       attemptsRemaining: 'محاولات متبقية',
-      turnServerRequired: 'خادم TURN مطلوب',
-      configureTurnServer: 'قم بتكوين خادم TURN للاتصالات الآمنة',
-      clickToConfigure: 'انقر للتكوين',
-      turnServerConfigured: 'تم تكوين خادم TURN',
-      connectedTo: 'متصل بـ',
-      change: 'تغيير',
     },
   };
 
   const t = translations[language];
-  const [pendingJoin, setPendingJoin] = useState(false);
 
   const joinRoom = async () => {
     setLoading(true);
@@ -138,6 +124,18 @@ export default function JoinRoom() {
         return;
       }
 
+      // Fetch TURN config from server and store it locally
+      try {
+        const turnResponse = await fetch(`/api/rooms/${code}/turn-config`);
+        if (turnResponse.ok) {
+          const serverTurnConfig = await turnResponse.json();
+          localStorage.setItem('turn-config', JSON.stringify(serverTurnConfig));
+          setTurnConfig(serverTurnConfig);
+        }
+      } catch (turnError) {
+        console.error('Error fetching TURN config:', turnError);
+      }
+
       setLocation(`/room/${code}?nickname=${encodeURIComponent(nickname.trim())}`);
     } catch (error) {
       console.error('Error joining room:', error);
@@ -154,27 +152,8 @@ export default function JoinRoom() {
       }
       return;
     }
-
-    // Check if TURN configuration exists
-    if (!turnConfig) {
-      setPendingJoin(true);
-      setShowTurnConfig(true);
-      return;
-    }
     
     await joinRoom();
-  };
-
-  const handleTurnConfigured = async (config: TurnConfig) => {
-    setTurnConfig(config);
-    setShowTurnConfig(false);
-    toast.success("TURN server configured successfully");
-    
-    // If user was trying to join a room, proceed automatically
-    if (pendingJoin && code && nickname.trim()) {
-      setPendingJoin(false);
-      await joinRoom();
-    }
   };
 
   const handleScan = (data: string) => {
@@ -255,61 +234,6 @@ export default function JoinRoom() {
           <h1 className="text-3xl font-bold mb-2">{t.joinSession}</h1>
           <p className="text-muted-foreground font-mono text-sm">{t.authenticateVia}</p>
         </div>
-
-        {/* TURN Server Configuration Card */}
-        <Card 
-          className={`mb-4 p-4 cursor-pointer transition-all ${
-            turnConfig 
-              ? 'bg-green-500/10 border-green-500/30 hover:border-green-500/50' 
-              : 'bg-orange-500/10 border-orange-500/30 hover:border-orange-500/50'
-          }`}
-          onClick={() => setShowTurnConfig(true)}
-          data-testid="card-turn-config"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {turnConfig ? (
-                <div className="p-2 rounded-full bg-green-500/20">
-                  <CheckCircle2 className="w-5 h-5 text-green-500" />
-                </div>
-              ) : (
-                <div className="p-2 rounded-full bg-orange-500/20">
-                  <AlertTriangle className="w-5 h-5 text-orange-500" />
-                </div>
-              )}
-              <div>
-                <h3 className={`font-semibold text-sm ${turnConfig ? 'text-green-400' : 'text-orange-400'}`}>
-                  {turnConfig ? t.turnServerConfigured : t.turnServerRequired}
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  {turnConfig 
-                    ? `${t.connectedTo}: ${turnConfig.urls[0]?.replace(/^turns?:/, '').split(':')[0] || 'server'}`
-                    : t.configureTurnServer
-                  }
-                </p>
-              </div>
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              className={turnConfig ? 'text-green-400 hover:text-green-300' : 'text-orange-400 hover:text-orange-300'}
-              data-testid="button-change-turn"
-            >
-              {turnConfig ? (
-                <span className="flex items-center gap-1">
-                  <Settings className="w-4 h-4" />
-                  {t.change}
-                </span>
-              ) : (
-                <span className="flex items-center gap-1">
-                  <Server className="w-4 h-4" />
-                  {t.clickToConfigure}
-                </span>
-              )}
-            </Button>
-          </div>
-        </Card>
 
         <div className="grid gap-6">
           <Card className="bg-card/50 backdrop-blur-md border-white/10 p-6">
@@ -418,16 +342,6 @@ export default function JoinRoom() {
         </div>
       </motion.div>
 
-      {/* TURN Configuration Modal */}
-      <TurnConfigModal
-        open={showTurnConfig}
-        onConfigured={handleTurnConfigured}
-        onCancel={() => {
-          setShowTurnConfig(false);
-          setPendingJoin(false);
-        }}
-        language={language}
-      />
     </div>
   );
 }
