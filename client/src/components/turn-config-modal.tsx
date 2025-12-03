@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Server, Lock, User, AlertCircle, Plus, Check, X, Loader2, Wifi, WifiOff } from "lucide-react";
+import { Server, Lock, User, AlertCircle, Plus, Check, X, Loader2, Wifi, WifiOff, Radio } from "lucide-react";
 import { toast } from "sonner";
 import { testTurnConnectivity } from "@/lib/webrtc";
 
@@ -18,6 +18,7 @@ export interface TurnConfig {
   urls: string[];
   username: string;
   credential: string;
+  stunUrls?: string[];
 }
 
 interface TurnConfigModalProps {
@@ -33,6 +34,8 @@ const translations = {
     description: "Enter your TURN server details. All connections will be routed through this relay to prevent IP leakage.",
     serverUrl: "TURN Server URL",
     serverUrlPlaceholder: "turn:server.com:3478?transport=udp",
+    stunUrl: "STUN Server URL (Optional)",
+    stunUrlPlaceholder: "stun:stun.l.google.com:19302",
     username: "Username",
     usernamePlaceholder: "turn-username",
     credential: "Credential",
@@ -43,8 +46,10 @@ const translations = {
     connect: "Connect Securely",
     cancel: "Cancel",
     invalidUrl: "Invalid TURN URL format",
-    requiredFields: "All fields are required",
+    invalidStunUrl: "Invalid STUN URL format",
+    requiredFields: "TURN server URL, username, and credential are required",
     example: "Example: turn:relay.com:3478?transport=udp or turns:relay.com:443?transport=tcp",
+    stunExample: "Example: stun:stun.l.google.com:19302",
     testConnection: "Test Connection",
     testing: "Testing...",
     testSuccess: "Connection successful! Found relay candidates.",
@@ -55,6 +60,8 @@ const translations = {
     description: "أدخل تفاصيل خادم TURN الخاص بك. سيتم توجيه جميع الاتصالات عبر هذا المُرحّل لمنع تسرب عنوان IP.",
     serverUrl: "عنوان URL لخادم TURN",
     serverUrlPlaceholder: "turn:server.com:3478?transport=udp",
+    stunUrl: "عنوان URL لخادم STUN (اختياري)",
+    stunUrlPlaceholder: "stun:stun.l.google.com:19302",
     username: "اسم المستخدم",
     usernamePlaceholder: "turn-username",
     credential: "كلمة المرور",
@@ -65,8 +72,10 @@ const translations = {
     connect: "اتصال آمن",
     cancel: "إلغاء",
     invalidUrl: "تنسيق URL غير صالح لـ TURN",
-    requiredFields: "جميع الحقول مطلوبة",
+    invalidStunUrl: "تنسيق URL غير صالح لـ STUN",
+    requiredFields: "عنوان URL لخادم TURN واسم المستخدم وكلمة المرور مطلوبة",
     example: "مثال: turn:relay.com:3478?transport=udp أو turns:relay.com:443?transport=tcp",
+    stunExample: "مثال: stun:stun.l.google.com:19302",
     testConnection: "اختبار الاتصال",
     testing: "جاري الاختبار...",
     testSuccess: "نجح الاتصال! تم العثور على مرشحات التتابع.",
@@ -77,12 +86,38 @@ const translations = {
 export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' }: TurnConfigModalProps) {
   const [urls, setUrls] = useState<string[]>([""]);
   const [confirmedUrls, setConfirmedUrls] = useState<boolean[]>([false]);
+  const [stunUrls, setStunUrls] = useState<string[]>([""]);
+  const [confirmedStunUrls, setConfirmedStunUrls] = useState<boolean[]>([false]);
   const [username, setUsername] = useState("");
   const [credential, setCredential] = useState("");
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'failed' | null>(null);
 
   const t = translations[language];
+
+  // Load saved configuration when modal opens
+  useEffect(() => {
+    if (open) {
+      const savedConfig = localStorage.getItem('turnConfig');
+      if (savedConfig) {
+        try {
+          const config = JSON.parse(savedConfig) as TurnConfig;
+          if (config.urls && config.urls.length > 0) {
+            setUrls(config.urls);
+            setConfirmedUrls(config.urls.map(() => true));
+          }
+          if (config.stunUrls && config.stunUrls.length > 0) {
+            setStunUrls(config.stunUrls);
+            setConfirmedStunUrls(config.stunUrls.map(() => true));
+          }
+          if (config.username) setUsername(config.username);
+          if (config.credential) setCredential(config.credential);
+        } catch (e) {
+          console.error('Failed to parse saved TURN config:', e);
+        }
+      }
+    }
+  }, [open]);
 
   const handleTestConnection = async () => {
     const validUrls = urls.filter(url => url.trim());
@@ -130,6 +165,11 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
     return /^turns?:[^:]+:\d+(\?transport=(udp|tcp))?$/.test(url.trim());
   };
 
+  const validateStunUrl = (url: string): boolean => {
+    // STUN URLs format: stun:hostname:port
+    return /^stun:[^:]+:\d+$/.test(url.trim());
+  };
+
   const handleAddUrl = () => {
     setUrls([...urls, ""]);
     setConfirmedUrls([...confirmedUrls, false]);
@@ -168,19 +208,69 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
     toast.success(`URL added: ${url}`);
   };
 
+  // STUN URL handlers
+  const handleAddStunUrl = () => {
+    setStunUrls([...stunUrls, ""]);
+    setConfirmedStunUrls([...confirmedStunUrls, false]);
+  };
+
+  const handleRemoveStunUrl = (index: number) => {
+    if (stunUrls.length > 1) {
+      setStunUrls(stunUrls.filter((_, i) => i !== index));
+      setConfirmedStunUrls(confirmedStunUrls.filter((_, i) => i !== index));
+    } else {
+      setStunUrls([""]);
+      setConfirmedStunUrls([false]);
+    }
+  };
+
+  const handleStunUrlChange = (index: number, value: string) => {
+    const newUrls = [...stunUrls];
+    newUrls[index] = value;
+    setStunUrls(newUrls);
+    const newConfirmed = [...confirmedStunUrls];
+    newConfirmed[index] = false;
+    setConfirmedStunUrls(newConfirmed);
+  };
+
+  const handleConfirmStunUrl = (index: number) => {
+    const url = stunUrls[index].trim();
+    if (!url) {
+      // Empty STUN is ok, just clear the field
+      return;
+    }
+    if (!validateStunUrl(url)) {
+      toast.error(`${t.invalidStunUrl}: ${url}`);
+      return;
+    }
+    const newConfirmed = [...confirmedStunUrls];
+    newConfirmed[index] = true;
+    setConfirmedStunUrls(newConfirmed);
+    toast.success(`STUN URL added: ${url}`);
+  };
+
   const handleSubmit = () => {
     // Validate all fields
     const validUrls = urls.filter(url => url.trim());
+    const validStunUrls = stunUrls.filter(url => url.trim());
     
     if (validUrls.length === 0 || !username.trim() || !credential.trim()) {
       toast.error(t.requiredFields);
       return;
     }
 
-    // Validate URL format
+    // Validate TURN URL format
     for (const url of validUrls) {
       if (!validateTurnUrl(url)) {
         toast.error(`${t.invalidUrl}: ${url}`);
+        return;
+      }
+    }
+
+    // Validate STUN URL format (optional)
+    for (const url of validStunUrls) {
+      if (!validateStunUrl(url)) {
+        toast.error(`${t.invalidStunUrl}: ${url}`);
         return;
       }
     }
@@ -189,10 +279,11 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
       urls: validUrls,
       username: username.trim(),
       credential: credential.trim(),
+      stunUrls: validStunUrls.length > 0 ? validStunUrls : undefined,
     };
 
     // Store in localStorage for persistence
-    localStorage.setItem('turn-config', JSON.stringify(config));
+    localStorage.setItem('turnConfig', JSON.stringify(config));
     
     onConfigured(config);
   };
@@ -274,6 +365,74 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
             <p className="text-xs text-muted-foreground/50 flex items-start gap-2">
               <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
               {t.example}
+            </p>
+          </div>
+
+          {/* STUN Server URLs (Optional) */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Radio className="w-4 h-4" />
+              {t.stunUrl}
+            </Label>
+            {stunUrls.map((url, index) => (
+              <div key={index} className="flex gap-2 items-center">
+                <Input
+                  value={url}
+                  onChange={(e) => handleStunUrlChange(index, e.target.value)}
+                  placeholder={t.stunUrlPlaceholder}
+                  className={`flex-1 bg-black/20 font-mono text-sm ${
+                    confirmedStunUrls[index] 
+                      ? 'border-green-500/50 focus:border-green-500' 
+                      : 'border-white/10 focus:border-primary/50'
+                  }`}
+                  data-testid={`input-stun-url-${index}`}
+                />
+                {!confirmedStunUrls[index] && url.trim() ? (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => handleConfirmStunUrl(index)}
+                    className="h-9 w-9 text-green-400 hover:text-green-300 hover:bg-green-500/10 shrink-0"
+                    title={t.addThis}
+                    data-testid={`button-confirm-stun-url-${index}`}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                ) : confirmedStunUrls[index] ? (
+                  <div className="h-9 w-9 flex items-center justify-center text-green-500 shrink-0">
+                    <Check className="w-4 h-4" />
+                  </div>
+                ) : (
+                  <div className="h-9 w-9 shrink-0" />
+                )}
+                {stunUrls.length > 1 && (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => handleRemoveStunUrl(index)}
+                    className="h-9 w-9 text-red-400 hover:text-red-300 hover:bg-red-500/10 shrink-0"
+                    title={t.removeUrl}
+                    data-testid={`button-remove-stun-url-${index}`}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddStunUrl}
+              className="w-full border-dashed border-white/20 hover:border-primary/50"
+              data-testid="button-add-stun-url"
+            >
+              {t.addUrl}
+            </Button>
+            <p className="text-xs text-muted-foreground/50 flex items-start gap-2">
+              <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+              {t.stunExample}
             </p>
           </div>
 

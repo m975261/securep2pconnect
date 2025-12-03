@@ -4,6 +4,7 @@ export interface TurnConfig {
   urls: string[];
   username: string;
   credential: string;
+  stunUrls?: string[];
 }
 
 // Test TURN server connectivity
@@ -356,23 +357,35 @@ export function useWebRTC(config: WebRTCConfig) {
     console.log('TURN config available:', !!turnConfig);
     if (turnConfig) {
       console.log('TURN URLs:', JSON.stringify(turnConfig.urls));
+      console.log('STUN URLs:', JSON.stringify(turnConfig.stunUrls || []));
       console.log('TURN username length:', turnConfig.username?.length || 0);
       console.log('TURN credential length:', turnConfig.credential?.length || 0);
     }
     
-    const iceServers = turnConfig ? [
-      {
+    const iceServers: RTCIceServer[] = [];
+    
+    // Add STUN servers (note: with iceTransportPolicy='relay', STUN won't be used for candidates but might help with connectivity checks)
+    if (turnConfig?.stunUrls && turnConfig.stunUrls.length > 0) {
+      iceServers.push({ urls: turnConfig.stunUrls });
+    }
+    
+    // Add TURN servers with credentials
+    if (turnConfig) {
+      iceServers.push({
         urls: turnConfig.urls,
         username: turnConfig.username,
         credential: turnConfig.credential,
-      }
-    ] : [];
+      });
+    }
 
     console.log('ICE servers config:', JSON.stringify(iceServers, null, 2));
 
     if (iceServers.length === 0) {
       console.warn('No TURN servers configured - audio/video will not work in relay-only mode');
     }
+    
+    // Queue for ICE candidates that arrive before WebSocket is ready
+    const pendingIceCandidates: RTCIceCandidate[] = [];
 
     const pc = new RTCPeerConnection({
       iceServers,
@@ -389,10 +402,14 @@ export function useWebRTC(config: WebRTCConfig) {
         candidateCount++;
         console.log('ICE candidate:', event.candidate.type, event.candidate.protocol, event.candidate.address);
         if (currentWs && currentWs.readyState === WebSocket.OPEN) {
+          console.log('Sending ICE candidate to peer');
           currentWs.send(JSON.stringify({
             type: 'ice-candidate',
             data: event.candidate,
           }));
+        } else {
+          console.log('WebSocket not ready, queuing ICE candidate');
+          pendingIceCandidates.push(event.candidate);
         }
       } else {
         console.log('ICE gathering complete, total candidates:', candidateCount);
@@ -472,6 +489,18 @@ export function useWebRTC(config: WebRTCConfig) {
           peerId: configRef.current.peerId,
           nickname: configRef.current.nickname,
         }));
+        
+        // Flush any queued ICE candidates
+        if (pendingIceCandidates.length > 0) {
+          console.log('Flushing', pendingIceCandidates.length, 'queued ICE candidates');
+          pendingIceCandidates.forEach(candidate => {
+            currentWs.send(JSON.stringify({
+              type: 'ice-candidate',
+              data: candidate,
+            }));
+          });
+          pendingIceCandidates.length = 0; // Clear the queue
+        }
       }
     };
 
