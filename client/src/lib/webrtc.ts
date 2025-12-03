@@ -111,11 +111,22 @@ interface SendFileOptions {
 
 export type ConnectionMode = 'pending' | 'p2p' | 'turn' | 'reconnecting';
 
+export interface ConnectionDetails {
+  mode: ConnectionMode;
+  localIP?: string;
+  remoteIP?: string;
+  localPort?: number;
+  remotePort?: number;
+  protocol?: string;
+  turnServerIP?: string;
+}
+
 export function useWebRTC(config: WebRTCConfig) {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [connectionMode, setConnectionMode] = useState<ConnectionMode>('pending');
+  const [connectionDetails, setConnectionDetails] = useState<ConnectionDetails>({ mode: 'pending' });
   const wsRef = useRef<WebSocket | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -465,6 +476,12 @@ export function useWebRTC(config: WebRTCConfig) {
       pc.getStats().then(stats => {
         let selectedCandidateType: string | null = null;
         let remoteCandidateType: string | null = null;
+        let localIP: string | undefined;
+        let remoteIP: string | undefined;
+        let localPort: number | undefined;
+        let remotePort: number | undefined;
+        let protocol: string | undefined;
+        let relayServerIP: string | undefined;
         
         stats.forEach(report => {
           // Look for the selected candidate pair (check both succeeded and in-progress)
@@ -475,11 +492,24 @@ export function useWebRTC(config: WebRTCConfig) {
             stats.forEach(stat => {
               if (stat.id === localCandidateId && stat.type === 'local-candidate') {
                 selectedCandidateType = stat.candidateType;
-                console.log('Selected local candidate type:', selectedCandidateType);
+                localIP = stat.address || stat.ip;
+                localPort = stat.port;
+                protocol = stat.protocol;
+                // For relay candidates, the address is the TURN server
+                if (stat.candidateType === 'relay') {
+                  relayServerIP = stat.relayAddress || stat.address || stat.ip;
+                }
+                console.log('Selected local candidate:', selectedCandidateType, localIP, localPort, protocol);
               }
               if (stat.id === remoteCandidateId && stat.type === 'remote-candidate') {
                 remoteCandidateType = stat.candidateType;
-                console.log('Selected remote candidate type:', remoteCandidateType);
+                remoteIP = stat.address || stat.ip;
+                remotePort = stat.port;
+                // For relay candidates, the address might be the TURN server
+                if (stat.candidateType === 'relay' && !relayServerIP) {
+                  relayServerIP = stat.address || stat.ip;
+                }
+                console.log('Selected remote candidate:', remoteCandidateType, remoteIP, remotePort);
               }
             });
           }
@@ -497,6 +527,29 @@ export function useWebRTC(config: WebRTCConfig) {
             setConnectionMode(mode);
             console.log('Connection mode detected:', mode, '(local:', selectedCandidateType, 'remote:', remoteCandidateType, ')');
           }
+          
+          // Update connection details - only show relevant IPs based on mode
+          let details: ConnectionDetails;
+          if (isRelay) {
+            // TURN mode - only show TURN server IP
+            details = {
+              mode,
+              protocol,
+              turnServerIP: relayServerIP || localIP || remoteIP,
+            };
+          } else {
+            // P2P mode - show both peer IPs
+            details = {
+              mode,
+              localIP,
+              remoteIP,
+              localPort,
+              remotePort,
+              protocol,
+            };
+          }
+          setConnectionDetails(details);
+          console.log('Connection details:', details);
         } else if (connectionModeRef.current === 'pending') {
           // Retry after a short delay if we couldn't detect yet
           setTimeout(detectModeFromStats, 500);
@@ -527,6 +580,8 @@ export function useWebRTC(config: WebRTCConfig) {
         if (hasConnectedRef.current && connectionModeRef.current !== 'pending') {
           connectionModeRef.current = 'reconnecting';
           setConnectionMode('reconnecting');
+          // Reset connection details when reconnecting
+          setConnectionDetails({ mode: 'reconnecting' });
         }
       }
     };
@@ -914,6 +969,7 @@ export function useWebRTC(config: WebRTCConfig) {
     isConnected,
     connectionState,
     connectionMode,
+    connectionDetails,
     remoteStream,
     sendMessage,
     sendFile,

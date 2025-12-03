@@ -11,7 +11,7 @@ import QRCode from "react-qr-code";
 import { ChatInterface } from "@/components/chat-interface";
 import { FileTransfer } from "@/components/file-transfer";
 import { DebugPanel } from "@/components/debug-panel";
-import { useWebRTC, type TurnConfig, type ConnectionMode } from "@/lib/webrtc";
+import { useWebRTC, type TurnConfig, type ConnectionMode, type ConnectionDetails } from "@/lib/webrtc";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -52,6 +52,7 @@ export default function Room() {
   const [hasPassword, setHasPassword] = useState(false);
   const [needsNickname, setNeedsNickname] = useState(!nicknameFromUrl);
   const [shareLink, setShareLink] = useState('');
+  const [showConnectionDetails, setShowConnectionDetails] = useState(false);
   const [transferredFiles, setTransferredFiles] = useState<Array<{
     name: string;
     size: number;
@@ -121,6 +122,12 @@ export default function Room() {
       p2pMode: 'P2P Direct',
       turnMode: 'TURN Relay',
       reconnectingMode: 'Reconnecting...',
+      connectionDetails: 'Connection Details',
+      yourIP: 'Your IP',
+      peerIP: 'Peer IP',
+      turnServerIP: 'TURN Server',
+      protocol: 'Protocol',
+      close: 'Close',
     },
     ar: {
       appName: 'SECURE.LINK',
@@ -153,6 +160,12 @@ export default function Room() {
       p2pMode: 'مباشر P2P',
       turnMode: 'عبر TURN',
       reconnectingMode: 'إعادة الاتصال...',
+      connectionDetails: 'تفاصيل الاتصال',
+      yourIP: 'عنوان IP الخاص بك',
+      peerIP: 'عنوان IP النظير',
+      turnServerIP: 'خادم TURN',
+      protocol: 'البروتوكول',
+      close: 'إغلاق',
     },
   };
 
@@ -324,7 +337,7 @@ export default function Room() {
     onPeerDisconnected,
   }), [passwordVerified, roomId, peerId, nickname, turnConfig, onMessage, onFileReceive, onPeerConnected, onPeerDisconnected]);
 
-  const { connectionState, connectionMode, remoteStream, sendMessage, sendFile, startVoiceChat, stopVoiceChat } = useWebRTC(webrtcConfig);
+  const { connectionState, connectionMode, connectionDetails, remoteStream, sendMessage, sendFile, startVoiceChat, stopVoiceChat } = useWebRTC(webrtcConfig);
 
   // Attach remote audio stream to audio element
   useEffect(() => {
@@ -873,30 +886,86 @@ export default function Room() {
 
             {/* Connection Mode Badge - Only show when connected or reconnecting */}
             {connectionMode !== 'pending' && (
-              <div className={`flex items-center justify-center gap-1.5 p-1.5 md:p-2 rounded-lg border ${
-                connectionMode === 'p2p' 
-                  ? 'bg-green-500/10 border-green-500/30' 
-                  : connectionMode === 'turn' 
-                    ? 'bg-amber-500/10 border-amber-500/30' 
-                    : 'bg-red-500/10 border-red-500/30'
-              }`} data-testid="connection-mode-badge">
-                <div className={`w-2 h-2 rounded-full ${
-                  connectionMode === 'p2p' 
-                    ? 'bg-green-500 animate-pulse' 
-                    : connectionMode === 'turn' 
-                      ? 'bg-amber-500 animate-pulse' 
-                      : 'bg-red-500 animate-pulse'
-                }`} />
-                <span className={`text-[10px] md:text-xs font-mono font-bold ${
-                  connectionMode === 'p2p' 
-                    ? 'text-green-500' 
-                    : connectionMode === 'turn' 
-                      ? 'text-amber-500' 
-                      : 'text-red-500'
-                }`}>
-                  {connectionMode === 'p2p' ? t.p2pMode : connectionMode === 'turn' ? t.turnMode : t.reconnectingMode}
-                </span>
-              </div>
+              <Dialog open={showConnectionDetails} onOpenChange={setShowConnectionDetails}>
+                <DialogTrigger asChild>
+                  <button 
+                    className={`flex items-center justify-center gap-1.5 p-1.5 md:p-2 rounded-lg border transition-all ${
+                      isCreator ? 'cursor-pointer hover:opacity-80' : 'cursor-default'
+                    } ${
+                      connectionMode === 'p2p' 
+                        ? 'bg-green-500/10 border-green-500/30' 
+                        : connectionMode === 'turn' 
+                          ? 'bg-amber-500/10 border-amber-500/30' 
+                          : 'bg-red-500/10 border-red-500/30'
+                    }`} 
+                    data-testid="connection-mode-badge"
+                    onClick={() => isCreator && setShowConnectionDetails(true)}
+                    disabled={!isCreator}
+                  >
+                    <div className={`w-2 h-2 rounded-full ${
+                      connectionMode === 'p2p' 
+                        ? 'bg-green-500 animate-pulse' 
+                        : connectionMode === 'turn' 
+                          ? 'bg-amber-500 animate-pulse' 
+                          : 'bg-red-500 animate-pulse'
+                    }`} />
+                    <span className={`text-[10px] md:text-xs font-mono font-bold ${
+                      connectionMode === 'p2p' 
+                        ? 'text-green-500' 
+                        : connectionMode === 'turn' 
+                          ? 'text-amber-500' 
+                          : 'text-red-500'
+                    }`}>
+                      {connectionMode === 'p2p' ? t.p2pMode : connectionMode === 'turn' ? t.turnMode : t.reconnectingMode}
+                    </span>
+                  </button>
+                </DialogTrigger>
+                <DialogContent className="max-w-sm">
+                  <DialogHeader>
+                    <DialogTitle className="text-center">{t.connectionDetails}</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-3 py-4">
+                    {connectionMode === 'p2p' ? (
+                      <>
+                        <div className="flex justify-between items-center p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                          <span className="text-sm text-muted-foreground">{t.yourIP}</span>
+                          <span className="font-mono text-sm text-green-500">
+                            {connectionDetails.localIP || 'N/A'}:{connectionDetails.localPort || ''}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                          <span className="text-sm text-muted-foreground">{t.peerIP}</span>
+                          <span className="font-mono text-sm text-green-500">
+                            {connectionDetails.remoteIP || 'N/A'}:{connectionDetails.remotePort || ''}
+                          </span>
+                        </div>
+                      </>
+                    ) : connectionMode === 'turn' ? (
+                      <div className="flex justify-between items-center p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                        <span className="text-sm text-muted-foreground">{t.turnServerIP}</span>
+                        <span className="font-mono text-sm text-amber-500">
+                          {connectionDetails.turnServerIP || connectionDetails.remoteIP || 'N/A'}
+                        </span>
+                      </div>
+                    ) : null}
+                    {connectionDetails.protocol && (
+                      <div className="flex justify-between items-center p-3 bg-card/50 rounded-lg border border-white/10">
+                        <span className="text-sm text-muted-foreground">{t.protocol}</span>
+                        <span className="font-mono text-sm text-white uppercase">
+                          {connectionDetails.protocol}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowConnectionDetails(false)}
+                    className="w-full"
+                  >
+                    {t.close}
+                  </Button>
+                </DialogContent>
+              </Dialog>
             )}
 
             {/* Voice Controls */}
