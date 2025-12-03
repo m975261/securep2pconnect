@@ -19,6 +19,8 @@ export default function JoinRoom() {
   const [code, setCode] = useState(roomFromUrl);
   const [nickname, setNickname] = useState("");
   const [needsPassword, setNeedsPassword] = useState(false);
+  const [checkingRoom, setCheckingRoom] = useState(false);
+  const [roomChecked, setRoomChecked] = useState(false);
   const [password, setPassword] = useState("");
   const [, setTurnConfig] = useState<TurnConfig | null>(() => {
     const stored = localStorage.getItem('turn-config');
@@ -28,6 +30,34 @@ export default function JoinRoom() {
   const [language, setLanguage] = useState<'en' | 'ar'>(() => {
     return (localStorage.getItem('app-language') as 'en' | 'ar') || 'en';
   });
+  
+  // Check if room requires password when code is available
+  useEffect(() => {
+    const checkRoomPassword = async () => {
+      if (!code || code.length !== 6) {
+        setRoomChecked(false);
+        setNeedsPassword(false);
+        return;
+      }
+      
+      setCheckingRoom(true);
+      try {
+        const response = await fetch(`/api/rooms/${code}`);
+        if (response.ok) {
+          const data = await response.json();
+          setNeedsPassword(data.hasPassword);
+          setRoomChecked(true);
+        } else {
+          setRoomChecked(false);
+        }
+      } catch {
+        setRoomChecked(false);
+      }
+      setCheckingRoom(false);
+    };
+    
+    checkRoomPassword();
+  }, [code]);
 
   useEffect(() => {
     const handleLanguageChange = (e: CustomEvent) => {
@@ -47,11 +77,14 @@ export default function JoinRoom() {
     en: {
       backToHome: 'BACK TO HOME',
       joinSession: 'Join Session',
+      joiningRoom: 'Joining Room',
       authenticateVia: 'Authenticate via Code, QR Scan, or Upload',
+      enterYourNickname: 'Enter your nickname to join',
       enterRoomCode: 'Enter room code (e.g. A1B2C3)',
       yourNickname: 'Your nickname',
       enterRoomPassword: 'Enter room password',
       connect: 'CONNECT',
+      join: 'JOIN',
       orAuthWith: 'Or authenticate with',
       scanCamera: 'Scan Camera',
       useDeviceCam: 'Use device cam',
@@ -63,15 +96,20 @@ export default function JoinRoom() {
       qrReadSuccess: 'QR code read successfully!',
       noQrFound: 'No QR code found in image',
       attemptsRemaining: 'attempts remaining',
+      checkingRoom: 'Checking room...',
+      passwordRequired: 'This room requires a password',
     },
     ar: {
       backToHome: 'العودة للرئيسية',
       joinSession: 'الانضمام للجلسة',
+      joiningRoom: 'الانضمام للغرفة',
       authenticateVia: 'المصادقة عبر الرمز أو المسح أو التحميل',
+      enterYourNickname: 'أدخل اسمك المستعار للانضمام',
       enterRoomCode: 'أدخل رمز الغرفة (مثال: A1B2C3)',
       yourNickname: 'اسمك المستعار',
       enterRoomPassword: 'أدخل كلمة مرور الغرفة',
       connect: 'اتصال',
+      join: 'انضمام',
       orAuthWith: 'أو المصادقة بواسطة',
       scanCamera: 'مسح الكاميرا',
       useDeviceCam: 'استخدام كاميرا الجهاز',
@@ -83,6 +121,8 @@ export default function JoinRoom() {
       qrReadSuccess: 'تم قراءة رمز QR بنجاح!',
       noQrFound: 'لم يتم العثور على رمز QR في الصورة',
       attemptsRemaining: 'محاولات متبقية',
+      checkingRoom: 'جاري التحقق من الغرفة...',
+      passwordRequired: 'هذه الغرفة تتطلب كلمة مرور',
     },
   };
 
@@ -268,116 +308,191 @@ export default function JoinRoom() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold mb-2">{t.joinSession}</h1>
-          <p className="text-muted-foreground font-mono text-sm">{t.authenticateVia}</p>
-        </div>
-
-        <div className="grid gap-6">
-          <Card className="bg-card/50 backdrop-blur-md border-white/10 p-6">
-            <form onSubmit={handleJoin} className="space-y-4">
-              <div className="relative">
-                <Keyboard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.toUpperCase())}
-                  placeholder={t.enterRoomCode}
-                  className="pl-9 bg-black/20 border-white/10 focus:border-accent/50 font-mono uppercase tracking-widest"
-                  data-testid="input-code"
-                />
+        {/* Simplified view when room code is provided */}
+        {roomFromUrl || roomChecked ? (
+          <>
+            <div className="mb-8 text-center">
+              <h1 className="text-3xl font-bold mb-2">{t.joiningRoom}</h1>
+              <div className="inline-block px-4 py-2 bg-accent/20 rounded-lg border border-accent/30 mb-3">
+                <span className="font-mono text-xl tracking-widest text-accent">{code}</span>
               </div>
+              <p className="text-muted-foreground font-mono text-sm">{t.enterYourNickname}</p>
+            </div>
 
-              <div className="relative">
-                <Input 
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                  placeholder={t.yourNickname}
-                  className="bg-black/20 border-white/10 focus:border-accent/50"
-                  data-testid="input-nickname"
-                  maxLength={20}
-                  required
-                />
-              </div>
-
-              {needsPassword && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  className="overflow-hidden"
-                >
+            <Card className="bg-card/50 backdrop-blur-md border-white/10 p-6">
+              {checkingRoom ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="animate-spin mr-2" />
+                  <span className="text-muted-foreground">{t.checkingRoom}</span>
+                </div>
+              ) : (
+                <form onSubmit={handleJoin} className="space-y-4">
                   <div className="relative">
-                    <KeyRound className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input 
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder={t.enterRoomPassword}
-                      className="pl-9 bg-black/20 border-white/10 focus:border-primary/50 font-mono"
-                      data-testid="input-password"
+                      value={nickname}
+                      onChange={(e) => setNickname(e.target.value)}
+                      placeholder={t.yourNickname}
+                      className="bg-black/20 border-white/10 focus:border-accent/50 text-center text-lg"
+                      data-testid="input-nickname"
+                      maxLength={20}
+                      required
+                      autoFocus
                     />
                   </div>
-                </motion.div>
+
+                  {needsPassword && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      className="overflow-hidden"
+                    >
+                      <p className="text-xs text-muted-foreground mb-2 text-center">{t.passwordRequired}</p>
+                      <div className="relative">
+                        <KeyRound className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder={t.enterRoomPassword}
+                          className="pl-9 bg-black/20 border-white/10 focus:border-primary/50 font-mono"
+                          data-testid="input-password"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+
+                  <Button 
+                    type="submit" 
+                    disabled={loading || !nickname.trim() || (needsPassword && !password)}
+                    className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-bold text-lg py-6"
+                    data-testid="button-connect"
+                  >
+                    {loading ? <Loader2 className="animate-spin" /> : (
+                      <>
+                        {t.join}
+                        <ArrowRight className="ml-2 w-5 h-5" />
+                      </>
+                    )}
+                  </Button>
+                </form>
               )}
-
-              <Button 
-                type="submit" 
-                disabled={loading || !code || !nickname.trim()}
-                className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-bold"
-                data-testid="button-connect"
-              >
-                {loading ? <Loader2 className="animate-spin" /> : t.connect}
-              </Button>
-            </form>
-          </Card>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-white/10" />
+            </Card>
+          </>
+        ) : (
+          /* Full view when no room code is provided */
+          <>
+            <div className="mb-8 text-center">
+              <h1 className="text-3xl font-bold mb-2">{t.joinSession}</h1>
+              <p className="text-muted-foreground font-mono text-sm">{t.authenticateVia}</p>
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">{t.orAuthWith}</span>
+
+            <div className="grid gap-6">
+              <Card className="bg-card/50 backdrop-blur-md border-white/10 p-6">
+                <form onSubmit={handleJoin} className="space-y-4">
+                  <div className="relative">
+                    <Keyboard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.toUpperCase())}
+                      placeholder={t.enterRoomCode}
+                      className="pl-9 bg-black/20 border-white/10 focus:border-accent/50 font-mono uppercase tracking-widest"
+                      data-testid="input-code"
+                    />
+                  </div>
+
+                  <div className="relative">
+                    <Input 
+                      value={nickname}
+                      onChange={(e) => setNickname(e.target.value)}
+                      placeholder={t.yourNickname}
+                      className="bg-black/20 border-white/10 focus:border-accent/50"
+                      data-testid="input-nickname"
+                      maxLength={20}
+                      required
+                    />
+                  </div>
+
+                  {needsPassword && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="relative">
+                        <KeyRound className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder={t.enterRoomPassword}
+                          className="pl-9 bg-black/20 border-white/10 focus:border-primary/50 font-mono"
+                          data-testid="input-password"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+
+                  <Button 
+                    type="submit" 
+                    disabled={loading || !code || !nickname.trim()}
+                    className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-bold"
+                    data-testid="button-connect"
+                  >
+                    {loading ? <Loader2 className="animate-spin" /> : t.connect}
+                  </Button>
+                </form>
+              </Card>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-white/10" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">{t.orAuthWith}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Button 
+                  variant="outline" 
+                  className="h-24 border-white/10 hover:bg-white/5 hover:border-primary/50 group flex flex-col items-center justify-center gap-2"
+                  onClick={() => setShowScanner(true)}
+                  data-testid="button-scan"
+                >
+                  <div className="p-2 bg-black rounded border border-white/10 group-hover:border-primary/50 transition-colors">
+                    <Scan className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="flex flex-col items-center text-center">
+                    <span className="font-bold text-xs">{t.scanCamera}</span>
+                    <span className="text-[10px] text-muted-foreground font-mono scale-90">{t.useDeviceCam}</span>
+                  </div>
+                </Button>
+
+                <Button 
+                  variant="outline" 
+                  className="h-24 border-white/10 hover:bg-white/5 hover:border-blue-500/50 group flex flex-col items-center justify-center gap-2"
+                  onClick={() => fileInputRef.current?.click()}
+                  data-testid="button-upload"
+                >
+                  <div className="p-2 bg-black rounded border border-white/10 group-hover:border-blue-500/50 transition-colors">
+                    <Upload className="w-6 h-6 text-blue-500" />
+                  </div>
+                  <div className="flex flex-col items-center text-center">
+                    <span className="font-bold text-xs">{t.uploadQr}</span>
+                    <span className="text-[10px] text-muted-foreground font-mono scale-90">{t.fromImageFile}</span>
+                  </div>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                  />
+                </Button>
+              </div>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Button 
-              variant="outline" 
-              className="h-24 border-white/10 hover:bg-white/5 hover:border-primary/50 group flex flex-col items-center justify-center gap-2"
-              onClick={() => setShowScanner(true)}
-              data-testid="button-scan"
-            >
-              <div className="p-2 bg-black rounded border border-white/10 group-hover:border-primary/50 transition-colors">
-                <Scan className="w-6 h-6 text-primary" />
-              </div>
-              <div className="flex flex-col items-center text-center">
-                <span className="font-bold text-xs">{t.scanCamera}</span>
-                <span className="text-[10px] text-muted-foreground font-mono scale-90">{t.useDeviceCam}</span>
-              </div>
-            </Button>
-
-            <Button 
-              variant="outline" 
-              className="h-24 border-white/10 hover:bg-white/5 hover:border-blue-500/50 group flex flex-col items-center justify-center gap-2"
-              onClick={() => fileInputRef.current?.click()}
-              data-testid="button-upload"
-            >
-              <div className="p-2 bg-black rounded border border-white/10 group-hover:border-blue-500/50 transition-colors">
-                <Upload className="w-6 h-6 text-blue-500" />
-              </div>
-              <div className="flex flex-col items-center text-center">
-                <span className="font-bold text-xs">{t.uploadQr}</span>
-                <span className="text-[10px] text-muted-foreground font-mono scale-90">{t.fromImageFile}</span>
-              </div>
-              <input 
-                type="file" 
-                ref={fileInputRef}
-                className="hidden" 
-                accept="image/*"
-                onChange={handleFileUpload}
-              />
-            </Button>
-          </div>
-        </div>
+          </>
+        )}
       </motion.div>
 
     </div>
