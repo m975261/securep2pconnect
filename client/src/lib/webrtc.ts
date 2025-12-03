@@ -797,14 +797,24 @@ export function useWebRTC(config: WebRTCConfig) {
             }));
             console.log('Answer sent');
             
-            // Trigger mode detection after answer is sent (for creator/hoster)
-            // Wait a bit for ICE to establish connection
-            setTimeout(() => {
-              if (connectionModeRef.current === 'pending') {
-                console.log('[CREATOR] Triggering delayed mode detection after sending answer');
+            // Trigger continuous mode detection after answer is sent (for creator/hoster)
+            // Keep polling until connection is established
+            let creatorPollCount = 0;
+            const creatorPollInterval = setInterval(() => {
+              creatorPollCount++;
+              console.log('[CREATOR] Polling for connection mode, attempt:', creatorPollCount, 'pc state:', currentPc?.iceConnectionState);
+              
+              if (connectionModeRef.current !== 'pending' || creatorPollCount >= 30) {
+                console.log('[CREATOR] Stopping poll - mode:', connectionModeRef.current, 'attempts:', creatorPollCount);
+                clearInterval(creatorPollInterval);
+                return;
+              }
+              
+              if (currentPc && (currentPc.iceConnectionState === 'connected' || currentPc.iceConnectionState === 'completed')) {
+                console.log('[CREATOR] ICE connected, detecting mode');
                 detectModeFromStats();
               }
-            }, 1000);
+            }, 500);
           }
         } else if (message.type === 'answer') {
           if (currentPc) {
