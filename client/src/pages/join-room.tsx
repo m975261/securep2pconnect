@@ -100,22 +100,9 @@ export default function JoinRoom() {
   };
 
   const t = translations[language];
+  const [pendingJoin, setPendingJoin] = useState(false);
 
-  const handleJoin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!code || !nickname.trim()) {
-      if (!nickname.trim()) {
-        toast.error(t.pleaseEnterNickname);
-      }
-      return;
-    }
-
-    // Check if TURN configuration exists
-    if (!turnConfig) {
-      setShowTurnConfig(true);
-      return;
-    }
-    
+  const joinRoom = async () => {
     setLoading(true);
 
     try {
@@ -156,6 +143,37 @@ export default function JoinRoom() {
       console.error('Error joining room:', error);
       toast.error(t.failedToJoin);
       setLoading(false);
+    }
+  };
+
+  const handleJoin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!code || !nickname.trim()) {
+      if (!nickname.trim()) {
+        toast.error(t.pleaseEnterNickname);
+      }
+      return;
+    }
+
+    // Check if TURN configuration exists
+    if (!turnConfig) {
+      setPendingJoin(true);
+      setShowTurnConfig(true);
+      return;
+    }
+    
+    await joinRoom();
+  };
+
+  const handleTurnConfigured = async (config: TurnConfig) => {
+    setTurnConfig(config);
+    setShowTurnConfig(false);
+    toast.success("TURN server configured successfully");
+    
+    // If user was trying to join a room, proceed automatically
+    if (pendingJoin && code && nickname.trim()) {
+      setPendingJoin(false);
+      await joinRoom();
     }
   };
 
@@ -403,12 +421,11 @@ export default function JoinRoom() {
       {/* TURN Configuration Modal */}
       <TurnConfigModal
         open={showTurnConfig}
-        onConfigured={(config) => {
-          setTurnConfig(config);
+        onConfigured={handleTurnConfigured}
+        onCancel={() => {
           setShowTurnConfig(false);
-          toast.success("TURN server configured successfully");
+          setPendingJoin(false);
         }}
-        onCancel={() => setShowTurnConfig(false)}
         language={language}
       />
     </div>

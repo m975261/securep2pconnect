@@ -85,20 +85,9 @@ export default function CreateRoom() {
 
   const t = translations[language];
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!nickname.trim()) {
-      toast.error(t.pleaseEnterNickname);
-      return;
-    }
+  const [pendingCreate, setPendingCreate] = useState(false);
 
-    // Check if TURN configuration exists
-    if (!turnConfig) {
-      setShowTurnConfig(true);
-      return;
-    }
-    
+  const createRoom = async () => {
     setLoading(true);
 
     try {
@@ -125,10 +114,34 @@ export default function CreateRoom() {
     }
   };
 
-  const handleTurnConfigured = (config: TurnConfig) => {
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!nickname.trim()) {
+      toast.error(t.pleaseEnterNickname);
+      return;
+    }
+
+    // Check if TURN configuration exists
+    if (!turnConfig) {
+      setPendingCreate(true);
+      setShowTurnConfig(true);
+      return;
+    }
+    
+    await createRoom();
+  };
+
+  const handleTurnConfigured = async (config: TurnConfig) => {
     setTurnConfig(config);
     setShowTurnConfig(false);
     toast.success("TURN server configured successfully");
+    
+    // If user was trying to create a room, proceed automatically
+    if (pendingCreate && nickname.trim()) {
+      setPendingCreate(false);
+      await createRoom();
+    }
   };
 
   return (
@@ -299,7 +312,10 @@ export default function CreateRoom() {
       <TurnConfigModal
         open={showTurnConfig}
         onConfigured={handleTurnConfigured}
-        onCancel={() => setShowTurnConfig(false)}
+        onCancel={() => {
+          setShowTurnConfig(false);
+          setPendingCreate(false);
+        }}
         language={language}
       />
     </div>

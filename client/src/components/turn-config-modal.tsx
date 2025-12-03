@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Server, Lock, User, AlertCircle } from "lucide-react";
+import { Server, Lock, User, AlertCircle, Plus, Check, X } from "lucide-react";
 import { toast } from "sonner";
 
 export interface TurnConfig {
@@ -37,6 +37,7 @@ const translations = {
     credential: "Credential",
     credentialPlaceholder: "turn-password",
     addUrl: "Add Another URL",
+    addThis: "Add",
     removeUrl: "Remove",
     connect: "Connect Securely",
     cancel: "Cancel",
@@ -54,6 +55,7 @@ const translations = {
     credential: "كلمة المرور",
     credentialPlaceholder: "turn-password",
     addUrl: "إضافة عنوان URL آخر",
+    addThis: "إضافة",
     removeUrl: "إزالة",
     connect: "اتصال آمن",
     cancel: "إلغاء",
@@ -65,6 +67,7 @@ const translations = {
 
 export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' }: TurnConfigModalProps) {
   const [urls, setUrls] = useState<string[]>([""]);
+  const [confirmedUrls, setConfirmedUrls] = useState<boolean[]>([false]);
   const [username, setUsername] = useState("");
   const [credential, setCredential] = useState("");
 
@@ -77,11 +80,13 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
 
   const handleAddUrl = () => {
     setUrls([...urls, ""]);
+    setConfirmedUrls([...confirmedUrls, false]);
   };
 
   const handleRemoveUrl = (index: number) => {
     if (urls.length > 1) {
       setUrls(urls.filter((_, i) => i !== index));
+      setConfirmedUrls(confirmedUrls.filter((_, i) => i !== index));
     }
   };
 
@@ -89,6 +94,26 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
     const newUrls = [...urls];
     newUrls[index] = value;
     setUrls(newUrls);
+    // Reset confirmed status when URL changes
+    const newConfirmed = [...confirmedUrls];
+    newConfirmed[index] = false;
+    setConfirmedUrls(newConfirmed);
+  };
+
+  const handleConfirmUrl = (index: number) => {
+    const url = urls[index].trim();
+    if (!url) {
+      toast.error(t.requiredFields);
+      return;
+    }
+    if (!validateTurnUrl(url)) {
+      toast.error(`${t.invalidUrl}: ${url}`);
+      return;
+    }
+    const newConfirmed = [...confirmedUrls];
+    newConfirmed[index] = true;
+    setConfirmedUrls(newConfirmed);
+    toast.success(`URL added: ${url}`);
   };
 
   const handleSubmit = () => {
@@ -141,23 +166,46 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
               {t.serverUrl}
             </Label>
             {urls.map((url, index) => (
-              <div key={index} className="flex gap-2">
+              <div key={index} className="flex gap-2 items-center">
                 <Input
                   value={url}
                   onChange={(e) => handleUrlChange(index, e.target.value)}
                   placeholder={t.serverUrlPlaceholder}
-                  className="flex-1 bg-black/20 border-white/10 focus:border-primary/50 font-mono text-sm"
+                  className={`flex-1 bg-black/20 font-mono text-sm ${
+                    confirmedUrls[index] 
+                      ? 'border-green-500/50 focus:border-green-500' 
+                      : 'border-white/10 focus:border-primary/50'
+                  }`}
                   data-testid={`input-turn-url-${index}`}
                 />
+                {!confirmedUrls[index] ? (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => handleConfirmUrl(index)}
+                    className="h-9 w-9 text-green-400 hover:text-green-300 hover:bg-green-500/10 shrink-0"
+                    title={t.addThis}
+                    data-testid={`button-confirm-url-${index}`}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                ) : (
+                  <div className="h-9 w-9 flex items-center justify-center text-green-500 shrink-0">
+                    <Check className="w-4 h-4" />
+                  </div>
+                )}
                 {urls.length > 1 && (
                   <Button
+                    type="button"
+                    size="icon"
                     variant="ghost"
-                    size="sm"
                     onClick={() => handleRemoveUrl(index)}
-                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                    className="h-9 w-9 text-red-400 hover:text-red-300 hover:bg-red-500/10 shrink-0"
+                    title={t.removeUrl}
                     data-testid={`button-remove-url-${index}`}
                   >
-                    {t.removeUrl}
+                    <X className="w-4 h-4" />
                   </Button>
                 )}
               </div>
