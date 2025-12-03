@@ -6,9 +6,16 @@ import { z } from "zod";
 import { randomBytes } from "crypto";
 import { registerAdminRoutes, initializeDefaultAdmin, parseUserAgent } from "./admin-routes";
 
+const turnConfigSchema = z.object({
+  urls: z.array(z.string()).min(1),
+  username: z.string().min(1),
+  credential: z.string().min(1),
+});
+
 const createRoomSchema = z.object({
   password: z.string().optional(),
   createdBy: z.string().optional(),
+  turnConfig: turnConfigSchema,
 });
 
 const joinRoomSchema = z.object({
@@ -113,10 +120,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiresAt,
         peer1: null,
         peer2: null,
+        turnUrls: JSON.stringify(body.turnConfig.urls),
+        turnUsername: body.turnConfig.username,
+        turnCredential: body.turnConfig.credential,
       });
 
       res.json({ roomId: room.id });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "TURN server configuration is required to create a room" });
+      }
       console.error("Error creating room:", error);
       res.status(500).json({ error: "Failed to create room" });
     }
@@ -235,6 +248,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting room:", error);
       res.status(500).json({ error: "Failed to get room" });
+    }
+  });
+
+  app.get("/api/rooms/:id/turn-config", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const turnConfig = await storage.getRoomTurnConfig(id);
+      
+      if (!turnConfig) {
+        return res.status(404).json({ error: "Room not found or no TURN config available" });
+      }
+
+      res.json(turnConfig);
+    } catch (error) {
+      console.error("Error getting TURN config:", error);
+      res.status(500).json({ error: "Failed to get TURN config" });
     }
   });
 
