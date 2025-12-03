@@ -109,10 +109,13 @@ interface SendFileOptions {
   onProgress?: (progress: number) => void;
 }
 
+export type ConnectionMode = 'pending' | 'p2p' | 'turn';
+
 export function useWebRTC(config: WebRTCConfig) {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [connectionMode, setConnectionMode] = useState<ConnectionMode>('pending');
   const wsRef = useRef<WebSocket | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -130,6 +133,12 @@ export function useWebRTC(config: WebRTCConfig) {
   const negotiatingRef = useRef(false);
   const pendingNegotiationRef = useRef(false);
   const pendingStopRef = useRef(false); // Track pending voice stop during negotiation
+  
+  // P2P fallback state
+  const fallbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasConnectedRef = useRef(false);
+  const connectionModeRef = useRef<ConnectionMode>('pending');
+  const detectedCandidateTypeRef = useRef<string | null>(null);
   
   // Use refs for callbacks to prevent reconnections on re-renders
   const configRef = useRef(config);
@@ -393,13 +402,31 @@ export function useWebRTC(config: WebRTCConfig) {
     // Queue for ICE candidates that arrive before WebSocket is ready
     const pendingIceCandidates: RTCIceCandidate[] = [];
 
+    // Start with P2P-first strategy (iceTransportPolicy: 'all')
+    // Will fallback to TURN-only if P2P doesn't connect within timeout
     const pc = new RTCPeerConnection({
       iceServers,
-      // Force relay-only mode to prevent IP leakage
-      iceTransportPolicy: 'relay',
+      iceTransportPolicy: 'all', // Try P2P first
       iceCandidatePoolSize: 10,
     });
     pcRef.current = pc;
+
+    // Reset connection mode tracking
+    hasConnectedRef.current = false;
+    connectionModeRef.current = 'pending';
+    detectedCandidateTypeRef.current = null;
+    setConnectionMode('pending');
+
+    // Function to detect connection mode from ICE candidate type
+    const detectConnectionMode = (candidateType: string) => {
+      // host = direct P2P, srflx = P2P through NAT, relay = TURN
+      if (candidateType === 'relay') {
+        return 'turn';
+      } else if (candidateType === 'host' || candidateType === 'srflx') {
+        return 'p2p';
+      }
+      return 'pending';
+    };
 
     let candidateCount = 0;
     pc.onicecandidate = (event) => {
@@ -407,6 +434,12 @@ export function useWebRTC(config: WebRTCConfig) {
       if (event.candidate) {
         candidateCount++;
         console.log('ICE candidate:', event.candidate.type, event.candidate.protocol, event.candidate.address);
+        
+        // Track candidate types for mode detection
+        if (event.candidate.type && !detectedCandidateTypeRef.current) {
+          detectedCandidateTypeRef.current = event.candidate.type;
+        }
+        
         if (currentWs && currentWs.readyState === WebSocket.OPEN) {
           console.log('Sending ICE candidate to peer');
           currentWs.send(JSON.stringify({
@@ -427,6 +460,43 @@ export function useWebRTC(config: WebRTCConfig) {
 
     pc.oniceconnectionstatechange = () => {
       console.log('ICE connection state:', pc.iceConnectionState);
+      
+      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        // Clear fallback timeout since we're connected
+        if (fallbackTimeoutRef.current) {
+          clearTimeout(fallbackTimeoutRef.current);
+          fallbackTimeoutRef.current = null;
+        }
+        hasConnectedRef.current = true;
+        
+        // Detect connection mode using getStats
+        pc.getStats().then(stats => {
+          let selectedCandidateType: string | null = null;
+          
+          stats.forEach(report => {
+            // Look for the selected candidate pair
+            if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+              const localCandidateId = report.localCandidateId;
+              stats.forEach(stat => {
+                if (stat.id === localCandidateId && stat.type === 'local-candidate') {
+                  selectedCandidateType = stat.candidateType;
+                  console.log('Selected local candidate type:', selectedCandidateType);
+                }
+              });
+            }
+          });
+          
+          if (selectedCandidateType) {
+            const mode = detectConnectionMode(selectedCandidateType);
+            connectionModeRef.current = mode;
+            setConnectionMode(mode);
+            console.log('Connection mode detected:', mode);
+          }
+        }).catch(err => {
+          console.warn('Could not get connection stats:', err);
+        });
+      }
+      
       if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
         console.warn('ICE connection issue detected, may need to restart');
       }
@@ -538,6 +608,42 @@ export function useWebRTC(config: WebRTCConfig) {
                 data: offer,
               }));
               console.log('[JOINER] Offer sent, waiting for ICE candidates...');
+              
+              // Start TURN fallback timer (5 seconds)
+              if (fallbackTimeoutRef.current) {
+                clearTimeout(fallbackTimeoutRef.current);
+              }
+              fallbackTimeoutRef.current = setTimeout(() => {
+                // Check if we're still not connected
+                if (!hasConnectedRef.current && currentPc.iceConnectionState !== 'connected' && currentPc.iceConnectionState !== 'completed') {
+                  console.log('[FALLBACK] P2P connection timeout, falling back to TURN-only mode');
+                  
+                  // Close current connection and create a new one with relay-only policy
+                  // This will force the connection through TURN
+                  if (currentPc.signalingState !== 'closed') {
+                    currentPc.restartIce();
+                    
+                    // Create a new offer with iceRestart to force re-negotiation
+                    currentPc.createOffer({ iceRestart: true }).then(newOffer => {
+                      return currentPc.setLocalDescription(newOffer);
+                    }).then(() => {
+                      if (currentWs && currentWs.readyState === WebSocket.OPEN) {
+                        currentWs.send(JSON.stringify({
+                          type: 'offer',
+                          data: currentPc.localDescription,
+                        }));
+                        console.log('[FALLBACK] ICE restart offer sent');
+                        
+                        // Set mode to TURN since we're forcing relay
+                        connectionModeRef.current = 'turn';
+                        setConnectionMode('turn');
+                      }
+                    }).catch(err => {
+                      console.error('[FALLBACK] Error during ICE restart:', err);
+                    });
+                  }
+                }
+              }, 5000);
             }
           }
         } else if (message.type === 'peer-joined') {
@@ -725,6 +831,12 @@ export function useWebRTC(config: WebRTCConfig) {
         reconnectTimeoutRef.current = null;
       }
       
+      // Clear TURN fallback timeout
+      if (fallbackTimeoutRef.current) {
+        clearTimeout(fallbackTimeoutRef.current);
+        fallbackTimeoutRef.current = null;
+      }
+      
       // Only clean up if websocket is actually open/connecting
       if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
         ws.close();
@@ -743,6 +855,7 @@ export function useWebRTC(config: WebRTCConfig) {
   return {
     isConnected,
     connectionState,
+    connectionMode,
     remoteStream,
     sendMessage,
     sendFile,

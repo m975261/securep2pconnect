@@ -1,8 +1,16 @@
 # Overview
 
-SECURE.LINK is a WebRTC communication application that enables secure, temporary connections between two users through TURN relay servers (relay-only mode to prevent IP leakage). The system facilitates real-time text messaging, voice chat, and file transfers through WebRTC technology, with optional password protection and automatic room expiration. Users provide their own TURN server configuration for complete privacy control.
+SECURE.LINK is a WebRTC communication application that enables secure, temporary connections between two users. The system supports P2P-first connections with automatic TURN fallback, facilitating real-time text messaging, voice chat, and file transfers. Features optional password protection, automatic room expiration, and 2-user room capacity limits. Users provide their own TURN server configuration for relay fallback.
 
 ## Recent Updates
+
+### December 3, 2025 - P2P-First with TURN Fallback
+- **P2P-First Strategy**: Changed from TURN-only to P2P-first connections (`iceTransportPolicy: 'all'`)
+- **5-Second Fallback**: If P2P doesn't connect within 5 seconds, triggers ICE restart for TURN relay fallback
+- **Connection Mode Detection**: Uses `getStats()` to detect active candidate type (host/srflx = P2P, relay = TURN)
+- **Connection Mode Badge**: Visual indicator at top of room showing P2P (green), TURN (amber), or Pending (gray)
+- **Room Capacity Enforcement**: Maximum 2 users per room with graceful rejection and auto-redirect for third users
+- **Improved Join Flow**: Share links route through `/join?room=XXX` to ensure proper TURN config delivery
 
 ### December 3, 2025 - Server-Side Encrypted TURN Configuration
 - **Encrypted TURN Storage**: TURN credentials encrypted server-side using AES-256-GCM before database storage
@@ -12,11 +20,8 @@ SECURE.LINK is a WebRTC communication application that enables secure, temporary
 - **API Security**: New `/api/rooms/:id/turn-config` endpoint for secure credential retrieval
 - **Encryption Module**: `server/encryption.ts` handles encrypt/decrypt with derived key from environment
 
-### November 27, 2025 - TURN-Relay-Only Architecture
-- **P2P Infrastructure Removed**: Deleted all P2P helper code (helper/, webrtc-p2p.ts, p2p-room.tsx)
+### November 27, 2025 - TURN-Relay-Only Architecture (Now P2P-First)
 - **User-Provided TURN Servers**: TurnConfigModal component for users to input their own TURN server credentials
-- **Relay-Only Mode**: WebRTC forced to `iceTransportPolicy: 'relay'` - no direct P2P connections, no IP leakage
-- **No Default TURN Servers**: Users must configure their own TURN server before creating/joining rooms
 - **CoTURN Docker Setup**: Production-ready self-hosted TURN server with Docker Compose and Unraid deployment guide
 - **Database Schema Update**: Removed `creatorPeerId` field (no longer needed without P2P mode)
 - **Bilingual Support**: English/Arabic with RTL layout support in all UI components
@@ -62,13 +67,15 @@ Preferred communication style: Simple, everyday language.
 
 ### Communication Features
 
-**TURN-Relay-Only Mode:**
+**P2P-First with TURN Fallback:**
 - Chat interface with message history
 - File transfer with drag-and-drop support (via WebSocket signaling)
 - QR code generation and scanning for room joining
 - Voice chat toggle functionality (audio only)
+- **P2P-first connections**: Uses `iceTransportPolicy: 'all'` to try direct P2P first
+- **5-second TURN fallback**: Automatic ICE restart to TURN relay if P2P doesn't connect
+- **Connection mode indicator**: Visual badge showing P2P (green), TURN (amber), or Pending (gray)
 - **User-configured TURN servers**: Users provide their own TURN server URLs, username, and credentials
-- **No IP leakage**: All WebRTC traffic forced through TURN relay (iceTransportPolicy: 'relay')
 - **TurnConfigModal**: Bilingual modal for TURN server configuration, stored in localStorage
 - **Self-hosted option**: Complete CoTURN Docker setup included in `turn-server/` directory
 
@@ -110,10 +117,10 @@ Preferred communication style: Simple, everyday language.
 - IP-based banning after multiple failed attempts (configurable hours)
 - Automatic room expiration (24-hour default TTL)
 
-**IP Privacy**
-- **Relay-only WebRTC**: `iceTransportPolicy: 'relay'` enforced on all peer connections
-- **No STUN servers**: Application does not use any STUN servers to prevent local IP discovery
-- **User-controlled TURN servers**: Users provide their own TURN relay servers for complete control
+**Connection Strategy**
+- **P2P-first WebRTC**: `iceTransportPolicy: 'all'` attempts direct P2P connection first
+- **Automatic TURN fallback**: 5-second timeout triggers ICE restart for TURN relay
+- **User-controlled TURN servers**: Users provide their own TURN relay servers for fallback
 - **No default relays**: Application ships with no built-in TURN server credentials
 
 **TURN Credential Encryption**
@@ -133,9 +140,11 @@ Preferred communication style: Simple, everyday language.
 3. Client sends join message with room ID
 4. Server validates room existence and password (if required)
 5. Server facilitates ICE candidate and SDP offer/answer exchange
-6. WebRTC establishes TURN relay connection (forced via iceTransportPolicy: 'relay')
-7. All media/data flows through user-provided TURN server (no direct P2P)
-8. Server notifies peers of connection/disconnection events
+6. WebRTC attempts P2P connection first (iceTransportPolicy: 'all')
+7. If P2P connects within 5 seconds, direct peer connection is used
+8. If P2P fails, automatic ICE restart triggers TURN relay fallback
+9. Connection mode detected via getStats() and displayed in UI
+10. Server notifies peers of connection/disconnection events
 
 ## Database Schema
 

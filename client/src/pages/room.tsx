@@ -11,7 +11,7 @@ import QRCode from "react-qr-code";
 import { ChatInterface } from "@/components/chat-interface";
 import { FileTransfer } from "@/components/file-transfer";
 import { DebugPanel } from "@/components/debug-panel";
-import { useWebRTC, type TurnConfig } from "@/lib/webrtc";
+import { useWebRTC, type TurnConfig, type ConnectionMode } from "@/lib/webrtc";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -117,6 +117,10 @@ export default function Room() {
       sessionKeys: 'SESSION ACCESS KEYS',
       saveQr: 'SAVE QR',
       sharedLink: 'SHARED SECRET LINK',
+      connectionMode: 'Connection',
+      p2pMode: 'P2P Direct',
+      turnMode: 'TURN Relay',
+      pendingMode: 'Connecting...',
     },
     ar: {
       appName: 'SECURE.LINK',
@@ -145,6 +149,10 @@ export default function Room() {
       sessionKeys: 'مفاتيح الوصول للجلسة',
       saveQr: 'حفظ الرمز',
       sharedLink: 'رابط المشاركة السري',
+      connectionMode: 'الاتصال',
+      p2pMode: 'مباشر P2P',
+      turnMode: 'عبر TURN',
+      pendingMode: 'جاري الاتصال...',
     },
   };
 
@@ -316,7 +324,7 @@ export default function Room() {
     onPeerDisconnected,
   }), [passwordVerified, roomId, peerId, nickname, turnConfig, onMessage, onFileReceive, onPeerConnected, onPeerDisconnected]);
 
-  const { connectionState, remoteStream, sendMessage, sendFile, startVoiceChat, stopVoiceChat } = useWebRTC(webrtcConfig);
+  const { connectionState, connectionMode, remoteStream, sendMessage, sendFile, startVoiceChat, stopVoiceChat } = useWebRTC(webrtcConfig);
 
   // Attach remote audio stream to audio element
   useEffect(() => {
@@ -861,6 +869,32 @@ export default function Room() {
             <div className="flex items-center justify-center gap-1.5 p-1.5 md:p-2 bg-primary/5 border border-primary/20 rounded-lg">
               <Lock className="w-2.5 h-2.5 md:w-3 md:h-3 text-primary" />
               <span className="text-[10px] md:text-xs font-mono text-primary">{t.encrypted}</span>
+            </div>
+
+            {/* Connection Mode Badge */}
+            <div className={`flex items-center justify-center gap-1.5 p-1.5 md:p-2 rounded-lg border ${
+              connectionMode === 'p2p' 
+                ? 'bg-green-500/10 border-green-500/30' 
+                : connectionMode === 'turn' 
+                  ? 'bg-amber-500/10 border-amber-500/30' 
+                  : 'bg-gray-500/10 border-gray-500/30'
+            }`} data-testid="connection-mode-badge">
+              <div className={`w-2 h-2 rounded-full ${
+                connectionMode === 'p2p' 
+                  ? 'bg-green-500 animate-pulse' 
+                  : connectionMode === 'turn' 
+                    ? 'bg-amber-500 animate-pulse' 
+                    : 'bg-gray-500'
+              }`} />
+              <span className={`text-[10px] md:text-xs font-mono font-bold ${
+                connectionMode === 'p2p' 
+                  ? 'text-green-500' 
+                  : connectionMode === 'turn' 
+                    ? 'text-amber-500' 
+                    : 'text-gray-500'
+              }`}>
+                {connectionMode === 'p2p' ? t.p2pMode : connectionMode === 'turn' ? t.turnMode : t.pendingMode}
+              </span>
             </div>
 
             {/* Voice Controls */}
