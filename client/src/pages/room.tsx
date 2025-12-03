@@ -315,7 +315,14 @@ export default function Room() {
   // Attach remote audio stream to audio element
   useEffect(() => {
     if (remoteAudioRef.current && remoteStream) {
-      console.log('Setting up remote audio stream');
+      const audioTracks = remoteStream.getAudioTracks();
+      console.log('Setting up remote audio stream, tracks:', audioTracks.length, 'enabled:', audioTracks.map(t => t.enabled));
+      
+      if (audioTracks.length === 0) {
+        console.log('No audio tracks in remote stream');
+        return;
+      }
+      
       remoteAudioRef.current.srcObject = remoteStream;
       // Start muted to comply with autoplay policies
       remoteAudioRef.current.muted = true;
@@ -323,6 +330,7 @@ export default function Room() {
         console.log('Remote audio playing, hasUserInteracted:', hasUserInteracted, 'isSpeakerMuted:', isSpeakerMuted);
         // Auto-unmute if user has already interacted and speaker is not manually muted
         if (hasUserInteracted && remoteAudioRef.current && !isSpeakerMuted) {
+          console.log('Auto-unmuting remote audio');
           remoteAudioRef.current.muted = false;
           setRemoteAudioMuted(false);
         } else if (!hasUserInteracted) {
@@ -332,9 +340,11 @@ export default function Room() {
             action: {
               label: 'Enable',
               onClick: () => {
+                console.log('User clicked Enable audio');
                 if (remoteAudioRef.current && !isSpeakerMuted) {
                   remoteAudioRef.current.muted = false;
                   setRemoteAudioMuted(false);
+                  setHasUserInteracted(true);
                   toast.success('Peer audio enabled');
                 }
               }
@@ -459,7 +469,14 @@ export default function Room() {
         toast.success('Microphone enabled');
         
         // Auto-unmute remote audio if it's muted due to autoplay
+        console.log('Checking remote audio state:', {
+          hasRemoteStream: !!remoteStream,
+          hasAudioRef: !!remoteAudioRef.current,
+          isMuted: remoteAudioRef.current?.muted,
+          isSpeakerMuted,
+        });
         if (remoteStream && remoteAudioRef.current && remoteAudioRef.current.muted && !isSpeakerMuted) {
+          console.log('Unmuting remote audio after mic toggle');
           remoteAudioRef.current.muted = false;
           setRemoteAudioMuted(false);
         }
