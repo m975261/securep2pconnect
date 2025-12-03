@@ -243,6 +243,9 @@ export default function Room() {
         setIsCreator(true);
       }
       
+      // Mark that user has interacted (clicking join is an interaction)
+      setHasUserInteracted(true);
+      
       // Update URL with nickname
       const newUrl = `/room/${roomId}?nickname=${encodeURIComponent(nickname.trim())}`;
       window.history.replaceState({}, '', newUrl);
@@ -628,8 +631,26 @@ export default function Room() {
     );
   }
 
+  // Handle any click to enable audio (browser autoplay policy)
+  const handlePageClick = useCallback(() => {
+    if (!hasUserInteracted) {
+      console.log('User interacted with page - enabling audio');
+      setHasUserInteracted(true);
+      // Try to unmute remote audio if it exists and speaker isn't muted
+      if (remoteAudioRef.current && remoteStream && !isSpeakerMuted) {
+        remoteAudioRef.current.muted = false;
+        setRemoteAudioMuted(false);
+        console.log('Remote audio unmuted on page interaction');
+      }
+    }
+  }, [hasUserInteracted, remoteStream, isSpeakerMuted]);
+
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div 
+      className="h-screen flex flex-col bg-background overflow-hidden" 
+      dir={language === 'ar' ? 'rtl' : 'ltr'}
+      onClick={handlePageClick}
+    >
       <header className="h-16 border-b border-white/10 bg-card/50 backdrop-blur flex items-center justify-between px-2 sm:px-4 z-20">
         <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1 overflow-hidden">
           <span className="font-mono text-[10px] sm:text-sm font-bold tracking-wider sm:tracking-widest text-primary" data-testid="text-room-id">
