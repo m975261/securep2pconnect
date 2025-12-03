@@ -422,8 +422,11 @@ export function useWebRTC(config: WebRTCConfig) {
       console.warn('No TURN servers configured - audio/video will not work in relay-only mode');
     }
     
-    // Queue for ICE candidates that arrive before WebSocket is ready
+    // Queue for outgoing ICE candidates that arrive before WebSocket is ready
     const pendingIceCandidates: RTCIceCandidate[] = [];
+    
+    // Queue for incoming ICE candidates that arrive before remote description is set
+    const pendingRemoteIceCandidates: RTCIceCandidateInit[] = [];
 
     // Start with P2P-first strategy (iceTransportPolicy: 'all')
     // Will fallback to TURN-only if P2P doesn't connect within timeout
@@ -797,6 +800,20 @@ export function useWebRTC(config: WebRTCConfig) {
             }));
             console.log('Answer sent');
             
+            // Flush any buffered remote ICE candidates now that remote description is set
+            if (pendingRemoteIceCandidates.length > 0) {
+              console.log('[CREATOR] Flushing', pendingRemoteIceCandidates.length, 'buffered remote ICE candidates');
+              for (const candidate of pendingRemoteIceCandidates) {
+                try {
+                  await currentPc.addIceCandidate(new RTCIceCandidate(candidate));
+                  console.log('[CREATOR] Added buffered ICE candidate successfully');
+                } catch (err) {
+                  console.error('[CREATOR] Failed to add buffered ICE candidate:', err);
+                }
+              }
+              pendingRemoteIceCandidates.length = 0;
+            }
+            
             // Trigger continuous mode detection after answer is sent (for creator/hoster)
             // Keep polling until connection is established
             let creatorPollCount = 0;
@@ -828,6 +845,20 @@ export function useWebRTC(config: WebRTCConfig) {
               // Clear negotiating flag when answer is received
               negotiatingRef.current = false;
               
+              // Flush any buffered remote ICE candidates now that remote description is set
+              if (pendingRemoteIceCandidates.length > 0) {
+                console.log('[JOINER] Flushing', pendingRemoteIceCandidates.length, 'buffered remote ICE candidates');
+                for (const candidate of pendingRemoteIceCandidates) {
+                  try {
+                    await currentPc.addIceCandidate(new RTCIceCandidate(candidate));
+                    console.log('[JOINER] Added buffered ICE candidate successfully');
+                  } catch (err) {
+                    console.error('[JOINER] Failed to add buffered ICE candidate:', err);
+                  }
+                }
+                pendingRemoteIceCandidates.length = 0;
+              }
+              
               // Trigger mode detection after answer is received (for joiner)
               setTimeout(() => {
                 if (connectionModeRef.current === 'pending') {
@@ -858,11 +889,18 @@ export function useWebRTC(config: WebRTCConfig) {
         } else if (message.type === 'ice-candidate') {
           if (currentPc && message.data) {
             console.log('Received ICE candidate from peer:', message.data.type, message.data.protocol, message.data.address);
-            try {
-              await currentPc.addIceCandidate(new RTCIceCandidate(message.data));
-              console.log('Added ICE candidate successfully');
-            } catch (err) {
-              console.error('Failed to add ICE candidate:', err);
+            
+            // Check if remote description is set - if not, buffer the candidate
+            if (!currentPc.remoteDescription) {
+              console.log('Remote description not set yet, buffering ICE candidate');
+              pendingRemoteIceCandidates.push(message.data);
+            } else {
+              try {
+                await currentPc.addIceCandidate(new RTCIceCandidate(message.data));
+                console.log('Added ICE candidate successfully');
+              } catch (err) {
+                console.error('Failed to add ICE candidate:', err);
+              }
             }
           }
         } else if (message.type === 'chat') {
