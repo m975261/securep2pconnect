@@ -156,9 +156,47 @@ export default function JoinRoom() {
     await joinRoom();
   };
 
+  // Extract room code from various formats:
+  // - Full URL: https://xxx.replit.dev/join-room?room=ABCDEF
+  // - Path: /join-room?room=ABCDEF
+  // - Old format: /room/ABCDEF
+  // - Direct code: ABCDEF
+  const extractRoomCode = (input: string): string => {
+    const trimmed = input.trim();
+    
+    // Check for ?room= query parameter (new format)
+    const urlMatch = trimmed.match(/[?&]room=([A-Z0-9]+)/i);
+    if (urlMatch) {
+      return urlMatch[1].toUpperCase();
+    }
+    
+    // Check for /room/CODE path (old format)
+    const pathMatch = trimmed.match(/\/room\/([A-Z0-9]+)/i);
+    if (pathMatch) {
+      return pathMatch[1].toUpperCase();
+    }
+    
+    // Assume it's a direct room code (6 character alphanumeric)
+    const codeMatch = trimmed.match(/^([A-Z0-9]{6})$/i);
+    if (codeMatch) {
+      return codeMatch[1].toUpperCase();
+    }
+    
+    // Fallback: try to extract last segment that looks like a code
+    const segments = trimmed.split(/[/?&=]/);
+    for (let i = segments.length - 1; i >= 0; i--) {
+      if (/^[A-Z0-9]{6}$/i.test(segments[i])) {
+        return segments[i].toUpperCase();
+      }
+    }
+    
+    return trimmed.toUpperCase();
+  };
+
   const handleScan = (data: string) => {
     setShowScanner(false);
-    setCode(data);
+    const roomCode = extractRoomCode(data);
+    setCode(roomCode);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -181,7 +219,7 @@ export default function JoinRoom() {
         const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
 
         if (qrCode) {
-          const roomCode = qrCode.data.split('/').pop() || '';
+          const roomCode = extractRoomCode(qrCode.data);
           setCode(roomCode);
           toast.success(t.qrReadSuccess);
         } else {
