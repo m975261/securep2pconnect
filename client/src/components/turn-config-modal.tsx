@@ -95,27 +95,52 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
 
   const t = translations[language];
 
-  // Load saved configuration when modal opens
+  // Load saved configuration when modal opens, reset to defaults if no saved config
   useEffect(() => {
     if (open) {
       const savedConfig = localStorage.getItem('turn-config');
       if (savedConfig) {
         try {
           const config = JSON.parse(savedConfig) as TurnConfig;
+          // Always set TURN URLs (required)
           if (config.urls && config.urls.length > 0) {
             setUrls(config.urls);
             setConfirmedUrls(config.urls.map(() => true));
+          } else {
+            setUrls([""]);
+            setConfirmedUrls([false]);
           }
+          // Always set STUN URLs (optional but preserve them)
           if (config.stunUrls && config.stunUrls.length > 0) {
             setStunUrls(config.stunUrls);
             setConfirmedStunUrls(config.stunUrls.map(() => true));
+          } else {
+            setStunUrls([""]);
+            setConfirmedStunUrls([false]);
           }
-          if (config.username) setUsername(config.username);
-          if (config.credential) setCredential(config.credential);
+          setUsername(config.username || "");
+          setCredential(config.credential || "");
         } catch (e) {
           console.error('Failed to parse saved TURN config:', e);
+          // Reset to defaults on parse error
+          setUrls([""]);
+          setConfirmedUrls([false]);
+          setStunUrls([""]);
+          setConfirmedStunUrls([false]);
+          setUsername("");
+          setCredential("");
         }
+      } else {
+        // No saved config - reset to defaults
+        setUrls([""]);
+        setConfirmedUrls([false]);
+        setStunUrls([""]);
+        setConfirmedStunUrls([false]);
+        setUsername("");
+        setCredential("");
       }
+      // Reset test state
+      setTestResult(null);
     }
   }, [open]);
 
@@ -279,7 +304,7 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
       urls: validUrls,
       username: username.trim(),
       credential: credential.trim(),
-      stunUrls: validStunUrls.length > 0 ? validStunUrls : undefined,
+      stunUrls: validStunUrls, // Always include (even if empty for consistency)
     };
 
     // Store in localStorage for persistence
@@ -290,7 +315,7 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent className="sm:max-w-[500px] bg-zinc-900 border-white/10" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto bg-zinc-900 border-white/10" dir={language === 'ar' ? 'rtl' : 'ltr'}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Server className="w-5 h-5 text-primary" />
