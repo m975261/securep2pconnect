@@ -990,14 +990,29 @@ export function useWebRTC(config: WebRTCConfig) {
           negotiatingRef.current = false;
         } else if (message.type === 'ice-candidate') {
           if (currentPc && message.data) {
-            console.log('Received ICE candidate from peer:', message.data.type, message.data.protocol, message.data.address);
+            // Parse candidate string to extract IP and type
+            // Format: "candidate:foundation component protocol priority ip port typ type ..."
+            const candidateStr = message.data.candidate || '';
+            const parts = candidateStr.split(' ');
+            
+            let candidateIP = '';
+            let candidatePort = 0;
+            let candidateType = '';
+            
+            // Parse the candidate string
+            if (parts.length >= 8) {
+              candidateIP = parts[4]; // IP is at index 4
+              candidatePort = parseInt(parts[5], 10); // Port is at index 5
+              const typIndex = parts.indexOf('typ');
+              if (typIndex !== -1 && parts[typIndex + 1]) {
+                candidateType = parts[typIndex + 1]; // Type is after "typ"
+              }
+            }
+            
+            console.log('Received ICE candidate from peer:', candidateType, candidateIP, candidatePort);
             
             // Extract peer's IP from non-relay candidates (for P2P mode display)
             // We prefer srflx (server reflexive = public IP), then host candidates
-            const candidateType = message.data.type || message.data.candidateType;
-            const candidateIP = message.data.address || message.data.ip;
-            const candidatePort = message.data.port;
-            
             if (candidateIP && !candidateIP.endsWith('.local') && candidateType !== 'relay') {
               // Store public IP from peer's candidates
               // Prefer srflx (public IP) over host (private IP)

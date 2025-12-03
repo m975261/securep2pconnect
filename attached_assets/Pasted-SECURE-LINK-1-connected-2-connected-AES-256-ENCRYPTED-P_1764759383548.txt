@@ -1,0 +1,90 @@
+SECURE.LINK
+1
+connected
+
+2
+connected
+
+AES-256 ENCRYPTED
+
+P2P Direct
+
+
+Chat
+File Transfer
+ENCRYPTED CHANNEL
+P2P-WEBRTC-V2
+2
+• CONNECTED
+Type secure message...
+
+DEBUG LOGS
+(65)
+CLEAR
+
+
+2:54:58 PMTURN config available: true
+2:54:58 PMTURN URLs: ["turns:bn-turn1.xirsys.com:443?transport=tcp"]
+2:54:58 PMSTUN URLs: ["stun:bn-turn1.xirsys.com"]
+2:54:58 PMTURN username length: 84
+2:54:58 PMTURN credential length: 36
+2:54:58 PMICE servers config: [ { "urls": [ "stun:bn-turn1.xirsys.com" ] }, { "urls": [ "turns:bn-turn1.xirsys.com:443?transport=tcp" ], "username": "zjLVacCnV-CfNAq-OQLadGBm6xZMhL_pAfIGmFjuXMMDOMlGiw3FhaOxY8Guij-QAAAAAGkv8AxtOTc1MjYx", "credential": "4950affc-d01f-11f0-af25-0242ac140004" } ]
+2:54:59 PMWebSocket connected
+2:54:59 PMUser interacted with page - enabling audio
+2:54:59 PMWarning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+2:54:59 PM[CREATOR] Joined room, existing peers:
+2:54:59 PM[CREATOR] ICE servers count: 2
+2:55:36 PMPeer joined: pqegv8 2
+2:55:37 PMReceived offer, setting remote description
+2:55:37 PMCurrent signaling state before offer: stable
+2:55:37 PMWebRTC signaling state: have-remote-offer
+2:55:37 PMRemote description set from offer, new signaling state: have-remote-offer
+2:55:37 PMCreating answer
+2:55:37 PMReceived ICE candidate from peer:
+2:55:37 PMWebRTC signaling state: stable
+2:55:37 PMSending answer, signaling state: stable
+2:55:37 PMAnswer sent
+2:55:37 PMAdded ICE candidate successfully
+2:55:37 PMReceived ICE candidate from peer:
+2:55:37 PMReceived ICE candidate from peer:
+2:55:37 PMReceived ICE candidate from peer:
+2:55:37 PMICE gathering state: gathering
+2:55:37 PMAdded ICE candidate successfully
+2:55:37 PMAdded ICE candidate successfully
+2:55:37 PMAdded ICE candidate successfully
+2:55:37 PMICE connection state: checking
+2:55:37 PMICE candidate: host udp 100.100.229.13
+2:55:37 PMSending ICE candidate to peer
+2:55:37 PMICE candidate: host udp 172.30.0.1
+2:55:37 PMSending ICE candidate to peer
+2:55:37 PMWebRTC connection state: connecting
+2:55:37 PMICE candidate: host udp 192.168.1.245
+2:55:37 PMSending ICE candidate to peer
+2:55:37 PMICE candidate: host udp [fd7a:115c:a1e0::4235:e50d]
+2:55:37 PMSending ICE candidate to peer
+2:55:37 PMICE candidate: host tcp 100.100.229.13
+2:55:37 PMSending ICE candidate to peer
+2:55:37 PMICE candidate: host tcp 172.30.0.1
+2:55:37 PMSending ICE candidate to peer
+2:55:37 PMICE candidate: host tcp 192.168.1.245
+2:55:37 PMSending ICE candidate to peer
+2:55:37 PMICE candidate: host tcp [fd7a:115c:a1e0::4235:e50d]
+2:55:37 PMSending ICE candidate to peer
+2:55:37 PMICE candidate: srflx udp 91.73.56.69
+2:55:37 PMSending ICE candidate to peer
+2:55:37 PMICE connection state: connected
+2:55:37 PMICE gathering state: complete
+2:55:37 PMICE gathering complete, total candidates: 9
+2:55:37 PMRemote candidate details: {"id":"Isrm9VH/B","timestamp":1764759337530.515,"type":"remote-candidate","address":"","candidateType":"host","foundation":"2383872183","ip":"","isRemote":true,"port":63879,"priority":2113937152,"protocol":"udp","transportId":"T01","usernameFragment":"SG3U"}
+2:55:37 PMFinal selected pair - local: host 192.168.1.245 | remote: host
+2:55:37 PMConnection mode detected: p2p (local: host remote: host )
+2:55:37 PMConnection details: [object Object]
+2:55:37 PM[DataChannel] Connection channel opened
+2:55:37 PMWebRTC connection state: connected
+2:55:37 PMRemote candidate details: {"id":"Isrm9VH/B","timestamp":1764759337530.515,"type":"remote-candidate","address":"","candidateType":"host","foundation":"2383872183","ip":"","isRemote":true,"port":63879,"priority":2113937152,"protocol":"udp","transportId":"T01","usernameFragment":"SG3U"}
+2:55:37 PMFinal selected pair - local: host 192.168.1.245 | remote: host
+2:55:37 PMConnection details: [object Object]
+2:55:37 PM[CREATOR] Polling for connection mode, attempt: 1 pc state: connected
+2:55:37 PM[CREATOR] Stopping poll - mode: p2p attempts: 1
+2:55:41 PMWarning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+2:55:51 PMWarning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
