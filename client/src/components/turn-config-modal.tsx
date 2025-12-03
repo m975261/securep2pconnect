@@ -459,15 +459,36 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
                 )}
               </div>
             ))}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAddUrl}
-              className="w-full border-dashed border-white/20 hover:border-primary/50"
-              data-testid="button-add-url"
-            >
-              {t.addUrl}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddUrl}
+                className="flex-1 border-dashed border-white/20 hover:border-primary/50 text-xs"
+                data-testid="button-add-url"
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                {t.addUrl}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTestConnection}
+                disabled={isTesting || isTestingStun}
+                className={`border-white/10 text-xs ${
+                  testResult === 'success' ? 'border-green-500/50 text-green-400' : 
+                  testResult === 'failed' ? 'border-red-500/50 text-red-400' : ''
+                }`}
+                data-testid="button-test-turn-inline"
+              >
+                {isTesting ? (
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                ) : (
+                  <Wifi className="w-3 h-3 mr-1" />
+                )}
+                {t.testConnection}
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground/50 flex items-start gap-2">
               <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
               {t.example}
@@ -527,15 +548,36 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
                 )}
               </div>
             ))}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAddStunUrl}
-              className="w-full border-dashed border-white/20 hover:border-primary/50"
-              data-testid="button-add-stun-url"
-            >
-              {t.addUrl}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddStunUrl}
+                className="flex-1 border-dashed border-white/20 hover:border-primary/50 text-xs"
+                data-testid="button-add-stun-url"
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                {t.addUrl}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTestStunConnection}
+                disabled={isTesting || isTestingStun}
+                className={`border-white/10 text-xs ${
+                  stunTestResult === 'success' ? 'border-green-500/50 text-green-400' : 
+                  stunTestResult === 'failed' ? 'border-red-500/50 text-red-400' : ''
+                }`}
+                data-testid="button-test-stun-inline"
+              >
+                {isTestingStun ? (
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                ) : (
+                  <Radio className="w-3 h-3 mr-1" />
+                )}
+                {t.testStun}
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground/50 flex items-start gap-2">
               <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
               {t.stunExample}
@@ -574,92 +616,22 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
           </div>
         </div>
 
-        <DialogFooter className="flex-col gap-3 pb-2">
-          {/* Test buttons row */}
-          <div className="flex gap-2 w-full">
-            <Button
-              variant="outline"
-              onClick={handleTestConnection}
-              disabled={isTesting || isTestingStun}
-              className={`flex-1 border-white/10 ${
-                testResult === 'success' ? 'border-green-500/50 text-green-400' : 
-                testResult === 'failed' ? 'border-red-500/50 text-red-400' : ''
-              }`}
-              data-testid="button-test-turn"
-            >
-              {isTesting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {t.testing}
-                </>
-              ) : testResult === 'success' ? (
-                <>
-                  <Wifi className="w-4 h-4 mr-2" />
-                  {t.testConnection}
-                </>
-              ) : testResult === 'failed' ? (
-                <>
-                  <WifiOff className="w-4 h-4 mr-2" />
-                  {t.testConnection}
-                </>
-              ) : (
-                <>
-                  <Wifi className="w-4 h-4 mr-2" />
-                  {t.testConnection}
-                </>
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleTestStunConnection}
-              disabled={isTesting || isTestingStun}
-              className={`flex-1 border-white/10 ${
-                stunTestResult === 'success' ? 'border-green-500/50 text-green-400' : 
-                stunTestResult === 'failed' ? 'border-red-500/50 text-red-400' : ''
-              }`}
-              data-testid="button-test-stun"
-            >
-              {isTestingStun ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {t.testing}
-                </>
-              ) : stunTestResult === 'success' ? (
-                <>
-                  <Radio className="w-4 h-4 mr-2" />
-                  {t.testStun}
-                </>
-              ) : stunTestResult === 'failed' ? (
-                <>
-                  <WifiOff className="w-4 h-4 mr-2" />
-                  {t.testStun}
-                </>
-              ) : (
-                <>
-                  <Radio className="w-4 h-4 mr-2" />
-                  {t.testStun}
-                </>
-              )}
-            </Button>
-          </div>
-          {/* Action buttons row */}
-          <div className="flex gap-2 w-full">
-            <Button
-              variant="ghost"
-              onClick={onCancel}
-              className="flex-1 border-white/10"
-              data-testid="button-cancel-turn"
-            >
-              {t.cancel}
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              className="flex-1 bg-primary hover:bg-primary/90"
-              data-testid="button-submit-turn"
-            >
-              {t.connect}
-            </Button>
-          </div>
+        <DialogFooter className="flex gap-2 pt-2">
+          <Button
+            variant="ghost"
+            onClick={onCancel}
+            className="flex-1 border-white/10"
+            data-testid="button-cancel-turn"
+          >
+            {t.cancel}
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            className="flex-1 bg-primary hover:bg-primary/90"
+            data-testid="button-submit-turn"
+          >
+            {t.connect}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
