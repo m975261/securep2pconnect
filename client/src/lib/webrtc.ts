@@ -266,13 +266,20 @@ export function useWebRTC(config: WebRTCConfig) {
     wsRef.current = ws;
 
     // TURN-relay-only WebRTC peer connection (no IP leakage)
-    const iceServers = configRef.current.turnConfig ? [
+    const turnConfig = configRef.current.turnConfig;
+    console.log('TURN config available:', !!turnConfig, turnConfig?.urls);
+    
+    const iceServers = turnConfig ? [
       {
-        urls: configRef.current.turnConfig.urls,
-        username: configRef.current.turnConfig.username,
-        credential: configRef.current.turnConfig.credential,
+        urls: turnConfig.urls,
+        username: turnConfig.username,
+        credential: turnConfig.credential,
       }
     ] : [];
+
+    if (iceServers.length === 0) {
+      console.warn('No TURN servers configured - audio/video will not work in relay-only mode');
+    }
 
     const pc = new RTCPeerConnection({
       iceServers,

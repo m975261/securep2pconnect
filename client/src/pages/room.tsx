@@ -70,7 +70,9 @@ export default function Room() {
   });
   const [turnConfig] = useState<TurnConfig | null>(() => {
     const stored = localStorage.getItem('turn-config');
-    return stored ? JSON.parse(stored) : null;
+    const config = stored ? JSON.parse(stored) : null;
+    console.log('Room loaded TURN config from localStorage:', !!config, config?.urls);
+    return config;
   });
 
   useEffect(() => {
