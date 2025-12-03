@@ -1,0 +1,99 @@
+WebSocket connected
+9:28:20 AMJoined room, existing peers:
+9:28:20 AMWarning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+9:28:46 AMPeer joined: euwb0k 2
+9:28:47 AMReceived offer, setting remote description
+9:28:47 AMCurrent signaling state before offer: stable
+9:28:47 AMWebRTC signaling state: have-remote-offer
+9:28:47 AMRemote description set from offer, new signaling state: have-remote-offer
+9:28:47 AMCreating answer
+9:28:47 AMWebRTC signaling state: stable
+9:28:47 AMSending answer, signaling state: stable
+9:28:47 AMAnswer sent
+9:28:51 AMSending message: [object Object]
+9:28:57 AMReceived chat message: [object Object]
+9:29:11 AMReceived file metadata: [object Object]
+9:29:12 AMReceived 10 chunks so far...
+9:29:13 AMReceived 20 chunks so far...
+9:29:13 AMReceived 30 chunks so far...
+9:29:13 AMReceived 40 chunks so far...
+9:29:13 AMReceived 50 chunks so far...
+9:29:14 AMReceived 60 chunks so far...
+9:29:14 AMReceived 70 chunks so far...
+9:29:14 AMReceived 80 chunks so far...
+9:29:14 AMReceived 90 chunks so far...
+9:29:14 AMReceived 100 chunks so far...
+9:29:14 AMReceived 110 chunks so far...
+9:29:14 AMReceived 120 chunks so far...
+9:29:14 AMReceived 130 chunks so far...
+9:29:14 AMReceived 140 chunks so far...
+9:29:14 AMReceived 150 chunks so far...
+9:29:14 AMReceived 160 chunks so far...
+9:29:14 AMReceived 170 chunks so far...
+9:29:15 AMReceived 180 chunks so far...
+9:29:15 AMReceived 190 chunks so far...
+9:29:15 AMReceived 200 chunks so far...
+9:29:15 AMReceived 210 chunks so far...
+9:29:15 AMReceived 220 chunks so far...
+9:29:15 AMReceived 230 chunks so far...
+9:29:15 AMReceived 240 chunks so far...
+9:29:15 AMReceived 250 chunks so far...
+9:29:15 AMReceived 260 chunks so far...
+9:29:15 AMReceived file EOF, reconstructing file...
+9:29:15 AMFile reconstructed, size: 4269685 chunks: 261
+9:29:15 AMCalling onFileReceive callback
+9:29:35 AMReceived offer, setting remote description
+9:29:35 AMCurrent signaling state before offer: stable
+9:29:35 AMWebRTC signaling state: have-remote-offer
+9:29:35 AMReceived remote audio track, track kind: audio
+9:29:35 AMSetting new remote stream
+9:29:35 AMRemote description set from offer, new signaling state: have-remote-offer
+9:29:35 AMCreating answer
+9:29:35 AMWebRTC signaling state: stable
+9:29:35 AMSending answer, signaling state: stable
+9:29:35 AMAnswer sent
+9:29:35 AMICE gathering state: gathering
+9:29:36 AMICE gathering state: complete
+9:29:36 AMICE gathering complete
+9:29:45 AMReceived offer, setting remote description
+9:29:45 AMCurrent signaling state before offer: stable
+9:29:45 AMWebRTC signaling state: have-remote-offer
+9:29:45 AMRemote description set from offer, new signaling state: have-remote-offer
+9:29:45 AMCreating answer
+9:29:45 AMWebRTC signaling state: stable
+9:29:45 AMSending answer, signaling state: stable
+9:29:45 AMAnswer sent
+9:29:51 AMAdding audio track to peer connection
+9:29:51 AMCreating offer for negotiation, signalingState: stable
+9:29:51 AMWebRTC signaling state: have-local-offer
+9:29:51 AMOffer sent, waiting for answer
+9:29:51 AMReceived answer, setting remote description
+9:29:51 AMCurrent signaling state before answer: have-local-offer
+9:29:51 AMWebRTC signaling state: stable
+9:29:51 AMRemote description set, new signaling state: stable
+9:30:13 AMRemoving audio track from peer connection
+9:30:13 AMCreating offer for negotiation, signalingState: stable
+9:30:13 AMWebRTC signaling state: have-local-offer
+9:30:13 AMOffer sent, waiting for answer
+9:30:14 AMReceived answer, setting remote description
+9:30:14 AMCurrent signaling state before answer: have-local-offer
+9:30:14 AMWebRTC signaling state: stable
+9:30:14 AMRemote description set, new signaling state: stable
+9:30:15 AMReceived offer, setting remote description
+9:30:15 AMCurrent signaling state before offer: stable
+9:30:15 AMWebRTC signaling state: have-remote-offer
+9:30:15 AMReceived remote audio track, track kind: audio
+9:30:15 AMSetting new remote stream
+9:30:15 AMRemote description set from offer, new signaling state: have-remote-offer
+9:30:15 AMCreating answer
+9:30:15 AMWebRTC signaling state: stable
+9:30:15 AMSending answer, signaling state: stable
+9:30:15 AMAnswer sent
+9:30:22 AMReceived offer, setting remote description
+9:30:22 AMCurrent signaling state before offer: stable
+9:30:22 AMWebRTC signaling state: have-remote-offer
+9:30:22 AMRemote description set from offer, new signaling state: have-remote-offer
+9:30:22 AMCreating answer
+9:30:22 AMWebRTC signaling state: stable
+9:30:22 AMSending answer, signaling state: stable
+9:30:22 AMAnswer sent

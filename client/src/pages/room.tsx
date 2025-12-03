@@ -65,8 +65,6 @@ export default function Room() {
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
   const lastMicToggleRef = useRef<number>(0); // Debounce voice toggle
-  const currentStreamRef = useRef<MediaStream | null>(null); // Track current stream to prevent duplicate play calls
-  const playingPromiseRef = useRef<Promise<void> | null>(null); // Track active play promise
   const [language, setLanguage] = useState<'en' | 'ar'>(() => {
     return (localStorage.getItem('app-language') as 'en' | 'ar') || 'en';
   });
@@ -316,67 +314,40 @@ export default function Room() {
 
   // Attach remote audio stream to audio element
   useEffect(() => {
-    const audioElement = remoteAudioRef.current;
-    if (!audioElement || !remoteStream) return;
-    
-    // Skip if this is the same stream (prevents race condition during renegotiation)
-    if (currentStreamRef.current === remoteStream) {
-      return;
-    }
-    
-    // Update the current stream ref
-    currentStreamRef.current = remoteStream;
-    
-    // Set the stream as the audio source
-    audioElement.srcObject = remoteStream;
-    // Start muted to comply with autoplay policies
-    audioElement.muted = true;
-    
-    // Cancel any previous play attempt
-    if (playingPromiseRef.current) {
-      audioElement.pause();
-      audioElement.currentTime = 0;
-    }
-    
-    // Play the audio
-    const playPromise = audioElement.play();
-    playingPromiseRef.current = playPromise;
-    
-    playPromise.then(() => {
-      // Only process if this is still the current play promise
-      if (playingPromiseRef.current !== playPromise) return;
-      
-      // Auto-unmute if user has already interacted and speaker is not manually muted
-      if (hasUserInteracted && remoteAudioRef.current && !isSpeakerMuted) {
-        remoteAudioRef.current.muted = false;
-        setRemoteAudioMuted(false);
-      } else if (!hasUserInteracted) {
-        // Show notification to enable audio
-        toast.info('Peer audio available - click to enable', {
-          duration: 5000,
-          action: {
-            label: 'Enable',
-            onClick: () => {
-              if (remoteAudioRef.current && !isSpeakerMuted) {
-                remoteAudioRef.current.muted = false;
-                setRemoteAudioMuted(false);
-                toast.success('Peer audio enabled');
+    if (remoteAudioRef.current && remoteStream) {
+      console.log('Setting up remote audio stream');
+      remoteAudioRef.current.srcObject = remoteStream;
+      // Start muted to comply with autoplay policies
+      remoteAudioRef.current.muted = true;
+      remoteAudioRef.current.play().then(() => {
+        console.log('Remote audio playing, hasUserInteracted:', hasUserInteracted, 'isSpeakerMuted:', isSpeakerMuted);
+        // Auto-unmute if user has already interacted and speaker is not manually muted
+        if (hasUserInteracted && remoteAudioRef.current && !isSpeakerMuted) {
+          remoteAudioRef.current.muted = false;
+          setRemoteAudioMuted(false);
+        } else if (!hasUserInteracted) {
+          // Show notification to enable audio
+          toast.info('Peer audio available - click to enable', {
+            duration: 5000,
+            action: {
+              label: 'Enable',
+              onClick: () => {
+                if (remoteAudioRef.current && !isSpeakerMuted) {
+                  remoteAudioRef.current.muted = false;
+                  setRemoteAudioMuted(false);
+                  toast.success('Peer audio enabled');
+                }
               }
             }
-          }
-        });
-      }
-    }).catch(err => {
-      // Only log error if this is still the current play promise and not AbortError
-      const isAbortError = err && (err.name === 'AbortError' || err.code === 20);
-      if (playingPromiseRef.current === playPromise && !isAbortError) {
-        console.error('Error playing remote audio:', err.name, err.message);
-        // Don't show toast for NotAllowedError (autoplay blocked) - user will click to enable
-        if (err.name !== 'NotAllowedError') {
-          toast.error('Failed to play peer audio');
+          });
         }
-      }
-    });
+      }).catch(err => {
+        // Ignore AbortError which happens during renegotiation
+        if (err.name !== 'AbortError') {
+          console.error('Error playing remote audio:', err);
+        }
+      });
+    }
   }, [remoteStream, hasUserInteracted, isSpeakerMuted]);
 
   const handleSendMessage = (text: string) => {
