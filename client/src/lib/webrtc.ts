@@ -504,37 +504,47 @@ export function useWebRTC(config: WebRTCConfig) {
         let protocol: string | undefined;
         let relayServerIP: string | undefined;
         
-        stats.forEach(report => {
-          // Look for the selected candidate pair (check both succeeded and in-progress)
-          if (report.type === 'candidate-pair' && (report.state === 'succeeded' || report.state === 'in-progress' || report.nominated === true)) {
-            const localCandidateId = report.localCandidateId;
-            const remoteCandidateId = report.remoteCandidateId;
-            
-            stats.forEach(stat => {
-              if (stat.id === localCandidateId && stat.type === 'local-candidate') {
-                selectedCandidateType = stat.candidateType;
-                localIP = stat.address || stat.ip;
-                localPort = stat.port;
-                protocol = stat.protocol;
-                // For relay candidates, the address is the TURN server
-                if (stat.candidateType === 'relay') {
-                  relayServerIP = stat.relayAddress || stat.address || stat.ip;
-                }
-                console.log('Selected local candidate:', selectedCandidateType, localIP, localPort, protocol);
-              }
-              if (stat.id === remoteCandidateId && stat.type === 'remote-candidate') {
-                remoteCandidateType = stat.candidateType;
-                remoteIP = stat.address || stat.ip;
-                remotePort = stat.port;
-                // For relay candidates, the address might be the TURN server
-                if (stat.candidateType === 'relay' && !relayServerIP) {
-                  relayServerIP = stat.address || stat.ip;
-                }
-                console.log('Selected remote candidate:', remoteCandidateType, remoteIP, remotePort);
-              }
-            });
+        // Convert stats to array for easier processing
+        const statsArray = Array.from(stats.values());
+        
+        // Find the ACTUALLY selected candidate pair
+        // Priority: selected === true > (state === 'succeeded' && nominated) > state === 'succeeded'
+        const candidatePairs = statsArray.filter((r: any) => r.type === 'candidate-pair');
+        
+        let selectedPair = candidatePairs.find((r: any) => r.selected === true);
+        if (!selectedPair) {
+          selectedPair = candidatePairs.find((r: any) => r.state === 'succeeded' && r.nominated === true);
+        }
+        if (!selectedPair) {
+          selectedPair = candidatePairs.find((r: any) => r.state === 'succeeded');
+        }
+        
+        // Now extract candidate info from the selected pair only
+        if (selectedPair) {
+          const localCandidate = statsArray.find((s: any) => s.id === selectedPair.localCandidateId && s.type === 'local-candidate');
+          const remoteCandidate = statsArray.find((s: any) => s.id === selectedPair.remoteCandidateId && s.type === 'remote-candidate');
+          
+          if (localCandidate) {
+            selectedCandidateType = localCandidate.candidateType;
+            localIP = localCandidate.address || localCandidate.ip;
+            localPort = localCandidate.port;
+            protocol = localCandidate.protocol;
+            if (localCandidate.candidateType === 'relay') {
+              relayServerIP = localCandidate.relayAddress || localCandidate.address || localCandidate.ip;
+            }
           }
-        });
+          
+          if (remoteCandidate) {
+            remoteCandidateType = remoteCandidate.candidateType;
+            remoteIP = remoteCandidate.address || remoteCandidate.ip;
+            remotePort = remoteCandidate.port;
+            if (remoteCandidate.candidateType === 'relay' && !relayServerIP) {
+              relayServerIP = remoteCandidate.address || remoteCandidate.ip;
+            }
+          }
+          
+          console.log('Final selected pair - local:', selectedCandidateType, localIP, '| remote:', remoteCandidateType, remoteIP);
+        }
         
         // Use local candidate type, fallback to remote, or check if either is relay
         const effectiveType = selectedCandidateType || remoteCandidateType;

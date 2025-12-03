@@ -1,0 +1,118 @@
+AES-256 ENCRYPTED
+
+P2P Direct
+
+
+Chat
+File Transfer
+ENCRYPTED CHANNEL
+P2P-WEBRTC-V2
+2
+• CONNECTED
+Type secure message...
+
+DEBUG LOGS
+(100)
+CLEAR
+
+
+2:29:37 PMICE candidate: host udp 172.30.0.1
+2:29:37 PMSending ICE candidate to peer
+2:29:37 PMICE candidate: host udp 192.168.1.245
+2:29:37 PMSending ICE candidate to peer
+2:29:37 PMICE candidate: host udp [fd7a:115c:a1e0::4235:e50d]
+2:29:37 PMSending ICE candidate to peer
+2:29:37 PMICE candidate: host tcp 100.100.229.13
+2:29:37 PMSending ICE candidate to peer
+2:29:37 PMICE candidate: host tcp 172.30.0.1
+2:29:37 PMSending ICE candidate to peer
+2:29:37 PMICE candidate: host tcp 192.168.1.245
+2:29:37 PMSending ICE candidate to peer
+2:29:37 PMICE candidate: host tcp [fd7a:115c:a1e0::4235:e50d]
+2:29:37 PMSending ICE candidate to peer
+2:29:38 PMICE candidate: srflx udp 91.73.56.69
+2:29:38 PMSending ICE candidate to peer
+2:29:39 PMICE candidate: relay udp 134.209.150.51
+2:29:39 PMSending ICE candidate to peer
+2:29:54 PMWebRTC connection state: failed
+2:29:54 PMWebRTC connection failed, attempting ICE restart
+2:29:54 PMICE restart deferred: signaling state is have-local-offer
+2:30:17 PMICE gathering state: complete
+2:30:17 PMICE gathering complete, total candidates: 30
+2:30:21 PMPeer joined: lozsr 2
+2:30:21 PMReceived offer, setting remote description
+2:30:21 PMCurrent signaling state before offer: have-local-offer
+2:30:21 PMWebRTC signaling state: stable
+2:30:21 PMWebRTC signaling state: have-remote-offer
+2:30:21 PMRemote description set from offer, new signaling state: have-remote-offer
+2:30:21 PMCreating answer
+2:30:21 PMWebRTC signaling state: stable
+2:30:21 PMSending answer, signaling state: stable
+2:30:21 PMAnswer sent
+2:30:21 PMICE gathering state: gathering
+2:30:21 PMICE candidate: host udp 100.100.229.13
+2:30:21 PMSending ICE candidate to peer
+2:30:21 PMWebRTC connection state: disconnected
+2:30:21 PMICE candidate: host udp 172.30.0.1
+2:30:21 PMSending ICE candidate to peer
+2:30:21 PMICE candidate: host udp 192.168.1.245
+2:30:21 PMSending ICE candidate to peer
+2:30:21 PMICE candidate: host udp [fd7a:115c:a1e0::4235:e50d]
+2:30:21 PMSending ICE candidate to peer
+2:30:21 PMICE candidate: host tcp 100.100.229.13
+2:30:21 PMSending ICE candidate to peer
+2:30:21 PMICE candidate: host tcp 172.30.0.1
+2:30:21 PMSending ICE candidate to peer
+2:30:21 PMICE candidate: host tcp 192.168.1.245
+2:30:21 PMSending ICE candidate to peer
+2:30:21 PMICE candidate: host tcp [fd7a:115c:a1e0::4235:e50d]
+2:30:21 PMSending ICE candidate to peer
+2:30:22 PMICE candidate: srflx udp 91.73.56.69
+2:30:22 PMSending ICE candidate to peer
+2:30:22 PM[CREATOR] Polling for connection mode, attempt: 1 pc state: disconnected
+2:30:22 PM[CREATOR] Stopping poll - mode: reconnecting attempts: 1
+2:30:22 PMICE candidate: relay udp 134.209.150.51
+2:30:22 PMSending ICE candidate to peer
+2:30:23 PMICE gathering state: complete
+2:30:23 PMICE gathering complete, total candidates: 40
+2:30:23 PMICE connection state: connected
+2:30:23 PMWebRTC connection state: connected
+2:30:23 PMSelected local candidate: host 100.100.229.13 53548 udp
+2:30:23 PMSelected remote candidate: relay 167.71.229.96 55830
+2:30:23 PMSelected local candidate: host 100.100.229.13 53548 udp
+2:30:23 PMSelected remote candidate: srflx 87.201.231.224 40080
+2:30:23 PMSelected remote candidate: relay 167.71.229.96 55830
+2:30:23 PMSelected local candidate: host 172.30.0.1 53549 udp
+2:30:23 PMSelected remote candidate: srflx 87.201.231.224 40080
+2:30:23 PMSelected local candidate: host 172.30.0.1 53549 udp
+2:30:23 PMSelected remote candidate: relay 167.71.229.96 55830
+2:30:23 PMSelected local candidate: relay 134.209.150.51 65524 udp
+2:30:23 PMSelected remote candidate: srflx 87.201.231.224 40080
+2:30:23 PMSelected local candidate: relay 134.209.150.51 65524 udp
+2:30:23 PMSelected local candidate: relay 134.209.150.51 65524 udp
+2:30:23 PMSelected remote candidate: prflx 2248
+2:30:23 PMSelected remote candidate: relay 167.71.229.96 55830
+2:30:23 PMSelected local candidate: host 192.168.1.245 53550 udp
+2:30:23 PMSelected remote candidate: srflx 87.201.231.224 40080
+2:30:23 PMSelected local candidate: host 192.168.1.245 53550 udp
+2:30:23 PMConnection mode detected: p2p (local: host remote: srflx )
+2:30:23 PMConnection details: [object Object]
+2:30:23 PMSelected local candidate: host 100.100.229.13 53548 udp
+2:30:23 PMSelected remote candidate: relay 167.71.229.96 55830
+2:30:23 PMSelected local candidate: host 100.100.229.13 53548 udp
+2:30:23 PMSelected remote candidate: srflx 87.201.231.224 40080
+2:30:23 PMSelected remote candidate: relay 167.71.229.96 55830
+2:30:23 PMSelected local candidate: host 172.30.0.1 53549 udp
+2:30:23 PMSelected remote candidate: srflx 87.201.231.224 40080
+2:30:23 PMSelected local candidate: host 172.30.0.1 53549 udp
+2:30:23 PMSelected remote candidate: relay 167.71.229.96 55830
+2:30:23 PMSelected local candidate: relay 134.209.150.51 65524 udp
+2:30:23 PMSelected remote candidate: srflx 87.201.231.224 40080
+2:30:23 PMSelected local candidate: relay 134.209.150.51 65524 udp
+2:30:23 PMSelected local candidate: relay 134.209.150.51 65524 udp
+2:30:23 PMSelected remote candidate: prflx 2248
+2:30:23 PMSelected remote candidate: relay 167.71.229.96 55830
+2:30:23 PMSelected local candidate: host 192.168.1.245 53550 udp
+2:30:23 PMSelected remote candidate: srflx 87.201.231.224 40080
+2:30:23 PMSelected local candidate: host 192.168.1.245 53550 udp
+2:30:23 PMConnection details: [object Object]
