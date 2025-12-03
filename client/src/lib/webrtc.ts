@@ -517,21 +517,27 @@ export function useWebRTC(config: WebRTCConfig) {
         const currentWs = wsRef.current;
 
         if (message.type === 'joined') {
-          console.log('Joined room, existing peers:', message.existingPeers);
+          const isJoiner = message.existingPeers.length > 0;
+          console.log(`[${isJoiner ? 'JOINER' : 'CREATOR'}] Joined room, existing peers:`, message.existingPeers);
+          console.log(`[${isJoiner ? 'JOINER' : 'CREATOR'}] ICE servers count:`, currentPc?.getConfiguration().iceServers?.length || 0);
           setIsConnected(true);
           setConnectionState('connected');
           
-          if (message.existingPeers.length > 0) {
+          if (isJoiner) {
             configRef.current.onPeerConnected?.({ nickname: message.existingPeers[0]?.nickname });
             
-            // Create WebRTC offer for voice
+            // Create WebRTC offer for voice (joiner initiates)
             if (currentPc && currentWs && currentWs.readyState === WebSocket.OPEN) {
+              console.log('[JOINER] Creating initial offer...');
+              console.log('[JOINER] PC ICE gathering state before offer:', currentPc.iceGatheringState);
               const offer = await currentPc.createOffer();
               await currentPc.setLocalDescription(offer);
+              console.log('[JOINER] Local description set, ICE gathering state:', currentPc.iceGatheringState);
               currentWs.send(JSON.stringify({
                 type: 'offer',
                 data: offer,
               }));
+              console.log('[JOINER] Offer sent, waiting for ICE candidates...');
             }
           }
         } else if (message.type === 'peer-joined') {
