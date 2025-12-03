@@ -221,6 +221,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.resetFailedAttempts(id, ipAddress);
 
       const turnConfig = await storage.getRoomTurnConfig(id);
+      console.log(`[Join] Room ${id} - TURN config: urls=${turnConfig?.urls?.length || 0}, stunUrls=${turnConfig?.stunUrls?.length || 0}, hasCredentials=${!!turnConfig?.username}`);
 
       res.json({ 
         success: true, 

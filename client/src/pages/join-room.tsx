@@ -126,8 +126,14 @@ export default function JoinRoom() {
 
       // Store TURN config from join response locally for WebRTC
       if (data.turnConfig) {
+        console.log('[Join] Received TURN config from server:', 
+          'urls:', data.turnConfig.urls?.length || 0,
+          'stunUrls:', data.turnConfig.stunUrls?.length || 0,
+          'hasCredentials:', !!data.turnConfig.username);
         localStorage.setItem('turn-config', JSON.stringify(data.turnConfig));
         setTurnConfig(data.turnConfig);
+      } else {
+        console.warn('[Join] No TURN config received from server!');
       }
 
       setLocation(`/room/${code}?nickname=${encodeURIComponent(nickname.trim())}`);
