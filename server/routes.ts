@@ -336,19 +336,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }));
         } else if (currentPeer && (message.type === "offer" || message.type === "answer" || message.type === "ice-candidate")) {
           const peers = roomPeers.get(currentPeer.roomId);
+          if (message.type === "ice-candidate") {
+            console.log(`[WebSocket] ICE candidate from ${currentPeer.peerId} in room ${currentPeer.roomId}`);
+          }
           if (peers) {
+            let relayedTo = 0;
             peers.forEach((peerId) => {
               if (peerId !== currentPeer!.peerId) {
                 const peer = activePeers.get(peerId);
                 if (peer && peer.ws.readyState === WebSocket.OPEN) {
+                  if (message.type === "ice-candidate") {
+                    console.log(`[WebSocket] Relaying ICE candidate to ${peerId}`);
+                  }
                   peer.ws.send(JSON.stringify({
                     type: message.type,
                     data: message.data,
                     from: currentPeer!.peerId,
                   }));
+                  relayedTo++;
                 }
               }
             });
+            if (message.type === "ice-candidate" && relayedTo === 0) {
+              console.log(`[WebSocket] No peers to relay ICE candidate to in room ${currentPeer.roomId}`);
+            }
           }
         } else if (currentPeer && message.type === "chat") {
           const peers = roomPeers.get(currentPeer.roomId);
