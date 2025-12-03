@@ -200,6 +200,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Room not found" });
       }
 
+      // Check if room is already full (2 users connected)
+      const currentPeerCount = roomPeers.get(id)?.size || 0;
+      if (currentPeerCount >= 2) {
+        return res.status(403).json({ 
+          error: "Session is full. Maximum 2 users allowed.",
+          code: "ROOM_FULL"
+        });
+      }
+
       const isCreator = room.createdBy && body.createdBy && room.createdBy === body.createdBy;
 
       if (room.password && room.password !== body.password && !isCreator) {

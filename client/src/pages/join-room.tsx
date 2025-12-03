@@ -92,6 +92,7 @@ export default function JoinRoom() {
       fromImageFile: 'From image file',
       pleaseEnterNickname: 'Please enter your nickname',
       roomNotFound: 'Room not found',
+      roomFull: 'Session is full. Maximum 2 users allowed.',
       failedToJoin: 'Failed to join room',
       qrReadSuccess: 'QR code read successfully!',
       noQrFound: 'No QR code found in image',
@@ -117,6 +118,7 @@ export default function JoinRoom() {
       fromImageFile: 'من ملف صورة',
       pleaseEnterNickname: 'الرجاء إدخال اسمك المستعار',
       roomNotFound: 'الغرفة غير موجودة',
+      roomFull: 'الجلسة ممتلئة. الحد الأقصى مستخدمان فقط.',
       failedToJoin: 'فشل الانضمام للغرفة',
       qrReadSuccess: 'تم قراءة رمز QR بنجاح!',
       noQrFound: 'لم يتم العثور على رمز QR في الصورة',
@@ -145,7 +147,13 @@ export default function JoinRoom() {
 
       if (!response.ok) {
         if (response.status === 403) {
-          toast.error(data.error);
+          if (data.code === 'ROOM_FULL') {
+            toast.error(t.roomFull);
+            // Redirect to home after showing error
+            setTimeout(() => setLocation('/'), 2000);
+          } else {
+            toast.error(data.error);
+          }
         } else if (response.status === 401) {
           setNeedsPassword(true);
           toast.error(data.error + (data.attemptsRemaining ? ` (${data.attemptsRemaining} ${t.attemptsRemaining})` : ''));
