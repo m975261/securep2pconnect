@@ -436,6 +436,12 @@ export function useWebRTC(config: WebRTCConfig) {
       iceCandidatePoolSize: 10,
     });
     pcRef.current = pc;
+    
+    // Create a data channel to ensure ICE gathering starts even without voice
+    // This is needed because without any tracks or data channels, ICE won't start
+    const dataChannel = pc.createDataChannel('connection-init', { negotiated: true, id: 0 });
+    dataChannel.onopen = () => console.log('[DataChannel] Connection channel opened');
+    dataChannel.onclose = () => console.log('[DataChannel] Connection channel closed');
 
     // Reset connection mode tracking
     hasConnectedRef.current = false;
@@ -775,11 +781,7 @@ export function useWebRTC(config: WebRTCConfig) {
           if (currentPc && currentWs && currentWs.readyState === WebSocket.OPEN) {
             console.log('Received offer, setting remote description');
             console.log('Current signaling state before offer:', currentPc.signalingState);
-            console.log('[DEBUG] PC ICE gathering state before offer:', currentPc.iceGatheringState);
-            console.log('[DEBUG] PC ICE connection state before offer:', currentPc.iceConnectionState);
-            console.log('[DEBUG] PC connection state before offer:', currentPc.connectionState);
             await currentPc.setRemoteDescription(new RTCSessionDescription(message.data));
-            console.log('[DEBUG] Remote description set successfully');
             console.log('Remote description set from offer, new signaling state:', currentPc.signalingState);
             
             // If we have a local stream, add our tracks before creating the answer
@@ -796,18 +798,13 @@ export function useWebRTC(config: WebRTCConfig) {
             
             console.log('Creating answer');
             const answer = await currentPc.createAnswer();
-            console.log('[DEBUG] Answer created, setting local description');
             await currentPc.setLocalDescription(answer);
-            console.log('[DEBUG] Local description set');
-            console.log('[DEBUG] PC ICE gathering state after answer:', currentPc.iceGatheringState);
-            console.log('[DEBUG] PC ICE connection state after answer:', currentPc.iceConnectionState);
             console.log('Sending answer, signaling state:', currentPc.signalingState);
             currentWs.send(JSON.stringify({
               type: 'answer',
               data: answer,
             }));
             console.log('Answer sent');
-            console.log('[DEBUG] Waiting for ICE candidates to be generated...');
             
             // Flush any buffered remote ICE candidates now that remote description is set
             if (pendingRemoteIceCandidates.length > 0) {

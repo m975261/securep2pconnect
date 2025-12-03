@@ -1,0 +1,100 @@
+2:17:48 PMReceived ICE candidate from peer:
+2:17:48 PMAdded ICE candidate successfully
+2:17:48 PM[CREATOR] Polling for connection mode, attempt: 1 pc state: checking
+2:17:48 PM[CREATOR] Polling for connection mode, attempt: 4 pc state: checking
+2:17:49 PM[CREATOR] Polling for connection mode, attempt: 2 pc state: checking
+2:17:49 PM[CREATOR] Polling for connection mode, attempt: 5 pc state: checking
+2:17:49 PMICE candidate: relay udp 134.209.150.51
+2:17:49 PMSending ICE candidate to peer
+2:17:49 PMReceived ICE candidate from peer:
+2:17:49 PMAdded ICE candidate successfully
+2:17:49 PM[CREATOR] Polling for connection mode, attempt: 3 pc state: checking
+2:17:49 PM[CREATOR] Polling for connection mode, attempt: 6 pc state: checking
+2:17:49 PMICE connection state: connected
+2:17:49 PMICE gathering state: complete
+2:17:49 PMICE gathering complete, total candidates: 10
+2:17:50 PMSelected local candidate: host fd7a:115c:a1e0::4235:e50d 51024 udp
+2:17:50 PMSelected remote candidate: host 2a00:f29:210:ab0a:ed0c:6149:b838:2117 50425
+2:17:50 PMSelected remote candidate: host 10.181.112.3 56668
+2:17:50 PMSelected local candidate: host 192.168.1.245 51023 udp
+2:17:50 PMSelected local candidate: host 192.168.1.245 51023 udp
+2:17:50 PMSelected remote candidate: srflx 87.201.231.224 1108
+2:17:50 PMSelected remote candidate: relay 134.209.150.51 61420
+2:17:50 PMSelected local candidate: host 100.100.229.13 51021 udp
+2:17:50 PMSelected remote candidate: host 10.181.112.3 56668
+2:17:50 PMSelected local candidate: host 100.100.229.13 51021 udp
+2:17:50 PMSelected local candidate: host 100.100.229.13 51021 udp
+2:17:50 PMSelected remote candidate: srflx 87.201.231.224 1108
+2:17:50 PMSelected remote candidate: relay 134.209.150.51 61420
+2:17:50 PMSelected local candidate: relay 134.209.150.51 55132 udp
+2:17:50 PMSelected remote candidate: prflx 2199
+2:17:50 PMSelected local candidate: relay 134.209.150.51 55132 udp
+2:17:50 PMSelected remote candidate: host 10.181.112.3 56668
+2:17:50 PMSelected local candidate: relay 134.209.150.51 55132 udp
+2:17:50 PMSelected local candidate: relay 134.209.150.51 55132 udp
+2:17:50 PMSelected remote candidate: srflx 87.201.231.224 1108
+2:17:50 PMSelected remote candidate: relay 134.209.150.51 61420
+2:17:50 PMSelected local candidate: host 172.30.0.1 51022 udp
+2:17:50 PMSelected remote candidate: host 10.181.112.3 56668
+2:17:50 PMSelected local candidate: host 172.30.0.1 51022 udp
+2:17:50 PMSelected local candidate: host 172.30.0.1 51022 udp
+2:17:50 PMSelected remote candidate: srflx 87.201.231.224 1108
+2:17:50 PMSelected remote candidate: relay 134.209.150.51 61420
+2:17:50 PMSelected local candidate: prflx 91.73.56.69 22531 udp
+2:17:50 PMConnection mode detected: turn (local: prflx remote: relay )
+2:17:50 PMConnection details: [object Object]
+2:17:50 PM[CREATOR] Polling for connection mode, attempt: 4 pc state: connected
+2:17:50 PM[CREATOR] Stopping poll - mode: turn attempts: 4
+2:17:50 PM[CREATOR] Polling for connection mode, attempt: 7 pc state: connected
+2:17:50 PM[CREATOR] Stopping poll - mode: turn attempts: 7
+2:17:50 PMWebRTC connection state: connected
+2:17:50 PMSelected local candidate: host fd7a:115c:a1e0::4235:e50d 51024 udp
+2:17:50 PMSelected remote candidate: host 2a00:f29:210:ab0a:ed0c:6149:b838:2117 50425
+2:17:50 PMSelected remote candidate: host 10.181.112.3 56668
+2:17:50 PMSelected local candidate: host 192.168.1.245 51023 udp
+2:17:50 PMSelected local candidate: host 192.168.1.245 51023 udp
+2:17:50 PMSelected remote candidate: srflx 87.201.231.224 1108
+2:17:50 PMSelected remote candidate: relay 134.209.150.51 61420
+2:17:50 PMSelected local candidate: host 100.100.229.13 51021 udp
+2:17:50 PMSelected remote candidate: host 10.181.112.3 56668
+2:17:50 PMSelected local candidate: host 100.100.229.13 51021 udp
+2:17:50 PMSelected local candidate: host 100.100.229.13 51021 udp
+2:17:50 PMSelected remote candidate: srflx 87.201.231.224 1108
+2:17:50 PMSelected remote candidate: relay 134.209.150.51 61420
+2:17:50 PMSelected local candidate: relay 134.209.150.51 55132 udp
+2:17:50 PMSelected remote candidate: prflx 2199
+2:17:50 PMSelected local candidate: relay 134.209.150.51 55132 udp
+2:17:50 PMSelected remote candidate: host 10.181.112.3 56668
+2:17:50 PMSelected local candidate: relay 134.209.150.51 55132 udp
+2:17:50 PMSelected local candidate: relay 134.209.150.51 55132 udp
+2:17:50 PMSelected remote candidate: srflx 87.201.231.224 1108
+2:17:50 PMSelected remote candidate: relay 134.209.150.51 61420
+2:17:50 PMSelected local candidate: host 172.30.0.1 51022 udp
+2:17:50 PMSelected remote candidate: host 10.181.112.3 56668
+2:17:50 PMSelected local candidate: host 172.30.0.1 51022 udp
+2:17:50 PMSelected local candidate: host 172.30.0.1 51022 udp
+2:17:50 PMSelected remote candidate: srflx 87.201.231.224 1108
+2:17:50 PMSelected remote candidate: relay 134.209.150.51 61420
+2:17:50 PMSelected local candidate: prflx 91.73.56.69 22531 udp
+2:17:50 PMConnection details: [object Object]
+2:17:54 PMReceived offer, setting remote description
+2:17:54 PMCurrent signaling state before offer: stable
+2:17:54 PM[DEBUG] PC ICE gathering state before offer: complete
+2:17:54 PM[DEBUG] PC ICE connection state before offer: connected
+2:17:54 PM[DEBUG] PC connection state before offer: connected
+2:17:54 PMWebRTC signaling state: have-remote-offer
+2:17:54 PM[DEBUG] Remote description set successfully
+2:17:54 PMRemote description set from offer, new signaling state: have-remote-offer
+2:17:54 PMCreating answer
+2:17:54 PM[DEBUG] Answer created, setting local description
+2:17:54 PMWebRTC signaling state: stable
+2:17:54 PM[DEBUG] Local description set
+2:17:54 PM[DEBUG] PC ICE gathering state after answer: complete
+2:17:54 PM[DEBUG] PC ICE connection state after answer: connected
+2:17:54 PMSending answer, signaling state: stable
+2:17:54 PMAnswer sent
+2:17:54 PM[DEBUG] Waiting for ICE candidates to be generated...
+2:17:55 PM[CREATOR] Polling for connection mode, attempt: 1 pc state: connected
+2:17:55 PM[CREATOR] Stopping poll - mode: turn attempts: 1
+2:17:55 PMSetting up remote audio stream, tracks: 0 enabled:
+2:17:55 PMNo audio tracks in remote stream
