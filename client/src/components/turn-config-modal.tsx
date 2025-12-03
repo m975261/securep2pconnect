@@ -31,7 +31,7 @@ const translations = {
     title: "Configure TURN Server",
     description: "Enter your TURN server details. All connections will be routed through this relay to prevent IP leakage.",
     serverUrl: "TURN Server URL",
-    serverUrlPlaceholder: "turn:your-server.com:3478",
+    serverUrlPlaceholder: "turn:server.com:3478?transport=udp",
     username: "Username",
     usernamePlaceholder: "turn-username",
     credential: "Credential",
@@ -43,13 +43,13 @@ const translations = {
     cancel: "Cancel",
     invalidUrl: "Invalid TURN URL format",
     requiredFields: "All fields are required",
-    example: "Example: turn:relay.example.com:3478 or turns:relay.example.com:5349",
+    example: "Example: turn:relay.com:3478?transport=udp or turns:relay.com:443?transport=tcp",
   },
   ar: {
     title: "تكوين خادم TURN",
     description: "أدخل تفاصيل خادم TURN الخاص بك. سيتم توجيه جميع الاتصالات عبر هذا المُرحّل لمنع تسرب عنوان IP.",
     serverUrl: "عنوان URL لخادم TURN",
-    serverUrlPlaceholder: "turn:your-server.com:3478",
+    serverUrlPlaceholder: "turn:server.com:3478?transport=udp",
     username: "اسم المستخدم",
     usernamePlaceholder: "turn-username",
     credential: "كلمة المرور",
@@ -61,7 +61,7 @@ const translations = {
     cancel: "إلغاء",
     invalidUrl: "تنسيق URL غير صالح لـ TURN",
     requiredFields: "جميع الحقول مطلوبة",
-    example: "مثال: turn:relay.example.com:3478 أو turns:relay.example.com:5349",
+    example: "مثال: turn:relay.com:3478?transport=udp أو turns:relay.com:443?transport=tcp",
   }
 };
 
@@ -74,8 +74,8 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
   const t = translations[language];
 
   const validateTurnUrl = (url: string): boolean => {
-    // TURN URLs format: turn:hostname:port or turns:hostname:port
-    return /^turns?:[^:]+:\d+$/.test(url.trim());
+    // TURN URLs format: turn:hostname:port or turns:hostname:port, optionally with ?transport=udp|tcp
+    return /^turns?:[^:]+:\d+(\?transport=(udp|tcp))?$/.test(url.trim());
   };
 
   const handleAddUrl = () => {
