@@ -10,8 +10,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Server, Lock, User, AlertCircle, Plus, Check, X } from "lucide-react";
+import { Server, Lock, User, AlertCircle, Plus, Check, X, Loader2, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
+import { testTurnConnectivity } from "@/lib/webrtc";
 
 export interface TurnConfig {
   urls: string[];
@@ -44,6 +45,10 @@ const translations = {
     invalidUrl: "Invalid TURN URL format",
     requiredFields: "All fields are required",
     example: "Example: turn:relay.com:3478?transport=udp or turns:relay.com:443?transport=tcp",
+    testConnection: "Test Connection",
+    testing: "Testing...",
+    testSuccess: "Connection successful! Found relay candidates.",
+    testFailed: "Connection failed",
   },
   ar: {
     title: "تكوين خادم TURN",
@@ -62,6 +67,10 @@ const translations = {
     invalidUrl: "تنسيق URL غير صالح لـ TURN",
     requiredFields: "جميع الحقول مطلوبة",
     example: "مثال: turn:relay.com:3478?transport=udp أو turns:relay.com:443?transport=tcp",
+    testConnection: "اختبار الاتصال",
+    testing: "جاري الاختبار...",
+    testSuccess: "نجح الاتصال! تم العثور على مرشحات التتابع.",
+    testFailed: "فشل الاتصال",
   }
 };
 
@@ -70,8 +79,51 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
   const [confirmedUrls, setConfirmedUrls] = useState<boolean[]>([false]);
   const [username, setUsername] = useState("");
   const [credential, setCredential] = useState("");
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<'success' | 'failed' | null>(null);
 
   const t = translations[language];
+
+  const handleTestConnection = async () => {
+    const validUrls = urls.filter(url => url.trim());
+    
+    if (validUrls.length === 0 || !username.trim() || !credential.trim()) {
+      toast.error(t.requiredFields);
+      return;
+    }
+
+    // Validate URL format
+    for (const url of validUrls) {
+      if (!validateTurnUrl(url)) {
+        toast.error(`${t.invalidUrl}: ${url}`);
+        return;
+      }
+    }
+
+    setIsTesting(true);
+    setTestResult(null);
+
+    try {
+      const result = await testTurnConnectivity({
+        urls: validUrls,
+        username: username.trim(),
+        credential: credential.trim(),
+      });
+
+      if (result.success) {
+        setTestResult('success');
+        toast.success(t.testSuccess);
+      } else {
+        setTestResult('failed');
+        toast.error(`${t.testFailed}: ${result.error}`);
+      }
+    } catch (error: any) {
+      setTestResult('failed');
+      toast.error(`${t.testFailed}: ${error.message}`);
+    } finally {
+      setIsTesting(false);
+    }
+  };
 
   const validateTurnUrl = (url: string): boolean => {
     // TURN URLs format: turn:hostname:port or turns:hostname:port, optionally with ?transport=udp|tcp
@@ -257,22 +309,56 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button
-            variant="ghost"
-            onClick={onCancel}
-            className="border-white/10"
-            data-testid="button-cancel-turn"
+            variant="outline"
+            onClick={handleTestConnection}
+            disabled={isTesting}
+            className={`border-white/10 ${
+              testResult === 'success' ? 'border-green-500/50 text-green-400' : 
+              testResult === 'failed' ? 'border-red-500/50 text-red-400' : ''
+            }`}
+            data-testid="button-test-turn"
           >
-            {t.cancel}
+            {isTesting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {t.testing}
+              </>
+            ) : testResult === 'success' ? (
+              <>
+                <Wifi className="w-4 h-4 mr-2" />
+                {t.testConnection}
+              </>
+            ) : testResult === 'failed' ? (
+              <>
+                <WifiOff className="w-4 h-4 mr-2" />
+                {t.testConnection}
+              </>
+            ) : (
+              <>
+                <Wifi className="w-4 h-4 mr-2" />
+                {t.testConnection}
+              </>
+            )}
           </Button>
-          <Button
-            onClick={handleSubmit}
-            className="bg-primary hover:bg-primary/90"
-            data-testid="button-submit-turn"
-          >
-            {t.connect}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              onClick={onCancel}
+              className="border-white/10"
+              data-testid="button-cancel-turn"
+            >
+              {t.cancel}
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              className="bg-primary hover:bg-primary/90"
+              data-testid="button-submit-turn"
+            >
+              {t.connect}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

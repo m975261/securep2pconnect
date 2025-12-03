@@ -6,6 +6,92 @@ export interface TurnConfig {
   credential: string;
 }
 
+// Test TURN server connectivity
+export async function testTurnConnectivity(turnConfig: TurnConfig): Promise<{
+  success: boolean;
+  candidates: Array<{type: string; protocol: string; address: string}>;
+  error?: string;
+}> {
+  return new Promise((resolve) => {
+    const candidates: Array<{type: string; protocol: string; address: string}> = [];
+    let completed = false;
+    
+    console.log('Testing TURN connectivity with config:', {
+      urls: turnConfig.urls,
+      usernameLength: turnConfig.username?.length,
+      credentialLength: turnConfig.credential?.length
+    });
+    
+    const pc = new RTCPeerConnection({
+      iceServers: [{
+        urls: turnConfig.urls,
+        username: turnConfig.username,
+        credential: turnConfig.credential,
+      }],
+      iceTransportPolicy: 'relay',
+    });
+    
+    // Create a data channel to trigger ICE gathering
+    pc.createDataChannel('test');
+    
+    // Timeout after 15 seconds
+    const timeout = setTimeout(() => {
+      if (!completed) {
+        completed = true;
+        pc.close();
+        console.log('TURN test timeout, candidates found:', candidates.length);
+        resolve({
+          success: candidates.length > 0,
+          candidates,
+          error: candidates.length === 0 ? 'Timeout: No relay candidates. TURN server may be unreachable or credentials invalid.' : undefined
+        });
+      }
+    }, 15000);
+    
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        console.log('TURN test candidate:', event.candidate.type, event.candidate.protocol, event.candidate.address);
+        candidates.push({
+          type: event.candidate.type || 'unknown',
+          protocol: event.candidate.protocol || 'unknown',
+          address: event.candidate.address || 'hidden'
+        });
+      }
+    };
+    
+    pc.onicegatheringstatechange = () => {
+      console.log('TURN test ICE gathering state:', pc.iceGatheringState);
+      if (pc.iceGatheringState === 'complete' && !completed) {
+        completed = true;
+        clearTimeout(timeout);
+        pc.close();
+        console.log('TURN test complete, candidates found:', candidates.length);
+        resolve({
+          success: candidates.length > 0,
+          candidates,
+          error: candidates.length === 0 ? 'No relay candidates generated. TURN server credentials may be expired or server unreachable.' : undefined
+        });
+      }
+    };
+    
+    pc.createOffer().then(offer => {
+      return pc.setLocalDescription(offer);
+    }).catch(err => {
+      if (!completed) {
+        completed = true;
+        clearTimeout(timeout);
+        pc.close();
+        console.error('TURN test offer error:', err);
+        resolve({
+          success: false,
+          candidates: [],
+          error: `Failed to create offer: ${err.message}`
+        });
+      }
+    });
+  });
+}
+
 interface WebRTCConfig {
   roomId: string;
   peerId: string;
