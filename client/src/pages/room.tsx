@@ -120,7 +120,7 @@ export default function Room() {
       connectionMode: 'Connection',
       p2pMode: 'P2P Direct',
       turnMode: 'TURN Relay',
-      pendingMode: 'Connecting...',
+      reconnectingMode: 'Reconnecting...',
     },
     ar: {
       appName: 'SECURE.LINK',
@@ -152,7 +152,7 @@ export default function Room() {
       connectionMode: 'الاتصال',
       p2pMode: 'مباشر P2P',
       turnMode: 'عبر TURN',
-      pendingMode: 'جاري الاتصال...',
+      reconnectingMode: 'إعادة الاتصال...',
     },
   };
 
@@ -871,31 +871,33 @@ export default function Room() {
               <span className="text-[10px] md:text-xs font-mono text-primary">{t.encrypted}</span>
             </div>
 
-            {/* Connection Mode Badge */}
-            <div className={`flex items-center justify-center gap-1.5 p-1.5 md:p-2 rounded-lg border ${
-              connectionMode === 'p2p' 
-                ? 'bg-green-500/10 border-green-500/30' 
-                : connectionMode === 'turn' 
-                  ? 'bg-amber-500/10 border-amber-500/30' 
-                  : 'bg-gray-500/10 border-gray-500/30'
-            }`} data-testid="connection-mode-badge">
-              <div className={`w-2 h-2 rounded-full ${
+            {/* Connection Mode Badge - Only show when connected or reconnecting */}
+            {connectionMode !== 'pending' && (
+              <div className={`flex items-center justify-center gap-1.5 p-1.5 md:p-2 rounded-lg border ${
                 connectionMode === 'p2p' 
-                  ? 'bg-green-500 animate-pulse' 
+                  ? 'bg-green-500/10 border-green-500/30' 
                   : connectionMode === 'turn' 
-                    ? 'bg-amber-500 animate-pulse' 
-                    : 'bg-gray-500'
-              }`} />
-              <span className={`text-[10px] md:text-xs font-mono font-bold ${
-                connectionMode === 'p2p' 
-                  ? 'text-green-500' 
-                  : connectionMode === 'turn' 
-                    ? 'text-amber-500' 
-                    : 'text-gray-500'
-              }`}>
-                {connectionMode === 'p2p' ? t.p2pMode : connectionMode === 'turn' ? t.turnMode : t.pendingMode}
-              </span>
-            </div>
+                    ? 'bg-amber-500/10 border-amber-500/30' 
+                    : 'bg-red-500/10 border-red-500/30'
+              }`} data-testid="connection-mode-badge">
+                <div className={`w-2 h-2 rounded-full ${
+                  connectionMode === 'p2p' 
+                    ? 'bg-green-500 animate-pulse' 
+                    : connectionMode === 'turn' 
+                      ? 'bg-amber-500 animate-pulse' 
+                      : 'bg-red-500 animate-pulse'
+                }`} />
+                <span className={`text-[10px] md:text-xs font-mono font-bold ${
+                  connectionMode === 'p2p' 
+                    ? 'text-green-500' 
+                    : connectionMode === 'turn' 
+                      ? 'text-amber-500' 
+                      : 'text-red-500'
+                }`}>
+                  {connectionMode === 'p2p' ? t.p2pMode : connectionMode === 'turn' ? t.turnMode : t.reconnectingMode}
+                </span>
+              </div>
+            )}
 
             {/* Voice Controls */}
             <div className="flex justify-center gap-2 md:gap-3">

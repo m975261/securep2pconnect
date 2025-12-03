@@ -109,7 +109,7 @@ interface SendFileOptions {
   onProgress?: (progress: number) => void;
 }
 
-export type ConnectionMode = 'pending' | 'p2p' | 'turn';
+export type ConnectionMode = 'pending' | 'p2p' | 'turn' | 'reconnecting';
 
 export function useWebRTC(config: WebRTCConfig) {
   const [isConnected, setIsConnected] = useState(false);
@@ -458,6 +458,54 @@ export function useWebRTC(config: WebRTCConfig) {
       }
     };
 
+    // Function to detect connection mode from stats
+    const detectModeFromStats = () => {
+      if (!pc || pc.connectionState === 'closed') return;
+      
+      pc.getStats().then(stats => {
+        let selectedCandidateType: string | null = null;
+        let remoteCandidateType: string | null = null;
+        
+        stats.forEach(report => {
+          // Look for the selected candidate pair (check both succeeded and in-progress)
+          if (report.type === 'candidate-pair' && (report.state === 'succeeded' || report.state === 'in-progress' || report.nominated === true)) {
+            const localCandidateId = report.localCandidateId;
+            const remoteCandidateId = report.remoteCandidateId;
+            
+            stats.forEach(stat => {
+              if (stat.id === localCandidateId && stat.type === 'local-candidate') {
+                selectedCandidateType = stat.candidateType;
+                console.log('Selected local candidate type:', selectedCandidateType);
+              }
+              if (stat.id === remoteCandidateId && stat.type === 'remote-candidate') {
+                remoteCandidateType = stat.candidateType;
+                console.log('Selected remote candidate type:', remoteCandidateType);
+              }
+            });
+          }
+        });
+        
+        // Use local candidate type, fallback to remote, or check if either is relay
+        const effectiveType = selectedCandidateType || remoteCandidateType;
+        const isRelay = selectedCandidateType === 'relay' || remoteCandidateType === 'relay';
+        
+        if (effectiveType) {
+          // If either side uses relay, it's TURN mode
+          const mode = isRelay ? 'turn' : detectConnectionMode(effectiveType);
+          if (connectionModeRef.current !== mode) {
+            connectionModeRef.current = mode;
+            setConnectionMode(mode);
+            console.log('Connection mode detected:', mode, '(local:', selectedCandidateType, 'remote:', remoteCandidateType, ')');
+          }
+        } else if (connectionModeRef.current === 'pending') {
+          // Retry after a short delay if we couldn't detect yet
+          setTimeout(detectModeFromStats, 500);
+        }
+      }).catch(err => {
+        console.warn('Could not get connection stats:', err);
+      });
+    };
+
     pc.oniceconnectionstatechange = () => {
       console.log('ICE connection state:', pc.iceConnectionState);
       
@@ -470,35 +518,16 @@ export function useWebRTC(config: WebRTCConfig) {
         hasConnectedRef.current = true;
         
         // Detect connection mode using getStats
-        pc.getStats().then(stats => {
-          let selectedCandidateType: string | null = null;
-          
-          stats.forEach(report => {
-            // Look for the selected candidate pair
-            if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-              const localCandidateId = report.localCandidateId;
-              stats.forEach(stat => {
-                if (stat.id === localCandidateId && stat.type === 'local-candidate') {
-                  selectedCandidateType = stat.candidateType;
-                  console.log('Selected local candidate type:', selectedCandidateType);
-                }
-              });
-            }
-          });
-          
-          if (selectedCandidateType) {
-            const mode = detectConnectionMode(selectedCandidateType);
-            connectionModeRef.current = mode;
-            setConnectionMode(mode);
-            console.log('Connection mode detected:', mode);
-          }
-        }).catch(err => {
-          console.warn('Could not get connection stats:', err);
-        });
+        detectModeFromStats();
       }
       
       if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
         console.warn('ICE connection issue detected, may need to restart');
+        // Only show "reconnecting" if we were previously connected
+        if (hasConnectedRef.current && connectionModeRef.current !== 'pending') {
+          connectionModeRef.current = 'reconnecting';
+          setConnectionMode('reconnecting');
+        }
       }
     };
 
@@ -517,6 +546,18 @@ export function useWebRTC(config: WebRTCConfig) {
 
     pc.onconnectionstatechange = () => {
       console.log('WebRTC connection state:', pc.connectionState);
+      
+      // Also detect mode when connection state changes to connected
+      if (pc.connectionState === 'connected') {
+        hasConnectedRef.current = true;
+        // Clear fallback timeout
+        if (fallbackTimeoutRef.current) {
+          clearTimeout(fallbackTimeoutRef.current);
+          fallbackTimeoutRef.current = null;
+        }
+        // Detect connection mode
+        detectModeFromStats();
+      }
       
       // Handle connection failures by triggering ICE restart
       if (pc.connectionState === 'failed') {
