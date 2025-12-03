@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Scan, ArrowRight, Loader2, Keyboard, Upload, Home, KeyRound, Languages } from "lucide-react";
+import { Scan, ArrowRight, Loader2, Keyboard, Upload, Home, KeyRound, Languages, Server, AlertTriangle, CheckCircle2, Settings } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,12 @@ export default function JoinRoom() {
       qrReadSuccess: 'QR code read successfully!',
       noQrFound: 'No QR code found in image',
       attemptsRemaining: 'attempts remaining',
+      turnServerRequired: 'TURN Server Required',
+      configureTurnServer: 'Configure your TURN relay server for secure connections',
+      clickToConfigure: 'Click to Configure',
+      turnServerConfigured: 'TURN Server Configured',
+      connectedTo: 'Connected to',
+      change: 'Change',
     },
     ar: {
       backToHome: 'العودة للرئيسية',
@@ -84,6 +90,12 @@ export default function JoinRoom() {
       qrReadSuccess: 'تم قراءة رمز QR بنجاح!',
       noQrFound: 'لم يتم العثور على رمز QR في الصورة',
       attemptsRemaining: 'محاولات متبقية',
+      turnServerRequired: 'خادم TURN مطلوب',
+      configureTurnServer: 'قم بتكوين خادم TURN للاتصالات الآمنة',
+      clickToConfigure: 'انقر للتكوين',
+      turnServerConfigured: 'تم تكوين خادم TURN',
+      connectedTo: 'متصل بـ',
+      change: 'تغيير',
     },
   };
 
@@ -225,6 +237,61 @@ export default function JoinRoom() {
           <h1 className="text-3xl font-bold mb-2">{t.joinSession}</h1>
           <p className="text-muted-foreground font-mono text-sm">{t.authenticateVia}</p>
         </div>
+
+        {/* TURN Server Configuration Card */}
+        <Card 
+          className={`mb-4 p-4 cursor-pointer transition-all ${
+            turnConfig 
+              ? 'bg-green-500/10 border-green-500/30 hover:border-green-500/50' 
+              : 'bg-orange-500/10 border-orange-500/30 hover:border-orange-500/50'
+          }`}
+          onClick={() => setShowTurnConfig(true)}
+          data-testid="card-turn-config"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {turnConfig ? (
+                <div className="p-2 rounded-full bg-green-500/20">
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                </div>
+              ) : (
+                <div className="p-2 rounded-full bg-orange-500/20">
+                  <AlertTriangle className="w-5 h-5 text-orange-500" />
+                </div>
+              )}
+              <div>
+                <h3 className={`font-semibold text-sm ${turnConfig ? 'text-green-400' : 'text-orange-400'}`}>
+                  {turnConfig ? t.turnServerConfigured : t.turnServerRequired}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {turnConfig 
+                    ? `${t.connectedTo}: ${turnConfig.urls[0]?.replace(/^turns?:/, '').split(':')[0] || 'server'}`
+                    : t.configureTurnServer
+                  }
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className={turnConfig ? 'text-green-400 hover:text-green-300' : 'text-orange-400 hover:text-orange-300'}
+              data-testid="button-change-turn"
+            >
+              {turnConfig ? (
+                <span className="flex items-center gap-1">
+                  <Settings className="w-4 h-4" />
+                  {t.change}
+                </span>
+              ) : (
+                <span className="flex items-center gap-1">
+                  <Server className="w-4 h-4" />
+                  {t.clickToConfigure}
+                </span>
+              )}
+            </Button>
+          </div>
+        </Card>
 
         <div className="grid gap-6">
           <Card className="bg-card/50 backdrop-blur-md border-white/10 p-6">

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Lock, ArrowRight, Loader2, KeyRound, Home, Languages } from "lucide-react";
+import { Lock, ArrowRight, Loader2, KeyRound, Home, Languages, Server, AlertTriangle, CheckCircle2, Settings } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -51,9 +51,15 @@ export default function CreateRoom() {
       requireKey: 'Require a key to enter',
       enterSessionPassword: 'Enter session password',
       generateKeys: 'GENERATE KEYS & ENTER',
-      agreement: 'By creating a room you agree to P2P connection protocols.',
+      agreement: 'By creating a room you agree to relay connection protocols.',
       pleaseEnterNickname: 'Please enter your nickname',
       failedToCreate: 'Failed to create room. Please try again.',
+      turnServerRequired: 'TURN Server Required',
+      configureTurnServer: 'Configure your TURN relay server for secure connections',
+      clickToConfigure: 'Click to Configure',
+      turnServerConfigured: 'TURN Server Configured',
+      connectedTo: 'Connected to',
+      change: 'Change',
     },
     ar: {
       backToHome: 'العودة للرئيسية',
@@ -65,9 +71,15 @@ export default function CreateRoom() {
       requireKey: 'يتطلب مفتاح للدخول',
       enterSessionPassword: 'أدخل كلمة مرور الجلسة',
       generateKeys: 'إنشاء المفاتيح والدخول',
-      agreement: 'من خلال إنشاء غرفة فإنك توافق على بروتوكولات اتصال P2P.',
+      agreement: 'من خلال إنشاء غرفة فإنك توافق على بروتوكولات الاتصال عبر المُرحّل.',
       pleaseEnterNickname: 'الرجاء إدخال اسمك المستعار',
       failedToCreate: 'فشل في إنشاء الغرفة. يرجى المحاولة مرة أخرى.',
+      turnServerRequired: 'خادم TURN مطلوب',
+      configureTurnServer: 'قم بتكوين خادم TURN للاتصالات الآمنة',
+      clickToConfigure: 'انقر للتكوين',
+      turnServerConfigured: 'تم تكوين خادم TURN',
+      connectedTo: 'متصل بـ',
+      change: 'تغيير',
     },
   };
 
@@ -153,6 +165,61 @@ export default function CreateRoom() {
           <h1 className="text-3xl font-bold mb-2">{t.initSession}</h1>
           <p className="text-muted-foreground font-mono text-sm">{t.configureEnv}</p>
         </div>
+
+        {/* TURN Server Configuration Card */}
+        <Card 
+          className={`mb-4 p-4 cursor-pointer transition-all ${
+            turnConfig 
+              ? 'bg-green-500/10 border-green-500/30 hover:border-green-500/50' 
+              : 'bg-orange-500/10 border-orange-500/30 hover:border-orange-500/50'
+          }`}
+          onClick={() => setShowTurnConfig(true)}
+          data-testid="card-turn-config"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {turnConfig ? (
+                <div className="p-2 rounded-full bg-green-500/20">
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                </div>
+              ) : (
+                <div className="p-2 rounded-full bg-orange-500/20">
+                  <AlertTriangle className="w-5 h-5 text-orange-500" />
+                </div>
+              )}
+              <div>
+                <h3 className={`font-semibold text-sm ${turnConfig ? 'text-green-400' : 'text-orange-400'}`}>
+                  {turnConfig ? t.turnServerConfigured : t.turnServerRequired}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {turnConfig 
+                    ? `${t.connectedTo}: ${turnConfig.urls[0]?.replace(/^turns?:/, '').split(':')[0] || 'server'}`
+                    : t.configureTurnServer
+                  }
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className={turnConfig ? 'text-green-400 hover:text-green-300' : 'text-orange-400 hover:text-orange-300'}
+              data-testid="button-change-turn"
+            >
+              {turnConfig ? (
+                <span className="flex items-center gap-1">
+                  <Settings className="w-4 h-4" />
+                  {t.change}
+                </span>
+              ) : (
+                <span className="flex items-center gap-1">
+                  <Server className="w-4 h-4" />
+                  {t.clickToConfigure}
+                </span>
+              )}
+            </Button>
+          </div>
+        </Card>
 
         <Card className="bg-card/50 backdrop-blur-md border-white/10 p-6">
           <form onSubmit={handleCreate} className="space-y-6">
