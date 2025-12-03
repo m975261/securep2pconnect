@@ -537,11 +537,12 @@ export function useWebRTC(config: WebRTCConfig) {
           
           if (remoteCandidate) {
             remoteCandidateType = remoteCandidate.candidateType;
-            remoteIP = remoteCandidate.address || remoteCandidate.ip;
-            remotePort = remoteCandidate.port;
+            remoteIP = remoteCandidate.address || remoteCandidate.ip || remoteCandidate.relatedAddress;
+            remotePort = remoteCandidate.port || remoteCandidate.relatedPort;
             if (remoteCandidate.candidateType === 'relay' && !relayServerIP) {
               relayServerIP = remoteCandidate.address || remoteCandidate.ip;
             }
+            console.log('Remote candidate details:', JSON.stringify(remoteCandidate));
           }
           
           console.log('Final selected pair - local:', selectedCandidateType, localIP, '| remote:', remoteCandidateType, remoteIP);
