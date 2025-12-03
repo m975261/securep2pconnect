@@ -163,6 +163,9 @@ export function useWebRTC(config: WebRTCConfig) {
   const connectionModeRef = useRef<ConnectionMode>('pending');
   const detectedCandidateTypeRef = useRef<string | null>(null);
   
+  // Store peer's IP from ICE candidates (for P2P mode display)
+  const peerIPFromCandidatesRef = useRef<{ ip: string; port: number } | null>(null);
+  
   // Use refs for callbacks to prevent reconnections on re-renders
   const configRef = useRef(config);
   useEffect(() => {
@@ -581,10 +584,13 @@ export function useWebRTC(config: WebRTCConfig) {
             };
           } else {
             // P2P mode - show only remote peer's IP (not our local IP)
+            // Use IP from candidates if stats don't provide it (browser privacy)
+            const effectiveRemoteIP = remoteIP || peerIPFromCandidatesRef.current?.ip;
+            const effectiveRemotePort = remotePort || peerIPFromCandidatesRef.current?.port;
             details = {
               mode,
-              remoteIP,
-              remotePort,
+              remoteIP: effectiveRemoteIP,
+              remotePort: effectiveRemotePort,
               protocol,
             };
           }
@@ -802,6 +808,9 @@ export function useWebRTC(config: WebRTCConfig) {
                 // Close old peer connection
                 currentPc.close();
                 
+                // Reset peer IP from candidates for fresh detection
+                peerIPFromCandidatesRef.current = null;
+                
                 // Recreate peer connection with same config
                 const newPc = new RTCPeerConnection(currentPc.getConfiguration());
                 pcRef.current = newPc;
@@ -982,6 +991,21 @@ export function useWebRTC(config: WebRTCConfig) {
         } else if (message.type === 'ice-candidate') {
           if (currentPc && message.data) {
             console.log('Received ICE candidate from peer:', message.data.type, message.data.protocol, message.data.address);
+            
+            // Extract peer's IP from non-relay candidates (for P2P mode display)
+            // We prefer srflx (server reflexive = public IP), then host candidates
+            const candidateType = message.data.type || message.data.candidateType;
+            const candidateIP = message.data.address || message.data.ip;
+            const candidatePort = message.data.port;
+            
+            if (candidateIP && !candidateIP.endsWith('.local') && candidateType !== 'relay') {
+              // Store public IP from peer's candidates
+              // Prefer srflx (public IP) over host (private IP)
+              if (candidateType === 'srflx' || !peerIPFromCandidatesRef.current) {
+                peerIPFromCandidatesRef.current = { ip: candidateIP, port: candidatePort };
+                console.log('Stored peer IP from candidate:', candidateIP, candidatePort, '(type:', candidateType + ')');
+              }
+            }
             
             // Check if remote description is set - if not, buffer the candidate
             if (!currentPc.remoteDescription) {

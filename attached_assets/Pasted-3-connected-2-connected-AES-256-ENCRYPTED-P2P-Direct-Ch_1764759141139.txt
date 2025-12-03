@@ -1,0 +1,72 @@
+3
+connected
+
+2
+connected
+
+AES-256 ENCRYPTED
+
+P2P Direct
+
+
+Chat
+File Transfer
+ENCRYPTED CHANNEL
+P2P-WEBRTC-V2
+2
+• CONNECTED
+Type secure message...
+
+DEBUG LOGS
+(48)
+CLEAR
+
+
+2:51:06 PMTURN config available: false
+2:51:06 PMICE servers config: []
+2:51:06 PMNo TURN servers configured - audio/video will not work in relay-only mode
+2:51:07 PMWebSocket connected
+2:51:07 PM[JOINER] Joined room, existing peers: [object Object]
+2:51:07 PM[JOINER] ICE servers count: 0
+2:51:07 PM[JOINER] Creating initial offer...
+2:51:07 PM[JOINER] PC ICE gathering state before offer: new
+2:51:07 PMWebRTC signaling state: have-local-offer
+2:51:07 PM[JOINER] Local description set, ICE gathering state: new
+2:51:07 PM[JOINER] Offer sent, waiting for ICE candidates...
+2:51:07 PMICE candidate: host udp 660b316f-e8ce-4987-8186-c95965fc80fd.local
+2:51:07 PMSending ICE candidate to peer
+2:51:07 PMICE gathering state: gathering
+2:51:07 PMICE gathering state: complete
+2:51:07 PMICE gathering complete, total candidates: 1
+2:51:08 PMICE connection state: checking
+2:51:08 PMWebRTC connection state: connecting
+2:51:08 PMReceived answer, setting remote description
+2:51:08 PMCurrent signaling state before answer: have-local-offer
+2:51:08 PMWebRTC signaling state: stable
+2:51:08 PMRemote description set, new signaling state: stable
+2:51:08 PMICE connection state: connected
+2:51:08 PMRemote candidate details: {"id":"IJjlrCFE5","timestamp":1764759068467.572,"type":"remote-candidate","address":"","candidateType":"prflx","foundation":"680925099","ip":"","isRemote":true,"port":61858,"priority":1853628159,"protocol":"udp","transportId":"T01","usernameFragment":"6oDE"}
+2:51:08 PMFinal selected pair - local: host | remote: prflx
+2:51:08 PMConnection mode detected: p2p (local: host remote: prflx )
+2:51:08 PMConnection details: [object Object]
+2:51:08 PM[DataChannel] Connection channel opened
+2:51:08 PMWebRTC connection state: connected
+2:51:08 PMRemote candidate details: {"id":"IJjlrCFE5","timestamp":1764759068467.572,"type":"remote-candidate","address":"","candidateType":"prflx","foundation":"680925099","ip":"","isRemote":true,"port":61858,"priority":1853628159,"protocol":"udp","transportId":"T01","usernameFragment":"6oDE"}
+2:51:08 PMFinal selected pair - local: host | remote: prflx
+2:51:08 PMConnection details: [object Object]
+2:51:08 PMReceived ICE candidate from peer:
+2:51:08 PMAdded ICE candidate successfully
+2:51:08 PMReceived ICE candidate from peer:
+2:51:08 PMReceived ICE candidate from peer:
+2:51:08 PMReceived ICE candidate from peer:
+2:51:08 PMAdded ICE candidate successfully
+2:51:08 PMAdded ICE candidate successfully
+2:51:08 PMAdded ICE candidate successfully
+2:51:08 PMReceived ICE candidate from peer:
+2:51:08 PMAdded ICE candidate successfully
+2:51:08 PMReceived ICE candidate from peer:
+2:51:08 PMReceived ICE candidate from peer:
+2:51:08 PMReceived ICE candidate from peer:
+2:51:08 PMAdded ICE candidate successfully
+2:51:08 PMAdded ICE candidate successfully
+2:51:08 PMAdded ICE candidate successfully
