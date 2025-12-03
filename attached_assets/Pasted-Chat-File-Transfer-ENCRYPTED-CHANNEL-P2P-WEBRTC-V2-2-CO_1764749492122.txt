@@ -1,0 +1,74 @@
+Chat
+File Transfer
+ENCRYPTED CHANNEL
+P2P-WEBRTC-V2
+2
+• CONNECTED
+Type secure message...
+
+DEBUG LOGS
+(61)
+CLEAR
+
+
+12:10:14 PMTURN config available: true
+12:10:14 PMTURN URLs: ["turns:bn-turn1.xirsys.com:443?transport=tcp"]
+12:10:14 PMTURN username length: 84
+12:10:14 PMTURN credential length: 36
+12:10:14 PMICE servers config: [ { "urls": [ "turns:bn-turn1.xirsys.com:443?transport=tcp" ], "username": "zjLVacCnV-CfNAq-OQLadGBm6xZMhL_pAfIGmFjuXMMDOMlGiw3FhaOxY8Guij-QAAAAAGkv8AxtOTc1MjYx", "credential": "4950affc-d01f-11f0-af25-0242ac140004" } ]
+12:10:15 PMWebSocket connected
+12:10:15 PMJoined room, existing peers:
+12:10:16 PMWarning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+12:10:38 PMPeer joined: g61czi 2
+12:10:38 PMReceived offer, setting remote description
+12:10:38 PMCurrent signaling state before offer: stable
+12:10:38 PMWebRTC signaling state: have-remote-offer
+12:10:38 PMRemote description set from offer, new signaling state: have-remote-offer
+12:10:38 PMCreating answer
+12:10:38 PMWebRTC signaling state: stable
+12:10:38 PMSending answer, signaling state: stable
+12:10:38 PMAnswer sent
+12:10:47 PMReceived offer, setting remote description
+12:10:47 PMCurrent signaling state before offer: stable
+12:10:47 PMWebRTC signaling state: have-remote-offer
+12:10:47 PMReceived remote audio track, track kind: audio
+12:10:47 PMRemote description set from offer, new signaling state: have-remote-offer
+12:10:47 PMCreating answer
+12:10:47 PMSetting up remote audio stream, tracks: 1 enabled: true
+12:10:47 PMWebRTC signaling state: stable
+12:10:47 PMSending answer, signaling state: stable
+12:10:47 PMAnswer sent
+12:10:47 PMRemote audio playing, hasUserInteracted: false isSpeakerMuted: false
+12:10:47 PMICE gathering state: gathering
+12:10:48 PMICE candidate: relay udp 134.209.150.51
+12:10:48 PMICE gathering state: complete
+12:10:48 PMICE gathering complete, total candidates: 1
+12:10:59 PMReceived offer, setting remote description
+12:10:59 PMCurrent signaling state before offer: stable
+12:10:59 PMWebRTC signaling state: have-remote-offer
+12:10:59 PMRemote description set from offer, new signaling state: have-remote-offer
+12:10:59 PMCreating answer
+12:10:59 PMWebRTC signaling state: stable
+12:10:59 PMSending answer, signaling state: stable
+12:10:59 PMAnswer sent
+12:11:02 PMSetting up remote audio stream, tracks: 0 enabled:
+12:11:02 PMNo audio tracks in remote stream
+12:11:02 PMSetting up remote audio stream, tracks: 0 enabled:
+12:11:02 PMNo audio tracks in remote stream
+12:11:03 PMAdding audio track to peer connection
+12:11:03 PMCreating offer for negotiation, signalingState: stable
+12:11:03 PMWebRTC signaling state: have-local-offer
+12:11:03 PMOffer sent, waiting for answer
+12:11:03 PMChecking remote audio state: [object Object]
+12:11:03 PMReceived answer, setting remote description
+12:11:03 PMCurrent signaling state before answer: have-local-offer
+12:11:03 PMWebRTC signaling state: stable
+12:11:03 PMRemote description set, new signaling state: stable
+12:11:10 PMRemoving audio track from peer connection
+12:11:10 PMCreating offer for negotiation, signalingState: stable
+12:11:10 PMWebRTC signaling state: have-local-offer
+12:11:10 PMOffer sent, waiting for answer
+12:11:10 PMReceived answer, setting remote description
+12:11:10 PMCurrent signaling state before answer: have-local-offer
+12:11:10 PMWebRTC signaling state: stable
+12:11:10 PMRemote description set, new signaling state:
