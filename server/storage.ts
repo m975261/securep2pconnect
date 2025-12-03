@@ -15,6 +15,7 @@ import {
   adminUsers,
   peerConnections,
 } from "@shared/schema";
+import { decrypt } from "./encryption";
 
 const sql = neon(process.env.DATABASE_URL!);
 const db = drizzle(sql);
@@ -73,8 +74,8 @@ export class DbStorage implements IStorage {
     }
     return {
       urls: JSON.parse(room.turnUrls),
-      username: room.turnUsername,
-      credential: room.turnCredential,
+      username: decrypt(room.turnUsername),
+      credential: decrypt(room.turnCredential),
     };
   }
 

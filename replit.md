@@ -4,6 +4,14 @@ SECURE.LINK is a WebRTC communication application that enables secure, temporary
 
 ## Recent Updates
 
+### December 3, 2025 - Server-Side Encrypted TURN Configuration
+- **Encrypted TURN Storage**: TURN credentials encrypted server-side using AES-256-GCM before database storage
+- **Room-Bound TURN Config**: TURN server config stored with each room, not globally in localStorage
+- **Simplified Join Flow**: Joiners automatically receive TURN config from server (no manual configuration needed)
+- **Auto-Proceed Flow**: After configuring TURN, users automatically proceed to room creation
+- **API Security**: New `/api/rooms/:id/turn-config` endpoint for secure credential retrieval
+- **Encryption Module**: `server/encryption.ts` handles encrypt/decrypt with derived key from environment
+
 ### November 27, 2025 - TURN-Relay-Only Architecture
 - **P2P Infrastructure Removed**: Deleted all P2P helper code (helper/, webrtc-p2p.ts, p2p-room.tsx)
 - **User-Provided TURN Servers**: TurnConfigModal component for users to input their own TURN server credentials
@@ -107,6 +115,12 @@ Preferred communication style: Simple, everyday language.
 - **No STUN servers**: Application does not use any STUN servers to prevent local IP discovery
 - **User-controlled TURN servers**: Users provide their own TURN relay servers for complete control
 - **No default relays**: Application ships with no built-in TURN server credentials
+
+**TURN Credential Encryption**
+- **AES-256-GCM encryption**: TURN username and credentials encrypted at rest in database
+- **Per-room storage**: Each room stores its own encrypted TURN configuration
+- **Secure retrieval**: Credentials decrypted only when returned via API for authorized requests
+- **Key derivation**: Encryption key derived from environment variable using SHA-256
 
 **Rate Limiting**
 - Tracks failed password attempts per IP per room

@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 import { registerAdminRoutes, initializeDefaultAdmin, parseUserAgent } from "./admin-routes";
+import { encrypt, decrypt } from "./encryption";
 
 const turnConfigSchema = z.object({
   urls: z.array(z.string()).min(1),
@@ -121,8 +122,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         peer1: null,
         peer2: null,
         turnUrls: JSON.stringify(body.turnConfig.urls),
-        turnUsername: body.turnConfig.username,
-        turnCredential: body.turnConfig.credential,
+        turnUsername: encrypt(body.turnConfig.username),
+        turnCredential: encrypt(body.turnConfig.credential),
       });
 
       res.json({ roomId: room.id });
