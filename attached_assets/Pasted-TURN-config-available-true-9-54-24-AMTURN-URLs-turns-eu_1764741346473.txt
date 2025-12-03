@@ -1,0 +1,61 @@
+TURN config available: true
+9:54:24 AMTURN URLs: ["turns:eu-central.turnix.io:443?transport=udp"]
+9:54:24 AMTURN username length: 36
+9:54:24 AMTURN credential length: 32
+9:54:24 AMICE servers config: [ { "urls": [ "turns:eu-central.turnix.io:443?transport=udp" ], "username": "8edb4ed8-0c55-4ed1-b22b-c834933faaaf", "credential": "acd8aea6a61d5a7536ca03fae8974fdf" } ]
+9:54:26 AMWebSocket connected
+9:54:26 AMWarning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+9:54:26 AMJoined room, existing peers:
+9:54:45 AMPeer joined: bp3geb 2
+9:54:46 AMReceived offer, setting remote description
+9:54:46 AMCurrent signaling state before offer: stable
+9:54:46 AMWebRTC signaling state: have-remote-offer
+9:54:46 AMRemote description set from offer, new signaling state: have-remote-offer
+9:54:46 AMCreating answer
+9:54:46 AMWebRTC signaling state: stable
+9:54:46 AMSending answer, signaling state: stable
+9:54:46 AMAnswer sent
+9:54:50 AMReceived offer, setting remote description
+9:54:50 AMCurrent signaling state before offer: stable
+9:54:50 AMWebRTC signaling state: have-remote-offer
+9:54:50 AMReceived remote audio track, track kind: audio
+9:54:50 AMRemote description set from offer, new signaling state: have-remote-offer
+9:54:50 AMCreating answer
+9:54:50 AMSetting up remote audio stream, tracks: 1 enabled: true
+9:54:50 AMWebRTC signaling state: stable
+9:54:50 AMSending answer, signaling state: stable
+9:54:50 AMAnswer sent
+9:54:50 AMRemote audio playing, hasUserInteracted: false isSpeakerMuted: false
+9:54:50 AMICE gathering state: gathering
+9:54:51 AMICE gathering state: complete
+9:54:51 AMICE gathering complete, total candidates: 0
+9:54:51 AMNO ICE candidates generated! TURN server may be unreachable or credentials invalid.
+9:54:57 AMReceived offer, setting remote description
+9:54:57 AMCurrent signaling state before offer: stable
+9:54:57 AMWebRTC signaling state: have-remote-offer
+9:54:57 AMRemote description set from offer, new signaling state: have-remote-offer
+9:54:57 AMCreating answer
+9:54:57 AMWebRTC signaling state: stable
+9:54:57 AMSending answer, signaling state: stable
+9:54:57 AMAnswer sent
+9:55:01 AMSetting up remote audio stream, tracks: 0 enabled:
+9:55:01 AMNo audio tracks in remote stream
+9:55:01 AMSetting up remote audio stream, tracks: 0 enabled:
+9:55:01 AMNo audio tracks in remote stream
+9:55:02 AMAdding audio track to peer connection
+9:55:02 AMCreating offer for negotiation, signalingState: stable
+9:55:02 AMWebRTC signaling state: have-local-offer
+9:55:02 AMOffer sent, waiting for answer
+9:55:02 AMChecking remote audio state: [object Object]
+9:55:02 AMReceived answer, setting remote description
+9:55:02 AMCurrent signaling state before answer: have-local-offer
+9:55:02 AMWebRTC signaling state: stable
+9:55:02 AMRemote description set, new signaling state: stable
+9:55:17 AMRemoving audio track from peer connection
+9:55:17 AMCreating offer for negotiation, signalingState: stable
+9:55:17 AMWebRTC signaling state: have-local-offer
+9:55:17 AMOffer sent, waiting for answer
+9:55:17 AMReceived answer, setting remote description
+9:55:17 AMCurrent signaling state before answer: have-local-offer
+9:55:17 AMWebRTC signaling state: stable
+9:55:17 AMRemote description set, new signaling state: stable
