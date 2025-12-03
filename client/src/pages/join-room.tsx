@@ -124,16 +124,10 @@ export default function JoinRoom() {
         return;
       }
 
-      // Fetch TURN config from server and store it locally
-      try {
-        const turnResponse = await fetch(`/api/rooms/${code}/turn-config`);
-        if (turnResponse.ok) {
-          const serverTurnConfig = await turnResponse.json();
-          localStorage.setItem('turn-config', JSON.stringify(serverTurnConfig));
-          setTurnConfig(serverTurnConfig);
-        }
-      } catch (turnError) {
-        console.error('Error fetching TURN config:', turnError);
+      // Store TURN config from join response locally for WebRTC
+      if (data.turnConfig) {
+        localStorage.setItem('turn-config', JSON.stringify(data.turnConfig));
+        setTurnConfig(data.turnConfig);
       }
 
       setLocation(`/room/${code}?nickname=${encodeURIComponent(nickname.trim())}`);

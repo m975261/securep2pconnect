@@ -218,10 +218,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.resetFailedAttempts(id, ipAddress);
 
+      const turnConfig = await storage.getRoomTurnConfig(id);
+
       res.json({ 
         success: true, 
         hasPassword: !!room.password, 
-        isCreator
+        isCreator,
+        turnConfig
       });
     } catch (error) {
       console.error("Error joining room:", error);
@@ -249,22 +252,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting room:", error);
       res.status(500).json({ error: "Failed to get room" });
-    }
-  });
-
-  app.get("/api/rooms/:id/turn-config", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const turnConfig = await storage.getRoomTurnConfig(id);
-      
-      if (!turnConfig) {
-        return res.status(404).json({ error: "Room not found or no TURN config available" });
-      }
-
-      res.json(turnConfig);
-    } catch (error) {
-      console.error("Error getting TURN config:", error);
-      res.status(500).json({ error: "Failed to get TURN config" });
     }
   });
 
