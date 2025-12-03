@@ -50,10 +50,13 @@ const translations = {
     requiredFields: "TURN server URL, username, and credential are required",
     example: "Example: turn:relay.com:3478?transport=udp or turns:relay.com:443?transport=tcp",
     stunExample: "Example: stun:stun.l.google.com:19302",
-    testConnection: "Test Connection",
+    testConnection: "Test TURN",
+    testStun: "Test STUN",
     testing: "Testing...",
     testSuccess: "Connection successful! Found relay candidates.",
     testFailed: "Connection failed",
+    stunTestSuccess: "STUN server is reachable!",
+    stunTestFailed: "STUN test failed",
   },
   ar: {
     title: "تكوين خادم TURN",
@@ -76,10 +79,13 @@ const translations = {
     requiredFields: "عنوان URL لخادم TURN واسم المستخدم وكلمة المرور مطلوبة",
     example: "مثال: turn:relay.com:3478?transport=udp أو turns:relay.com:443?transport=tcp",
     stunExample: "مثال: stun:stun.l.google.com:19302",
-    testConnection: "اختبار الاتصال",
+    testConnection: "اختبار TURN",
+    testStun: "اختبار STUN",
     testing: "جاري الاختبار...",
     testSuccess: "نجح الاتصال! تم العثور على مرشحات التتابع.",
     testFailed: "فشل الاتصال",
+    stunTestSuccess: "خادم STUN قابل للوصول!",
+    stunTestFailed: "فشل اختبار STUN",
   }
 };
 
@@ -92,6 +98,8 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
   const [credential, setCredential] = useState("");
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'failed' | null>(null);
+  const [isTestingStun, setIsTestingStun] = useState(false);
+  const [stunTestResult, setStunTestResult] = useState<'success' | 'failed' | null>(null);
 
   const t = translations[language];
 
@@ -139,8 +147,9 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
         setUsername("");
         setCredential("");
       }
-      // Reset test state
+      // Reset test states
       setTestResult(null);
+      setStunTestResult(null);
     }
   }, [open]);
 
@@ -185,14 +194,86 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
     }
   };
 
+  const handleTestStunConnection = async () => {
+    const validStunUrls = stunUrls.filter(url => url.trim());
+    
+    if (validStunUrls.length === 0) {
+      toast.error("Please enter at least one STUN URL to test");
+      return;
+    }
+
+    // Validate STUN URL format
+    for (const url of validStunUrls) {
+      if (!validateStunUrl(url)) {
+        toast.error(`${t.invalidStunUrl}: ${url}`);
+        return;
+      }
+    }
+
+    setIsTestingStun(true);
+    setStunTestResult(null);
+
+    try {
+      // Test STUN connectivity by creating a peer connection with just STUN servers
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: validStunUrls }],
+      });
+      
+      // Create a data channel to trigger ICE gathering
+      pc.createDataChannel('stun-test');
+      
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      
+      // Wait for ICE gathering to complete or timeout
+      const result = await new Promise<boolean>((resolve) => {
+        const timeout = setTimeout(() => {
+          pc.close();
+          resolve(false);
+        }, 10000);
+
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            // Found a candidate - STUN is working
+            clearTimeout(timeout);
+            pc.close();
+            resolve(true);
+          }
+        };
+
+        pc.onicegatheringstatechange = () => {
+          if (pc.iceGatheringState === 'complete') {
+            clearTimeout(timeout);
+            pc.close();
+            // If we got here without finding candidates, STUN failed
+            resolve(false);
+          }
+        };
+      });
+
+      if (result) {
+        setStunTestResult('success');
+        toast.success(t.stunTestSuccess);
+      } else {
+        setStunTestResult('failed');
+        toast.error(t.stunTestFailed);
+      }
+    } catch (error: any) {
+      setStunTestResult('failed');
+      toast.error(`${t.stunTestFailed}: ${error.message}`);
+    } finally {
+      setIsTestingStun(false);
+    }
+  };
+
   const validateTurnUrl = (url: string): boolean => {
     // TURN URLs format: turn:hostname:port or turns:hostname:port, optionally with ?transport=udp|tcp
     return /^turns?:[^:]+:\d+(\?transport=(udp|tcp))?$/.test(url.trim());
   };
 
   const validateStunUrl = (url: string): boolean => {
-    // STUN URLs format: stun:hostname:port
-    return /^stun:[^:]+:\d+$/.test(url.trim());
+    // STUN URLs format: stun:hostname or stun:hostname:port (port is optional, defaults to 3478)
+    return /^stun:[^:\s]+(:\d+)?$/.test(url.trim());
   };
 
   const handleAddUrl = () => {
@@ -493,51 +574,87 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
           </div>
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button
-            variant="outline"
-            onClick={handleTestConnection}
-            disabled={isTesting}
-            className={`border-white/10 ${
-              testResult === 'success' ? 'border-green-500/50 text-green-400' : 
-              testResult === 'failed' ? 'border-red-500/50 text-red-400' : ''
-            }`}
-            data-testid="button-test-turn"
-          >
-            {isTesting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                {t.testing}
-              </>
-            ) : testResult === 'success' ? (
-              <>
-                <Wifi className="w-4 h-4 mr-2" />
-                {t.testConnection}
-              </>
-            ) : testResult === 'failed' ? (
-              <>
-                <WifiOff className="w-4 h-4 mr-2" />
-                {t.testConnection}
-              </>
-            ) : (
-              <>
-                <Wifi className="w-4 h-4 mr-2" />
-                {t.testConnection}
-              </>
-            )}
-          </Button>
-          <div className="flex gap-2">
+        <DialogFooter className="flex-col gap-3 pb-2">
+          {/* Test buttons row */}
+          <div className="flex gap-2 w-full">
+            <Button
+              variant="outline"
+              onClick={handleTestConnection}
+              disabled={isTesting || isTestingStun}
+              className={`flex-1 border-white/10 ${
+                testResult === 'success' ? 'border-green-500/50 text-green-400' : 
+                testResult === 'failed' ? 'border-red-500/50 text-red-400' : ''
+              }`}
+              data-testid="button-test-turn"
+            >
+              {isTesting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {t.testing}
+                </>
+              ) : testResult === 'success' ? (
+                <>
+                  <Wifi className="w-4 h-4 mr-2" />
+                  {t.testConnection}
+                </>
+              ) : testResult === 'failed' ? (
+                <>
+                  <WifiOff className="w-4 h-4 mr-2" />
+                  {t.testConnection}
+                </>
+              ) : (
+                <>
+                  <Wifi className="w-4 h-4 mr-2" />
+                  {t.testConnection}
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleTestStunConnection}
+              disabled={isTesting || isTestingStun}
+              className={`flex-1 border-white/10 ${
+                stunTestResult === 'success' ? 'border-green-500/50 text-green-400' : 
+                stunTestResult === 'failed' ? 'border-red-500/50 text-red-400' : ''
+              }`}
+              data-testid="button-test-stun"
+            >
+              {isTestingStun ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {t.testing}
+                </>
+              ) : stunTestResult === 'success' ? (
+                <>
+                  <Radio className="w-4 h-4 mr-2" />
+                  {t.testStun}
+                </>
+              ) : stunTestResult === 'failed' ? (
+                <>
+                  <WifiOff className="w-4 h-4 mr-2" />
+                  {t.testStun}
+                </>
+              ) : (
+                <>
+                  <Radio className="w-4 h-4 mr-2" />
+                  {t.testStun}
+                </>
+              )}
+            </Button>
+          </div>
+          {/* Action buttons row */}
+          <div className="flex gap-2 w-full">
             <Button
               variant="ghost"
               onClick={onCancel}
-              className="border-white/10"
+              className="flex-1 border-white/10"
               data-testid="button-cancel-turn"
             >
               {t.cancel}
             </Button>
             <Button
               onClick={handleSubmit}
-              className="bg-primary hover:bg-primary/90"
+              className="flex-1 bg-primary hover:bg-primary/90"
               data-testid="button-submit-turn"
             >
               {t.connect}
