@@ -106,6 +106,7 @@ export default function CreateRoom() {
             urls: turnConfig.urls,
             username: turnConfig.username,
             credential: turnConfig.credential,
+            stunUrls: turnConfig.stunUrls,
           },
         }),
       });
