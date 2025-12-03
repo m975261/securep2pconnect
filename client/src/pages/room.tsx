@@ -889,7 +889,7 @@ export default function Room() {
               <Dialog open={showConnectionDetails} onOpenChange={setShowConnectionDetails}>
                 <DialogTrigger asChild>
                   <button 
-                    className={`flex items-center justify-center gap-1.5 p-1.5 md:p-2 rounded-lg border transition-all ${
+                    className={`w-full flex items-center justify-center gap-1.5 p-1.5 md:p-2 rounded-lg border transition-all ${
                       isCreator ? 'cursor-pointer hover:opacity-80' : 'cursor-default'
                     } ${
                       connectionMode === 'p2p' 

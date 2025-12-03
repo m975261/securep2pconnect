@@ -50,7 +50,10 @@ const activePeers = new Map<string, RoomPeer>();
 const roomPeers = new Map<string, Set<string>>();
 
 function generateRoomId(): string {
-  return randomBytes(3).toString("hex").toUpperCase();
+  // Generate a simple 5-digit room ID like 22441 or 44553
+  const min = 10000;
+  const max = 99999;
+  return Math.floor(Math.random() * (max - min + 1) + min).toString();
 }
 
 function getClientIP(req: Request): string {

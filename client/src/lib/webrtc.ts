@@ -111,6 +111,18 @@ interface SendFileOptions {
 
 export type ConnectionMode = 'pending' | 'p2p' | 'turn' | 'reconnecting';
 
+// Extract IP/host from TURN URL like "turn:1.2.3.4:3478" or "turns:server.example.com:5349"
+function extractTurnServerHost(urls: string[]): string | undefined {
+  for (const url of urls) {
+    // Match turn:host:port or turns:host:port patterns
+    const match = url.match(/turns?:\/?\/?([^:/?]+)/);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  return undefined;
+}
+
 export interface ConnectionDetails {
   mode: ConnectionMode;
   localIP?: string;
@@ -531,11 +543,20 @@ export function useWebRTC(config: WebRTCConfig) {
           // Update connection details - only show relevant IPs based on mode
           let details: ConnectionDetails;
           if (isRelay) {
-            // TURN mode - only show TURN server IP
+            // TURN mode - get TURN server IP from stats or config URL
+            let turnIP = relayServerIP || localIP;
+            // Fallback to extracting from TURN config URL if not available from stats
+            if (!turnIP && turnConfig?.urls) {
+              turnIP = extractTurnServerHost(turnConfig.urls);
+            }
+            // Final fallback to remoteIP if nothing else worked
+            if (!turnIP) {
+              turnIP = remoteIP;
+            }
             details = {
               mode,
               protocol,
-              turnServerIP: relayServerIP || localIP || remoteIP,
+              turnServerIP: turnIP,
             };
           } else {
             // P2P mode - show both peer IPs
