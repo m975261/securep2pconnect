@@ -19,9 +19,16 @@ import {
 const sql = neon(process.env.DATABASE_URL!);
 const db = drizzle(sql);
 
+export interface TurnConfig {
+  urls: string[];
+  username: string;
+  credential: string;
+}
+
 export interface IStorage {
   createRoom(room: InsertRoom): Promise<Room>;
   getRoom(id: string): Promise<Room | undefined>;
+  getRoomTurnConfig(id: string): Promise<TurnConfig | null>;
   updateRoomPeer(roomId: string, peerId: string): Promise<void>;
   updateRoomPassword(roomId: string, password: string | null): Promise<void>;
   deleteRoom(id: string): Promise<void>;
@@ -57,6 +64,18 @@ export class DbStorage implements IStorage {
       .from(rooms)
       .where(and(eq(rooms.id, id), eq(rooms.isActive, true)));
     return room;
+  }
+
+  async getRoomTurnConfig(id: string): Promise<TurnConfig | null> {
+    const room = await this.getRoom(id);
+    if (!room || !room.turnUrls || !room.turnUsername || !room.turnCredential) {
+      return null;
+    }
+    return {
+      urls: JSON.parse(room.turnUrls),
+      username: room.turnUsername,
+      credential: room.turnCredential,
+    };
   }
 
   async updateRoomPeer(roomId: string, peerId: string): Promise<void> {
