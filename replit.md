@@ -12,7 +12,7 @@ Key fixes in this stable version:
 - **Consistent Mode Display**: Both peers now show the same connection mode (TURN if either side uses relay)
 - **Reconnection Fix**: Mode detection uses `pcRef.current` instead of stale `pc` reference after peer connection recreation
 - **P2P Display**: Shows only peer IP for P2P mode, TURN server IP for relay mode
-- **Room ID Format**: Simple 5-digit numbers with AABBC pattern (e.g., 22441, 33557)
+- **Room ID Format**: Simple 5-digit numbers with XXYYZ pattern (e.g., 22446, 33779)
 
 ### December 3, 2025 - P2P-First with TURN Fallback
 - **P2P-First Strategy**: Changed from TURN-only to P2P-first connections (`iceTransportPolicy: 'all'`)

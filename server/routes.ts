@@ -50,12 +50,12 @@ const activePeers = new Map<string, RoomPeer>();
 const roomPeers = new Map<string, Set<string>>();
 
 function generateRoomId(): string {
-  // Generate a simple 5-digit room ID with pattern like 22441 or 44553
-  // Pattern: AABBC where A, B, C are digits
-  const a = Math.floor(Math.random() * 9) + 1; // 1-9 (no leading zero)
-  const b = Math.floor(Math.random() * 10); // 0-9
-  const c = Math.floor(Math.random() * 10); // 0-9
-  return `${a}${a}${b}${b}${c}`;
+  // Generate a simple 5-digit room ID with pattern like 22446 or 33779
+  // Pattern: XXYYZ where X, Y, Z are digits
+  const x = Math.floor(Math.random() * 9) + 1; // 1-9 (no leading zero)
+  const y = Math.floor(Math.random() * 10); // 0-9
+  const z = Math.floor(Math.random() * 10); // 0-9
+  return `${x}${x}${y}${y}${z}`;
 }
 
 function getClientIP(req: Request): string {
