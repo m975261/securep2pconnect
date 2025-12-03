@@ -4,14 +4,18 @@ SECURE.LINK is a WebRTC communication application that enables secure, temporary
 
 ## Recent Updates
 
-### December 3, 2025 - STABLE BASELINE (Connection Mode Detection Fixed)
+### December 3, 2025 - STABLE BASELINE (Fully Working)
 **This is the stable baseline to return to if issues arise.**
 
 Key fixes in this stable version:
 - **Correct Mode Detection**: Uses `Array.find()` to get exactly ONE selected candidate pair (priority: `selected===true` > `nominated+succeeded` > `succeeded`)
 - **Consistent Mode Display**: Both peers now show the same connection mode (TURN if either side uses relay)
 - **Reconnection Fix**: Mode detection uses `pcRef.current` instead of stale `pc` reference after peer connection recreation
-- **P2P Display**: Shows only peer IP for P2P mode, TURN server IP for relay mode
+- **P2P IP Display**: Parses ICE candidate strings to extract peer's public IP (browsers hide IPs in stats for privacy)
+  - Stores peer IP from received ICE candidates (`peerIPFromCandidatesRef`)
+  - Prefers `srflx` (public IP) over `host` (private IP) candidates
+  - Parses candidate string format: `candidate:foundation component protocol priority ip port typ type ...`
+- **TURN IP Display**: Shows TURN server IP for relay mode
 - **Room ID Format**: Simple 5-digit numbers with XXYYZ pattern (e.g., 22446, 33779)
 
 ### December 3, 2025 - P2P-First with TURN Fallback
