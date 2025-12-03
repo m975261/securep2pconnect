@@ -1,0 +1,95 @@
+DEBUG LOGS
+(90)
+CLEAR
+
+
+2:13:04 PMTURN config available: true
+2:13:04 PMTURN URLs: ["turns:bn-turn1.xirsys.com:443?transport=tcp"]
+2:13:04 PMSTUN URLs: ["stun:bn-turn1.xirsys.com"]
+2:13:04 PMTURN username length: 84
+2:13:04 PMTURN credential length: 36
+2:13:04 PMICE servers config: [ { "urls": [ "stun:bn-turn1.xirsys.com" ] }, { "urls": [ "turns:bn-turn1.xirsys.com:443?transport=tcp" ], "username": "zjLVacCnV-CfNAq-OQLadGBm6xZMhL_pAfIGmFjuXMMDOMlGiw3FhaOxY8Guij-QAAAAAGkv8AxtOTc1MjYx", "credential": "4950affc-d01f-11f0-af25-0242ac140004" } ]
+2:13:05 PMWebSocket connected
+2:13:05 PM[CREATOR] Joined room, existing peers:
+2:13:05 PM[CREATOR] ICE servers count: 2
+2:13:06 PMUser interacted with page - enabling audio
+2:13:06 PMWarning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+2:13:21 PMPeer joined: sr4cip 2
+2:13:21 PMReceived offer, setting remote description
+2:13:21 PMCurrent signaling state before offer: stable
+2:13:21 PMWebRTC signaling state: have-remote-offer
+2:13:21 PMRemote description set from offer, new signaling state: have-remote-offer
+2:13:21 PMCreating answer
+2:13:21 PMWebRTC signaling state: stable
+2:13:21 PMSending answer, signaling state: stable
+2:13:21 PMAnswer sent
+2:13:21 PM[CREATOR] Polling for connection mode, attempt: 1 pc state: new
+2:13:22 PM[CREATOR] Polling for connection mode, attempt: 2 pc state: new
+2:13:22 PM[CREATOR] Polling for connection mode, attempt: 3 pc state: new
+2:13:23 PM[CREATOR] Polling for connection mode, attempt: 4 pc state: new
+2:13:23 PM[CREATOR] Polling for connection mode, attempt: 5 pc state: new
+2:13:24 PM[CREATOR] Polling for connection mode, attempt: 6 pc state: new
+2:13:24 PM[CREATOR] Polling for connection mode, attempt: 7 pc state: new
+2:13:25 PM[CREATOR] Polling for connection mode, attempt: 8 pc state: new
+2:13:25 PM[CREATOR] Polling for connection mode, attempt: 9 pc state: new
+2:13:26 PM[CREATOR] Polling for connection mode, attempt: 10 pc state: new
+2:13:26 PMReceived offer, setting remote description
+2:13:26 PMCurrent signaling state before offer: stable
+2:13:26 PMWebRTC signaling state: have-remote-offer
+2:13:26 PMRemote description set from offer, new signaling state: have-remote-offer
+2:13:26 PMCreating answer
+2:13:26 PMWebRTC signaling state: stable
+2:13:26 PMSending answer, signaling state: stable
+2:13:26 PMAnswer sent
+2:13:26 PM[CREATOR] Polling for connection mode, attempt: 11 pc state: new
+2:13:26 PM[CREATOR] Polling for connection mode, attempt: 1 pc state: new
+2:13:27 PM[CREATOR] Polling for connection mode, attempt: 12 pc state: new
+2:13:27 PM[CREATOR] Polling for connection mode, attempt: 2 pc state: new
+2:13:27 PM[CREATOR] Polling for connection mode, attempt: 13 pc state: new
+2:13:27 PM[CREATOR] Polling for connection mode, attempt: 3 pc state: new
+2:13:28 PM[CREATOR] Polling for connection mode, attempt: 14 pc state: new
+2:13:28 PM[CREATOR] Polling for connection mode, attempt: 4 pc state: new
+2:13:28 PM[CREATOR] Polling for connection mode, attempt: 15 pc state: new
+2:13:28 PM[CREATOR] Polling for connection mode, attempt: 5 pc state: new
+2:13:29 PM[CREATOR] Polling for connection mode, attempt: 16 pc state: new
+2:13:29 PM[CREATOR] Polling for connection mode, attempt: 6 pc state: new
+2:13:29 PM[CREATOR] Polling for connection mode, attempt: 17 pc state: new
+2:13:29 PM[CREATOR] Polling for connection mode, attempt: 7 pc state: new
+2:13:30 PM[CREATOR] Polling for connection mode, attempt: 18 pc state: new
+2:13:30 PM[CREATOR] Polling for connection mode, attempt: 8 pc state: new
+2:13:30 PM[CREATOR] Polling for connection mode, attempt: 19 pc state: new
+2:13:30 PM[CREATOR] Polling for connection mode, attempt: 9 pc state: new
+2:13:31 PM[CREATOR] Polling for connection mode, attempt: 20 pc state: new
+2:13:31 PM[CREATOR] Polling for connection mode, attempt: 10 pc state: new
+2:13:31 PM[CREATOR] Polling for connection mode, attempt: 21 pc state: new
+2:13:31 PM[CREATOR] Polling for connection mode, attempt: 11 pc state: new
+2:13:32 PM[CREATOR] Polling for connection mode, attempt: 22 pc state: new
+2:13:32 PM[CREATOR] Polling for connection mode, attempt: 12 pc state: new
+2:13:32 PM[CREATOR] Polling for connection mode, attempt: 23 pc state: new
+2:13:32 PM[CREATOR] Polling for connection mode, attempt: 13 pc state: new
+2:13:33 PM[CREATOR] Polling for connection mode, attempt: 24 pc state: new
+2:13:33 PM[CREATOR] Polling for connection mode, attempt: 14 pc state: new
+2:13:33 PM[CREATOR] Polling for connection mode, attempt: 25 pc state: new
+2:13:33 PM[CREATOR] Polling for connection mode, attempt: 15 pc state: new
+2:13:34 PM[CREATOR] Polling for connection mode, attempt: 26 pc state: new
+2:13:34 PM[CREATOR] Polling for connection mode, attempt: 16 pc state: new
+2:13:34 PM[CREATOR] Polling for connection mode, attempt: 27 pc state: new
+2:13:34 PM[CREATOR] Polling for connection mode, attempt: 17 pc state: new
+2:13:35 PM[CREATOR] Polling for connection mode, attempt: 28 pc state: new
+2:13:35 PM[CREATOR] Polling for connection mode, attempt: 18 pc state: new
+2:13:35 PM[CREATOR] Polling for connection mode, attempt: 29 pc state: new
+2:13:35 PM[CREATOR] Polling for connection mode, attempt: 19 pc state: new
+2:13:36 PM[CREATOR] Polling for connection mode, attempt: 30 pc state: new
+2:13:36 PM[CREATOR] Stopping poll - mode: pending attempts: 30
+2:13:36 PM[CREATOR] Polling for connection mode, attempt: 20 pc state: new
+2:13:36 PM[CREATOR] Polling for connection mode, attempt: 21 pc state: new
+2:13:37 PM[CREATOR] Polling for connection mode, attempt: 22 pc state: new
+2:13:37 PM[CREATOR] Polling for connection mode, attempt: 23 pc state: new
+2:13:38 PM[CREATOR] Polling for connection mode, attempt: 24 pc state: new
+2:13:38 PM[CREATOR] Polling for connection mode, attempt: 25 pc state: new
+2:13:39 PM[CREATOR] Polling for connection mode, attempt: 26 pc state: new
+2:13:39 PM[CREATOR] Polling for connection mode, attempt: 27 pc state: new
+2:13:40 PM[CREATOR] Polling for connection mode, attempt: 28 pc state: new
+2:13:40 PM[CREATOR] Polling for connection mode, attempt: 29 pc state: new
+2:13:41 PM[CREATOR] Polling for connection mode, attempt: 30 pc state: new
+2:13:41 PM[CREATOR] Stopping poll - mode: pending attempts: 30
