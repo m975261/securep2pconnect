@@ -15,6 +15,7 @@ export const rooms = pgTable("rooms", {
   turnUrls: text("turn_urls"),
   turnUsername: text("turn_username"),
   turnCredential: text("turn_credential"),
+  stunUrls: text("stun_urls"),
 });
 
 export const failedAttempts = pgTable("failed_attempts", {

@@ -24,6 +24,7 @@ export interface TurnConfig {
   urls: string[];
   username: string;
   credential: string;
+  stunUrls?: string[];
 }
 
 export interface IStorage {
@@ -76,6 +77,7 @@ export class DbStorage implements IStorage {
       urls: JSON.parse(room.turnUrls),
       username: decrypt(room.turnUsername),
       credential: decrypt(room.turnCredential),
+      stunUrls: room.stunUrls ? JSON.parse(room.stunUrls) : undefined,
     };
   }
 

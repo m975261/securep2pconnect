@@ -11,6 +11,7 @@ const turnConfigSchema = z.object({
   urls: z.array(z.string()).min(1),
   username: z.string().min(1),
   credential: z.string().min(1),
+  stunUrls: z.array(z.string()).optional(),
 });
 
 const createRoomSchema = z.object({
@@ -124,6 +125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         turnUrls: JSON.stringify(body.turnConfig.urls),
         turnUsername: encrypt(body.turnConfig.username),
         turnCredential: encrypt(body.turnConfig.credential),
+        stunUrls: body.turnConfig.stunUrls ? JSON.stringify(body.turnConfig.stunUrls) : null,
       });
 
       res.json({ roomId: room.id });
