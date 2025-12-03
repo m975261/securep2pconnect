@@ -492,9 +492,10 @@ export function useWebRTC(config: WebRTCConfig) {
 
     // Function to detect connection mode from stats
     const detectModeFromStats = () => {
-      if (!pc || pc.connectionState === 'closed') return;
+      const currentPc = pcRef.current;
+      if (!currentPc || currentPc.connectionState === 'closed') return;
       
-      pc.getStats().then(stats => {
+      currentPc.getStats().then(stats => {
         let selectedCandidateType: string | null = null;
         let remoteCandidateType: string | null = null;
         let localIP: string | undefined;

@@ -1,0 +1,113 @@
+Chat
+File Transfer
+ENCRYPTED CHANNEL
+P2P-WEBRTC-V2
+2
+• CONNECTED
+Type secure message...
+
+DEBUG LOGS
+(100)
+CLEAR
+
+
+2:34:56 PMICE candidate: host udp 100.100.229.13
+2:34:56 PMSending ICE candidate to peer
+2:34:56 PMICE candidate: host udp 172.30.0.1
+2:34:56 PMSending ICE candidate to peer
+2:34:56 PMICE candidate: host udp 192.168.1.245
+2:34:56 PMSending ICE candidate to peer
+2:34:56 PMICE candidate: host udp [fd7a:115c:a1e0::4235:e50d]
+2:34:56 PMSending ICE candidate to peer
+2:34:56 PMICE candidate: host tcp 100.100.229.13
+2:34:56 PMSending ICE candidate to peer
+2:34:56 PMICE candidate: host tcp 172.30.0.1
+2:34:56 PMSending ICE candidate to peer
+2:34:56 PMICE candidate: host tcp 192.168.1.245
+2:34:56 PMSending ICE candidate to peer
+2:34:56 PMICE candidate: host tcp [fd7a:115c:a1e0::4235:e50d]
+2:34:56 PMSending ICE candidate to peer
+2:34:56 PMICE candidate: srflx udp 91.73.56.69
+2:34:56 PMSending ICE candidate to peer
+2:34:56 PMReceived ICE candidate from peer:
+2:34:56 PMAdded ICE candidate successfully
+2:34:56 PMICE connection state: checking
+2:34:56 PMWebRTC connection state: connecting
+2:34:56 PM[CREATOR] Polling for connection mode, attempt: 1 pc state: checking
+2:34:57 PMICE candidate: relay udp 134.209.150.51
+2:34:57 PMSending ICE candidate to peer
+2:34:57 PM[CREATOR] Polling for connection mode, attempt: 2 pc state: checking
+2:34:57 PMReceived ICE candidate from peer:
+2:34:57 PMAdded ICE candidate successfully
+2:34:57 PM[CREATOR] Polling for connection mode, attempt: 3 pc state: checking
+2:34:58 PMICE connection state: connected
+2:34:58 PMICE gathering state: complete
+2:34:58 PMICE gathering complete, total candidates: 10
+2:34:58 PMFinal selected pair - local: prflx 91.73.56.69 | remote: relay 167.71.229.96
+2:34:58 PMConnection mode detected: turn (local: prflx remote: relay )
+2:34:58 PMConnection details: [object Object]
+2:34:58 PM[CREATOR] Polling for connection mode, attempt: 4 pc state: connected
+2:34:58 PM[CREATOR] Stopping poll - mode: turn attempts: 4
+2:34:58 PMWebRTC connection state: connected
+2:34:58 PMFinal selected pair - local: relay 134.209.150.51 | remote: relay 167.71.229.96
+2:34:58 PMConnection details: [object Object]
+2:34:59 PM[DataChannel] Connection channel opened
+2:35:02 PMWarning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+2:35:09 PMWarning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+2:36:16 PMReceived offer, setting remote description
+2:36:16 PMCurrent signaling state before offer: stable
+2:36:16 PMWebRTC signaling state: have-remote-offer
+2:36:16 PMReceived remote audio track, track kind: audio
+2:36:16 PMRemote description set from offer, new signaling state: have-remote-offer
+2:36:16 PMCreating answer
+2:36:16 PMSetting up remote audio stream, tracks: 1 enabled: true
+2:36:16 PMWebRTC signaling state: stable
+2:36:16 PMSending answer, signaling state: stable
+2:36:16 PMAnswer sent
+2:36:16 PMRemote audio playing, hasUserInteracted: true isSpeakerMuted: false
+2:36:16 PMAuto-unmuting remote audio
+2:36:17 PM[CREATOR] Polling for connection mode, attempt: 1 pc state: connected
+2:36:17 PM[CREATOR] Stopping poll - mode: turn attempts: 1
+2:36:20 PMReceived offer, setting remote description
+2:36:20 PMCurrent signaling state before offer: stable
+2:36:20 PMWebRTC signaling state: have-remote-offer
+2:36:20 PMRemote description set from offer, new signaling state: have-remote-offer
+2:36:20 PMCreating answer
+2:36:20 PMWebRTC signaling state: stable
+2:36:20 PMSending answer, signaling state: stable
+2:36:20 PMAnswer sent
+2:36:20 PM[CREATOR] Polling for connection mode, attempt: 1 pc state: connected
+2:36:20 PM[CREATOR] Stopping poll - mode: turn attempts: 1
+2:36:24 PM[DataChannel] Connection channel closed
+2:36:24 PMPeer left: ph1u4k
+2:36:30 PMICE connection state: disconnected
+2:36:30 PMICE connection issue detected, may need to restart
+2:36:30 PMWebRTC connection state: disconnected
+2:36:30 PMPeer joined: ph1u4k 2
+2:36:30 PMReceived offer, setting remote description
+2:36:30 PMCurrent signaling state before offer: stable
+2:36:30 PMReceived ICE candidate from peer:
+2:36:30 PM[RECONNECT] SDP incompatible, recreating peer connection...
+2:36:30 PMReceived ICE candidate from peer:
+2:36:30 PMRemote description not set yet, buffering ICE candidate
+2:36:30 PM[RECONNECT] Remote description set on new peer connection
+2:36:30 PM[RECONNECT] Answer sent
+2:36:30 PMICE candidate: host udp 100.100.229.13
+2:36:30 PMICE candidate: host udp 172.30.0.1
+2:36:30 PMICE candidate: host udp 192.168.1.245
+2:36:30 PMICE candidate: host udp [fd7a:115c:a1e0::4235:e50d]
+2:36:30 PMICE candidate: host tcp 100.100.229.13
+2:36:30 PMICE candidate: host tcp 172.30.0.1
+2:36:30 PMICE candidate: host tcp 192.168.1.245
+2:36:30 PMICE candidate: host tcp [fd7a:115c:a1e0::4235:e50d]
+2:36:30 PMReceived ICE candidate from peer:
+2:36:30 PMAdded ICE candidate successfully
+2:36:30 PMICE connection state: checking
+2:36:30 PMWebRTC connection state: connecting
+2:36:30 PMICE candidate: srflx udp 91.73.56.69
+2:36:31 PMReceived ICE candidate from peer:
+2:36:31 PMAdded ICE candidate successfully
+2:36:31 PMICE candidate: relay udp 167.71.229.96
+2:36:31 PMICE connection state: connected
+2:36:33 PMWebRTC connection state: connected
+2:36:33 PM[DataChannel] Connection channel opened
