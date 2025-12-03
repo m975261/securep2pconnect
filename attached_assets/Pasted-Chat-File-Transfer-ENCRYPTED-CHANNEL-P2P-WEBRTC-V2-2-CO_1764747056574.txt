@@ -1,0 +1,75 @@
+Chat
+File Transfer
+ENCRYPTED CHANNEL
+P2P-WEBRTC-V2
+2
+• CONNECTED
+Type secure message...
+
+DEBUG LOGS
+(62)
+CLEAR
+
+
+11:29:11 AMTURN config available: true
+11:29:11 AMTURN URLs: ["turn:eu-central.turnix.io:3478?transport=udp","turn:eu-central.turnix.io:3478?transport=tcp","turns:eu-central.turnix.io:443?transport=udp","turns:eu-central.turnix.io:443?transport=tcp"]
+11:29:11 AMTURN username length: 36
+11:29:11 AMTURN credential length: 32
+11:29:11 AMICE servers config: [ { "urls": [ "turn:eu-central.turnix.io:3478?transport=udp", "turn:eu-central.turnix.io:3478?transport=tcp", "turns:eu-central.turnix.io:443?transport=udp", "turns:eu-central.turnix.io:443?transport=tcp" ], "username": "8edb4ed8-0c55-4ed1-b22b-c834933faaaf", "credential": "acd8aea6a61d5a7536ca03fae8974fdf" } ]
+11:29:12 AMWebSocket connected
+11:29:12 AMJoined room, existing peers:
+11:29:13 AMWarning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+11:29:37 AMPeer joined: dmo97 2
+11:29:37 AMReceived offer, setting remote description
+11:29:37 AMCurrent signaling state before offer: stable
+11:29:37 AMWebRTC signaling state: have-remote-offer
+11:29:37 AMRemote description set from offer, new signaling state: have-remote-offer
+11:29:37 AMCreating answer
+11:29:37 AMWebRTC signaling state: stable
+11:29:37 AMSending answer, signaling state: stable
+11:29:37 AMAnswer sent
+11:29:44 AMReceived offer, setting remote description
+11:29:44 AMCurrent signaling state before offer: stable
+11:29:44 AMWebRTC signaling state: have-remote-offer
+11:29:44 AMReceived remote audio track, track kind: audio
+11:29:44 AMRemote description set from offer, new signaling state: have-remote-offer
+11:29:44 AMCreating answer
+11:29:44 AMSetting up remote audio stream, tracks: 1 enabled: true
+11:29:44 AMWebRTC signaling state: stable
+11:29:44 AMSending answer, signaling state: stable
+11:29:44 AMAnswer sent
+11:29:44 AMRemote audio playing, hasUserInteracted: false isSpeakerMuted: false
+11:29:44 AMICE gathering state: gathering
+11:30:04 AMSetting up remote audio stream, tracks: 1 enabled: true
+11:30:05 AMRemote audio playing, hasUserInteracted: true isSpeakerMuted: false
+11:30:05 AMAuto-unmuting remote audio
+11:30:06 AMAdding audio track to peer connection
+11:30:06 AMCreating offer for negotiation, signalingState: stable
+11:30:06 AMWebRTC signaling state: have-local-offer
+11:30:06 AMOffer sent, waiting for answer
+11:30:06 AMChecking remote audio state: [object Object]
+11:30:06 AMReceived answer, setting remote description
+11:30:06 AMCurrent signaling state before answer: have-local-offer
+11:30:06 AMWebRTC signaling state: stable
+11:30:06 AMRemote description set, new signaling state: stable
+11:30:24 AMICE gathering state: complete
+11:30:24 AMICE gathering complete, total candidates: 0
+11:30:24 AMNO ICE candidates generated! TURN server may be unreachable or credentials invalid.
+11:30:33 AMReceived offer, setting remote description
+11:30:33 AMCurrent signaling state before offer: stable
+11:30:33 AMWebRTC signaling state: have-remote-offer
+11:30:33 AMRemote description set from offer, new signaling state: have-remote-offer
+11:30:33 AMCreating answer
+11:30:33 AMWebRTC signaling state: stable
+11:30:33 AMSending answer, signaling state: stable
+11:30:33 AMAnswer sent
+11:30:35 AMSetting up remote audio stream, tracks: 0 enabled:
+11:30:35 AMNo audio tracks in remote stream
+11:30:36 AMRemoving audio track from peer connection
+11:30:36 AMCreating offer for negotiation, signalingState: stable
+11:30:36 AMWebRTC signaling state: have-local-offer
+11:30:36 AMOffer sent, waiting for answer
+11:30:36 AMReceived answer, setting remote description
+11:30:36 AMCurrent signaling state before answer: have-local-offer
+11:30:36 AMWebRTC signaling state: stable
+11:30:36 AMRemote description set, new signaling state: stable
