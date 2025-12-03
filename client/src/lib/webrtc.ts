@@ -326,20 +326,26 @@ export function useWebRTC(config: WebRTCConfig) {
       localStreamRef.current.getTracks().forEach(track => {
         track.stop();
         
-        // Remove the track from the peer connection
-        if (pc) {
+        // Remove the track from the peer connection only if connection is not closed
+        if (pc && pc.signalingState !== 'closed') {
           const sender = pc.getSenders().find(s => s.track === track);
           if (sender) {
             console.log('Removing audio track from peer connection');
-            pc.removeTrack(sender);
+            try {
+              pc.removeTrack(sender);
+            } catch (err) {
+              console.warn('Could not remove track:', err);
+            }
           }
         }
       });
       
       localStreamRef.current = null;
       
-      // Renegotiate with guard
-      performNegotiation();
+      // Renegotiate with guard (only if connection is still open)
+      if (pc && pc.signalingState !== 'closed') {
+        performNegotiation();
+      }
     }
   }, [performNegotiation]);
 

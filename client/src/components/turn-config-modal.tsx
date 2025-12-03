@@ -98,7 +98,7 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
   // Load saved configuration when modal opens
   useEffect(() => {
     if (open) {
-      const savedConfig = localStorage.getItem('turnConfig');
+      const savedConfig = localStorage.getItem('turn-config');
       if (savedConfig) {
         try {
           const config = JSON.parse(savedConfig) as TurnConfig;
@@ -283,7 +283,7 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
     };
 
     // Store in localStorage for persistence
-    localStorage.setItem('turnConfig', JSON.stringify(config));
+    localStorage.setItem('turn-config', JSON.stringify(config));
     
     onConfigured(config);
   };
