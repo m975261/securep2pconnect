@@ -289,9 +289,11 @@ export function useWebRTC(config: WebRTCConfig) {
     });
     pcRef.current = pc;
 
+    let candidateCount = 0;
     pc.onicecandidate = (event) => {
       const currentWs = wsRef.current;
       if (event.candidate) {
+        candidateCount++;
         console.log('ICE candidate:', event.candidate.type, event.candidate.protocol, event.candidate.address);
         if (currentWs && currentWs.readyState === WebSocket.OPEN) {
           currentWs.send(JSON.stringify({
@@ -300,7 +302,10 @@ export function useWebRTC(config: WebRTCConfig) {
           }));
         }
       } else {
-        console.log('ICE gathering complete');
+        console.log('ICE gathering complete, total candidates:', candidateCount);
+        if (candidateCount === 0) {
+          console.error('NO ICE candidates generated! TURN server may be unreachable or credentials invalid.');
+        }
       }
     };
 

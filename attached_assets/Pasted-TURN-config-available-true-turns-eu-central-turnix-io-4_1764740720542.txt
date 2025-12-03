@@ -1,0 +1,56 @@
+TURN config available: true turns:eu-central.turnix.io:443
+9:44:03 AMWebSocket connected
+9:44:04 AMJoined room, existing peers:
+9:44:06 AMWarning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+9:44:28 AMPeer joined: oslf58 2
+9:44:29 AMReceived offer, setting remote description
+9:44:29 AMCurrent signaling state before offer: stable
+9:44:29 AMWebRTC signaling state: have-remote-offer
+9:44:29 AMRemote description set from offer, new signaling state: have-remote-offer
+9:44:29 AMCreating answer
+9:44:29 AMWebRTC signaling state: stable
+9:44:29 AMSending answer, signaling state: stable
+9:44:29 AMAnswer sent
+9:44:33 AMReceived offer, setting remote description
+9:44:33 AMCurrent signaling state before offer: stable
+9:44:33 AMWebRTC signaling state: have-remote-offer
+9:44:33 AMReceived remote audio track, track kind: audio
+9:44:33 AMRemote description set from offer, new signaling state: have-remote-offer
+9:44:33 AMCreating answer
+9:44:33 AMSetting up remote audio stream, tracks: 1 enabled: true
+9:44:33 AMWebRTC signaling state: stable
+9:44:33 AMSending answer, signaling state: stable
+9:44:33 AMAnswer sent
+9:44:33 AMRemote audio playing, hasUserInteracted: false isSpeakerMuted: false
+9:44:33 AMICE gathering state: gathering
+9:44:34 AMICE gathering state: complete
+9:44:34 AMICE gathering complete
+9:44:38 AMReceived offer, setting remote description
+9:44:38 AMCurrent signaling state before offer: stable
+9:44:38 AMWebRTC signaling state: have-remote-offer
+9:44:38 AMRemote description set from offer, new signaling state: have-remote-offer
+9:44:38 AMCreating answer
+9:44:38 AMWebRTC signaling state: stable
+9:44:38 AMSending answer, signaling state: stable
+9:44:38 AMAnswer sent
+9:44:40 AMSetting up remote audio stream, tracks: 0 enabled:
+9:44:40 AMNo audio tracks in remote stream
+9:44:40 AMSetting up remote audio stream, tracks: 0 enabled:
+9:44:40 AMNo audio tracks in remote stream
+9:44:41 AMAdding audio track to peer connection
+9:44:41 AMCreating offer for negotiation, signalingState: stable
+9:44:41 AMWebRTC signaling state: have-local-offer
+9:44:41 AMOffer sent, waiting for answer
+9:44:41 AMChecking remote audio state: [object Object]
+9:44:41 AMReceived answer, setting remote description
+9:44:41 AMCurrent signaling state before answer: have-local-offer
+9:44:41 AMWebRTC signaling state: stable
+9:44:41 AMRemote description set, new signaling state: stable
+9:44:48 AMRemoving audio track from peer connection
+9:44:48 AMCreating offer for negotiation, signalingState: stable
+9:44:48 AMWebRTC signaling state: have-local-offer
+9:44:48 AMOffer sent, waiting for answer
+9:44:48 AMReceived answer, setting remote description
+9:44:48 AMCurrent signaling state before answer: have-local-offer
+9:44:48 AMWebRTC signaling state: stable
+9:44:48 AMRemote description set, new signaling state: stable
