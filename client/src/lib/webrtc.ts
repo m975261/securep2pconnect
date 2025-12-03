@@ -565,8 +565,14 @@ export function useWebRTC(config: WebRTCConfig) {
           console.error('Server error:', message.error);
           negotiatingRef.current = false;
         } else if (message.type === 'ice-candidate') {
-          if (currentPc) {
-            await currentPc.addIceCandidate(new RTCIceCandidate(message.data));
+          if (currentPc && message.data) {
+            console.log('Received ICE candidate from peer:', message.data.type, message.data.protocol, message.data.address);
+            try {
+              await currentPc.addIceCandidate(new RTCIceCandidate(message.data));
+              console.log('Added ICE candidate successfully');
+            } catch (err) {
+              console.error('Failed to add ICE candidate:', err);
+            }
           }
         } else if (message.type === 'chat') {
           console.log('Received chat message:', message.data);
