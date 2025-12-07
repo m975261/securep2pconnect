@@ -839,6 +839,29 @@ export function useWebRTC(config: WebRTCConfig) {
               }));
               console.log('[JOINER] Offer sent, waiting for ICE candidates...');
               
+              // Start polling for mode detection (for initial joiner offer)
+              let initialJoinerPollCount = 0;
+              const initialJoinerPollInterval = setInterval(() => {
+                initialJoinerPollCount++;
+                const currentMode = connectionModeRef.current;
+                const pollPc = pcRef.current;
+                
+                console.log('[JOINER-INIT] Polling for connection mode, attempt:', initialJoinerPollCount, 'pc state:', pollPc?.iceConnectionState);
+                
+                // Stop if mode is detected or max attempts reached
+                if ((currentMode === 'p2p' || currentMode === 'turn') || initialJoinerPollCount >= 30) {
+                  console.log('[JOINER-INIT] Stopping poll - mode:', currentMode, 'attempts:', initialJoinerPollCount);
+                  clearInterval(initialJoinerPollInterval);
+                  return;
+                }
+                
+                // Try to detect mode if connected
+                if (pollPc && (pollPc.iceConnectionState === 'connected' || pollPc.iceConnectionState === 'completed')) {
+                  console.log('[JOINER-INIT] ICE connected, detecting mode');
+                  detectModeFromStats();
+                }
+              }, 500);
+              
               // Start TURN fallback timer (5 seconds)
               if (fallbackTimeoutRef.current) {
                 clearTimeout(fallbackTimeoutRef.current);
