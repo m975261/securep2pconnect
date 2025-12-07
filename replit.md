@@ -1,65 +1,6 @@
 # Overview
 
-SECURE.LINK is a WebRTC communication application that enables secure, temporary connections between two users. The system supports P2P-first connections with automatic TURN fallback, facilitating real-time text messaging, voice chat, and file transfers. Features optional password protection, automatic room expiration, and 2-user room capacity limits. Users provide their own TURN server configuration for relay fallback. Voice chat includes AI-powered noise cancellation using RNNoise.
-
-## Recent Updates
-
-### December 7, 2025 - AI Noise Cancellation (RNNoise)
-- **RNNoise Integration**: Added AI-powered noise suppression using `@sapphi-red/web-noise-suppressor` (RNNoise WASM)
-- **Audio Pipeline**: Created `client/src/lib/audio/audio-pipeline.ts` with AudioWorklet-based processing
-  - Microphone → AudioContext → RNNoise WASM processor → Cleaned audio → WebRTC
-  - 48kHz sample rate for optimal noise cancellation
-  - Automatic SIMD detection for better performance
-- **NC Status Sync**: Both peers see each other's noise cancellation status via WebSocket `nc-status` message
-- **NC Status Badges**: Visual indicators in room UI showing:
-  - Your NC status (green = enabled, gray = disabled)
-  - Peer's NC status (green = enabled, gray = disabled)
-  - Only displayed when mic is on
-- **Graceful Fallback**: If AudioWorklet/WASM fails, falls back to raw audio without crashing
-- **Bilingual Support**: NC status translations for English and Arabic
-
-### December 3, 2025 - STABLE BASELINE (Fully Working)
-**This is the stable baseline to return to if issues arise.**
-
-Key fixes in this stable version:
-- **Correct Mode Detection**: Uses `Array.find()` to get exactly ONE selected candidate pair (priority: `selected===true` > `nominated+succeeded` > `succeeded`)
-- **Consistent Mode Display**: Both peers now show the same connection mode (TURN if either side uses relay)
-- **Reconnection Fix**: Mode detection uses `pcRef.current` instead of stale `pc` reference after peer connection recreation
-- **P2P IP Display**: Parses ICE candidate strings to extract peer's public IP (browsers hide IPs in stats for privacy)
-  - Stores peer IP from received ICE candidates (`peerIPFromCandidatesRef`)
-  - Prefers `srflx` (public IP) over `host` (private IP) candidates
-  - Parses candidate string format: `candidate:foundation component protocol priority ip port typ type ...`
-- **TURN IP Display**: Shows TURN server IP for relay mode
-- **Room ID Format**: Simple 5-digit numbers with XXYYZ pattern (e.g., 22446, 33779)
-
-### December 3, 2025 - P2P-First with TURN Fallback
-- **P2P-First Strategy**: Changed from TURN-only to P2P-first connections (`iceTransportPolicy: 'all'`)
-- **5-Second Fallback**: If P2P doesn't connect within 5 seconds, triggers ICE restart for TURN relay fallback
-- **Connection Mode Detection**: Uses `getStats()` to detect active candidate type (host/srflx = P2P, relay = TURN)
-- **Connection Mode Badge**: Visual indicator at top of room showing P2P (green), TURN (amber), or Pending (gray)
-- **Room Capacity Enforcement**: Maximum 2 users per room with graceful rejection and auto-redirect for third users
-- **Improved Join Flow**: Share links route through `/join?room=XXX` to ensure proper TURN config delivery
-
-### December 3, 2025 - Server-Side Encrypted TURN Configuration
-- **Encrypted TURN Storage**: TURN credentials encrypted server-side using AES-256-GCM before database storage
-- **Room-Bound TURN Config**: TURN server config stored with each room, not globally in localStorage
-- **Simplified Join Flow**: Joiners automatically receive TURN config from server (no manual configuration needed)
-- **Auto-Proceed Flow**: After configuring TURN, users automatically proceed to room creation
-- **API Security**: New `/api/rooms/:id/turn-config` endpoint for secure credential retrieval
-- **Encryption Module**: `server/encryption.ts` handles encrypt/decrypt with derived key from environment
-
-### November 27, 2025 - TURN-Relay-Only Architecture (Now P2P-First)
-- **User-Provided TURN Servers**: TurnConfigModal component for users to input their own TURN server credentials
-- **CoTURN Docker Setup**: Production-ready self-hosted TURN server with Docker Compose and Unraid deployment guide
-- **Database Schema Update**: Removed `creatorPeerId` field (no longer needed without P2P mode)
-- **Bilingual Support**: English/Arabic with RTL layout support in all UI components
-
-### November 20, 2025 - Traditional Mode (Deprecated - Replaced by TURN-Only)
-- **Peer Nicknames**: Users enter nicknames before joining/creating rooms
-- **Dynamic Password Setting**: Room creators can update passwords in real-time
-- **Admin Panel**: Secure dashboard with 2FA for monitoring
-- **Password Protection on Links**: Direct room links require password verification
-- **Peer Tracking**: Real-time device information tracking
+SECURE.LINK is a WebRTC communication application designed for secure, temporary, peer-to-peer (P2P-first) connections. It supports real-time text messaging, voice chat with AI-powered noise cancellation, and file transfers between two users. Key features include optional password protection, automatic room expiration, and a strict two-user room capacity. The system prioritizes P2P connections with automatic fallback to user-provided TURN servers for relay.
 
 # User Preferences
 
@@ -69,192 +10,62 @@ Preferred communication style: Simple, everyday language.
 
 ## Frontend Architecture
 
-### Technology Stack
-- **Framework**: React 18 with TypeScript
-- **Routing**: Wouter (lightweight client-side routing)
-- **Styling**: Tailwind CSS with custom design system (New York variant from shadcn/ui)
-- **State Management**: React hooks and TanStack Query for server state
-- **UI Components**: Radix UI primitives with custom styling via shadcn/ui
-- **Build Tool**: Vite for fast development and optimized production builds
+The frontend is built with React 18 and TypeScript, utilizing Wouter for routing and Tailwind CSS with a custom shadcn/ui-based design system for styling. State management is handled by React hooks and TanStack Query. The UI comprises reusable Radix UI primitives, forms are validated with React Hook Form and Zod, and real-time communication is managed via custom WebRTC hooks. It features a mobile-responsive design and includes pages for home, room creation, room joining, the main communication room, and a 404 page.
 
-### Key Design Decisions
-- Component-based architecture with reusable UI primitives from Radix UI
-- Custom design system with dark theme as default (hsl-based color palette)
-- Client-side form validation using React Hook Form with Zod schemas
-- Real-time communication handled through custom WebRTC hooks
-- Mobile-responsive design with breakpoint utilities
-
-### Page Structure
-- **Home**: Landing page with navigation to create/join rooms
-- **Create Room**: Form to initialize new secure rooms with optional password, requires TURN configuration
-- **Join Room**: Interface to connect to existing rooms via room ID, requires TURN configuration
-- **Room**: Main communication interface with chat, file transfer, and voice capabilities
-- **Admin Login**: Secure admin authentication with 2FA support
-- **Admin Dashboard**: Room monitoring and analytics
-- **Not Found**: 404 error page
-
-### Communication Features
-
-**P2P-First with TURN Fallback:**
-- Chat interface with message history
-- File transfer with drag-and-drop support (via WebSocket signaling)
-- QR code generation and scanning for room joining
-- Voice chat toggle functionality (audio only)
-- **P2P-first connections**: Uses `iceTransportPolicy: 'all'` to try direct P2P first
-- **5-second TURN fallback**: Automatic ICE restart to TURN relay if P2P doesn't connect
-- **Connection mode indicator**: Visual badge showing P2P (green), TURN (amber), or Pending (gray)
-- **User-configured TURN servers**: Users provide their own TURN server URLs, username, and credentials
-- **TurnConfigModal**: Bilingual modal for TURN server configuration, stored in localStorage
-- **Self-hosted option**: Complete CoTURN Docker setup included in `turn-server/` directory
+**Communication Features:**
+- **P2P-First with TURN Fallback:** Attempts direct P2P connection first (`iceTransportPolicy: 'all'`) with an automatic 5-second timeout triggering an ICE restart for TURN relay fallback.
+- **Connection Mode Indicator:** A visual badge displays the current connection mode (P2P, TURN, or Pending).
+- **User-Configured TURN Servers:** Users provide their own TURN server details via a bilingual `TurnConfigModal`.
+- **AI Noise Cancellation:** Integrates `@sapphi-red/web-noise-suppressor` (RNNoise WASM) via an AudioWorklet pipeline for real-time microphone noise reduction.
+- Text chat with history, drag-and-drop file transfer, QR code sharing/scanning for rooms, and voice chat.
 
 ## Backend Architecture
 
-### Technology Stack
-- **Runtime**: Node.js with Express.js
-- **WebSocket**: ws library for real-time bidirectional communication
-- **Database ORM**: Drizzle ORM
-- **Database**: PostgreSQL (Neon serverless)
-- **Build**: esbuild for production bundling
-- **Development**: tsx for TypeScript execution
+The backend uses Node.js with Express.js and a `ws` WebSocket library for real-time communication. Data persistence is managed with Drizzle ORM and a PostgreSQL database (Neon serverless). The HTTP server handles RESTful API endpoints for room management, while a dedicated WebSocket server (`/ws`) manages WebRTC signaling, including peer tracking and ICE candidate/SDP exchange.
 
-### Core Components
-
-**HTTP Server**
-- Express middleware for JSON parsing and request logging
-- RESTful API endpoints for room management
-- Development mode integrates Vite middleware for HMR
-- Production mode serves static assets from dist/public
-
-**WebSocket Server**
-- Dedicated WebSocket server mounted on `/ws` path
-- Manages peer-to-peer signaling for WebRTC connections
-- Tracks active peers and room associations
-- Handles offer/answer/ICE candidate exchange
-
-**Storage Layer**
-- Abstracted storage interface (IStorage) for database operations
-- PostgreSQL implementation using Drizzle ORM
-- Room lifecycle management with automatic expiration
-- Failed login attempt tracking with IP-based rate limiting
-
-### Security Features
-
-**Room Protection**
-- Optional password protection for rooms
-- Failed attempt tracking with progressive penalties
-- IP-based banning after multiple failed attempts (configurable hours)
-- Automatic room expiration (24-hour default TTL)
-
-**Connection Strategy**
-- **P2P-first WebRTC**: `iceTransportPolicy: 'all'` attempts direct P2P connection first
-- **Automatic TURN fallback**: 5-second timeout triggers ICE restart for TURN relay
-- **User-controlled TURN servers**: Users provide their own TURN relay servers for fallback
-- **No default relays**: Application ships with no built-in TURN server credentials
-
-**TURN Credential Encryption**
-- **AES-256-GCM encryption**: TURN username and credentials encrypted at rest in database
-- **Per-room storage**: Each room stores its own encrypted TURN configuration
-- **Secure retrieval**: Credentials decrypted only when returned via API for authorized requests
-- **Key derivation**: Encryption key derived from environment variable using SHA-256
-
-**Rate Limiting**
-- Tracks failed password attempts per IP per room
-- Incremental lockout periods for repeated failures
-- Automatic cleanup of expired ban records
-
-### WebRTC Signaling Flow
-1. User configures TURN server via TurnConfigModal (stored in localStorage)
-2. Client connects to WebSocket server
-3. Client sends join message with room ID
-4. Server validates room existence and password (if required)
-5. Server facilitates ICE candidate and SDP offer/answer exchange
-6. WebRTC attempts P2P connection first (iceTransportPolicy: 'all')
-7. If P2P connects within 5 seconds, direct peer connection is used
-8. If P2P fails, automatic ICE restart triggers TURN relay fallback
-9. Connection mode detected via getStats() and displayed in UI
-10. Server notifies peers of connection/disconnection events
+**Security Features:**
+- **Room Protection:** Optional password protection, IP-based rate limiting for failed attempts, and automatic room expiration (24-hour TTL).
+- **Connection Strategy:** P2P-first WebRTC with automatic TURN fallback. Users provide their own TURN servers, and the application does not ship with default relays.
+- **TURN Credential Encryption:** TURN username and credentials are encrypted at rest using AES-256-GCM, stored per-room, and decrypted only for authorized requests using a key derived from an environment variable.
+- **Rate Limiting:** Tracks failed password attempts per IP per room with incremental lockout periods.
 
 ## Database Schema
 
-### Tables
+The database includes tables for `rooms`, `peer_connections`, and `failedAttempts`.
+- `rooms`: Stores room ID, optional hashed password, creation/expiration timestamps, peer identifiers, and active status.
+- `peer_connections`: Tracks connected peers' UUIDs, room IDs, nicknames, IP addresses, user agents, and connection timestamps.
+- `failedAttempts`: Records failed login attempts per room and IP, including attempt count and ban expiration.
 
-**rooms**
-- `id`: Unique room identifier (varchar, primary key)
-- `password`: Optional bcrypt-hashed password (text, nullable)
-- `createdBy`: Creator's peer identifier for authorization (text, nullable)
-- `createdAt`: Room creation timestamp
-- `expiresAt`: Automatic expiration timestamp (24 hours default)
-- `peer1`: First connected peer identifier (text, nullable)
-- `peer2`: Second connected peer identifier (text, nullable)
-- `isActive`: Room availability status (boolean, default true)
-- **Note**: `creatorPeerId` field was removed (no longer needed in TURN-only mode)
+The schema is designed for minimal persistent state, automatic cleanup via expiration, and IP-based security without user accounts.
 
-**peer_connections**
-- `id`: UUID identifier (generated)
-- `roomId`: Associated room reference
-- `peerId`: Peer identifier
-- `nickname`: Display name for the peer (text, nullable)
-- `ipAddress`: Client IP address
-- `userAgent`: Browser user agent string
-- `connectedAt`: Connection timestamp
+# External Dependencies
 
-**failedAttempts**
-- `id`: UUID identifier (generated)
-- `roomId`: Associated room reference
-- `ipAddress`: Client IP address
-- `attempts`: Failed login counter
-- `lastAttempt`: Timestamp of most recent failure
-- `bannedUntil`: Temporary ban expiration (nullable)
+## Database
+- **Neon Serverless PostgreSQL**: Cloud-hosted database.
+- **Drizzle ORM**: For type-safe queries and migrations.
 
-### Design Rationale
-- Minimal persistent state (only room metadata, not messages)
-- Automatic cleanup through expiration timestamps
-- IP-based security without requiring user accounts
-- Two-peer limit enforced at schema level
+## Frontend Libraries
+- **@tanstack/react-query**: Async state management.
+- **react-hook-form**: Form state and validation.
+- **zod**: Runtime type validation.
+- **wouter**: Lightweight routing.
+- **sonner**: Toast notifications.
+- **react-qr-code**: QR code generation.
+- **jsQR**: QR code scanning.
+- **react-dropzone**: Drag-and-drop file upload.
+- **@sapphi-red/web-noise-suppressor**: RNNoise WASM for AI noise cancellation.
 
-## External Dependencies
+## Build and Development Tools
+- **Vite**: Build tool.
+- **Tailwind CSS**: Utility-first CSS framework.
+- **TypeScript**: Static type checking.
 
-### Database
-- **Neon Serverless PostgreSQL**: Cloud-hosted database accessed via HTTP
-- Connection string via `DATABASE_URL` environment variable
-- Drizzle ORM for type-safe queries and migrations
+## WebRTC
+- Native browser WebRTC APIs.
 
-### Frontend Libraries
-- **@tanstack/react-query**: Async state management and caching
-- **react-hook-form**: Form state and validation
-- **zod**: Runtime type validation and schema definition
-- **wouter**: Lightweight routing (SPA navigation)
-- **framer-motion**: Animation library (noted as removed but still imported in components)
-- **sonner**: Toast notification system
-- **react-qr-code**: QR code generation for room sharing
-- **jsQR**: QR code scanning from images
-- **react-dropzone**: File upload with drag-and-drop
+## TURN Server (Self-Hosted)
+- **CoTURN**: Open-source TURN/STUN server, configured via Docker for self-hosting.
 
-### Build and Development Tools
-- **Vite**: Build tool with HMR and optimized bundling
-- **@replit/vite-plugin-***: Replit-specific plugins for development environment
-- **Tailwind CSS**: Utility-first CSS framework
-- **TypeScript**: Static type checking across codebase
-
-### WebRTC
-- Native browser WebRTC APIs (no external library)
-- **TURN-relay-only mode**: `iceTransportPolicy: 'relay'` enforced
-- **User-provided TURN servers**: No default STUN/TURN servers in codebase
-- Data channels for text messaging (via WebSocket signaling, not RTCDataChannel)
-- Media streams for voice chat functionality (audio tracks through RTCPeerConnection)
-
-### TURN Server (Self-Hosted)
-- **CoTURN**: Open-source TURN/STUN server in Docker container
-- **Location**: `turn-server/` directory with Dockerfile, docker-compose.yml, turnserver.conf
-- **Security**: Blocks all private IP ranges (RFC 1918), runs as non-root user
-- **Ports**: 3478 (TURN TCP/UDP), 5349 (TURNS/TLS), 49152-65535 (relay port range)
-- **Deployment**: Optimized for Unraid with detailed README and configuration examples
-
-### Session Management
-- **connect-pg-simple**: PostgreSQL session store (imported but not actively used in current implementation)
-- WebSocket-based connection tracking instead of traditional sessions
-
-### Icons and Assets
-- **lucide-react**: Icon component library
-- Custom fonts: Inter, JetBrains Mono, Space Grotesk (loaded from Google Fonts)
-- Custom background images stored in attached_assets directory
+## Icons and Assets
+- **lucide-react**: Icon component library.
+- Custom fonts (Inter, JetBrains Mono, Space Grotesk).
