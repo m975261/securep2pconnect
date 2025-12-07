@@ -1,0 +1,27 @@
+[STEP] Step 7/8: Creating systemd service...
+[INFO] Systemd service created
+[STEP] Step 8/8: Starting application...
+[INFO] Waiting for application to start...
+[ERROR] Service failed to start. Checking logs...
+Dec 07 17:49:57 securelink secure-webrtc-app[6103]:       at async file:///opt/secure-webrtc-app/dist/index.js:1007:18 {
+Dec 07 17:49:57 securelink secure-webrtc-app[6103]:     [cause]: TypeError: Invalid URL
+Dec 07 17:49:57 securelink secure-webrtc-app[6103]:         at new URL (node:internal/url:806:29)
+Dec 07 17:49:57 securelink secure-webrtc-app[6103]:         at new Request (node:internal/deps/undici/undici:9776:25)
+Dec 07 17:49:57 securelink secure-webrtc-app[6103]:         at fetch (node:internal/deps/undici/undici:10505:25)
+Dec 07 17:49:57 securelink secure-webrtc-app[6103]:         at fetch (node:internal/deps/undici/undici:14898:10)
+Dec 07 17:49:57 securelink secure-webrtc-app[6103]:         at fetch (node:internal/bootstrap/web/exposed-window-or-worker:72:12)
+Dec 07 17:49:57 securelink secure-webrtc-app[6103]:         at execute (file:///opt/secure-webrtc-app/node_modules/@neondatabase/serverless/index.mjs:1548:30)
+Dec 07 17:49:57 securelink secure-webrtc-app[6103]:         at async NeonHttpPreparedQuery.execute (file:///opt/secure-webrtc-app/node_modules/drizzle-orm/neon-http/session.js:40:20)
+Dec 07 17:49:57 securelink secure-webrtc-app[6103]:         at async DbStorage.getAdminByUsername (file:///opt/secure-webrtc-app/dist/index.js:201:21)
+Dec 07 17:49:57 securelink secure-webrtc-app[6103]:         at async initializeDefaultAdmin (file:///opt/secure-webrtc-app/dist/index.js:285:25)
+Dec 07 17:49:57 securelink secure-webrtc-app[6103]:         at async registerRoutes (file:///opt/secure-webrtc-app/dist/index.js:510:3) {
+Dec 07 17:49:57 securelink secure-webrtc-app[6103]:       code: 'ERR_INVALID_URL',
+Dec 07 17:49:57 securelink secure-webrtc-app[6103]:       input: 'https://api.0.0.1/sql'
+Dec 07 17:49:57 securelink secure-webrtc-app[6103]:     }
+Dec 07 17:49:57 securelink secure-webrtc-app[6103]:   }
+Dec 07 17:49:57 securelink secure-webrtc-app[6103]: }
+Dec 07 17:49:57 securelink secure-webrtc-app[6103]: Node.js v20.19.6
+Dec 07 17:49:57 securelink systemd[1]: secure-webrtc-app.service: Main process exited, code=exited, status=1/FAILURE
+Dec 07 17:49:57 securelink systemd[1]: secure-webrtc-app.service: Failed with result 'exit-code'.
+[ERROR] Application failed to start
+m975261@securelink:~$

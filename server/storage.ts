@@ -1,5 +1,3 @@
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
 import { eq, and, lt, isNull } from "drizzle-orm";
 import {
   type Room,
@@ -17,8 +15,36 @@ import {
 } from "@shared/schema";
 import { decrypt } from "./encryption";
 
-const sql = neon(process.env.DATABASE_URL!);
-const db = drizzle(sql);
+// Determine which database driver to use based on DATABASE_URL
+const isNeonDatabase = process.env.DATABASE_URL?.includes('neon.tech') || 
+                       process.env.DATABASE_URL?.includes('neon.') ||
+                       (process.env.DATABASE_URL?.startsWith('postgresql://') && process.env.DATABASE_URL?.includes('@ep-'));
+
+let db: any = null;
+let dbInitialized = false;
+
+async function getDb() {
+  if (dbInitialized) return db;
+  
+  if (isNeonDatabase) {
+    // Use Neon serverless driver for Neon cloud databases
+    const { neon } = await import("@neondatabase/serverless");
+    const { drizzle } = await import("drizzle-orm/neon-http");
+    const sql = neon(process.env.DATABASE_URL!);
+    db = drizzle(sql);
+  } else {
+    // Use standard pg driver for local PostgreSQL
+    const { Pool } = await import("pg");
+    const { drizzle } = await import("drizzle-orm/node-postgres");
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL!,
+    });
+    db = drizzle(pool);
+  }
+  
+  dbInitialized = true;
+  return db;
+}
 
 export interface TurnConfig {
   urls: string[];
@@ -56,11 +82,13 @@ export interface IStorage {
 
 export class DbStorage implements IStorage {
   async createRoom(insertRoom: InsertRoom): Promise<Room> {
+    const db = await getDb();
     const [room] = await db.insert(rooms).values(insertRoom).returning();
     return room;
   }
 
   async getRoom(id: string): Promise<Room | undefined> {
+    const db = await getDb();
     const [room] = await db
       .select()
       .from(rooms)
@@ -82,6 +110,7 @@ export class DbStorage implements IStorage {
   }
 
   async updateRoomPeer(roomId: string, peerId: string): Promise<void> {
+    const db = await getDb();
     const room = await this.getRoom(roomId);
     if (!room) throw new Error("Room not found");
 
@@ -93,14 +122,17 @@ export class DbStorage implements IStorage {
   }
 
   async updateRoomPassword(roomId: string, password: string | null): Promise<void> {
+    const db = await getDb();
     await db.update(rooms).set({ password }).where(eq(rooms.id, roomId));
   }
 
   async deleteRoom(id: string): Promise<void> {
+    const db = await getDb();
     await db.update(rooms).set({ isActive: false }).where(eq(rooms.id, id));
   }
 
   async recordFailedAttempt(roomId: string, ipAddress: string): Promise<FailedAttempt> {
+    const db = await getDb();
     const existing = await this.getFailedAttempts(roomId, ipAddress);
 
     if (existing) {
@@ -123,6 +155,7 @@ export class DbStorage implements IStorage {
   }
 
   async getFailedAttempts(roomId: string, ipAddress: string): Promise<FailedAttempt | undefined> {
+    const db = await getDb();
     const [attempt] = await db
       .select()
       .from(failedAttempts)
@@ -131,6 +164,7 @@ export class DbStorage implements IStorage {
   }
 
   async resetFailedAttempts(roomId: string, ipAddress: string): Promise<void> {
+    const db = await getDb();
     await db
       .delete(failedAttempts)
       .where(and(eq(failedAttempts.roomId, roomId), eq(failedAttempts.ipAddress, ipAddress)));
@@ -145,6 +179,7 @@ export class DbStorage implements IStorage {
   }
 
   async banIP(roomId: string, ipAddress: string, hours: number): Promise<void> {
+    const db = await getDb();
     const bannedUntil = new Date();
     bannedUntil.setHours(bannedUntil.getHours() + hours);
 
@@ -158,6 +193,7 @@ export class DbStorage implements IStorage {
   }
 
   async cleanExpiredRooms(): Promise<void> {
+    const db = await getDb();
     await db
       .update(rooms)
       .set({ isActive: false })
@@ -165,11 +201,13 @@ export class DbStorage implements IStorage {
   }
 
   async createAdminUser(insertAdmin: InsertAdminUser): Promise<AdminUser> {
+    const db = await getDb();
     const [admin] = await db.insert(adminUsers).values(insertAdmin).returning();
     return admin;
   }
 
   async getAdminByUsername(username: string): Promise<AdminUser | undefined> {
+    const db = await getDb();
     const [admin] = await db
       .select()
       .from(adminUsers)
@@ -178,6 +216,7 @@ export class DbStorage implements IStorage {
   }
 
   async updateAdminPassword(username: string, newPassword: string): Promise<void> {
+    const db = await getDb();
     await db
       .update(adminUsers)
       .set({ password: newPassword, forcePasswordChange: false })
@@ -185,6 +224,7 @@ export class DbStorage implements IStorage {
   }
 
   async updateAdmin2FA(username: string, secret: string | null, enabled: boolean): Promise<void> {
+    const db = await getDb();
     await db
       .update(adminUsers)
       .set({ twoFactorSecret: secret, twoFactorEnabled: enabled })
@@ -192,6 +232,7 @@ export class DbStorage implements IStorage {
   }
 
   async updateAdminLastLogin(username: string): Promise<void> {
+    const db = await getDb();
     await db
       .update(adminUsers)
       .set({ lastLogin: new Date() })
@@ -199,11 +240,13 @@ export class DbStorage implements IStorage {
   }
 
   async trackPeerConnection(insertPeer: InsertPeerConnection): Promise<PeerConnection> {
+    const db = await getDb();
     const [peer] = await db.insert(peerConnections).values(insertPeer).returning();
     return peer;
   }
 
   async disconnectPeer(peerId: string): Promise<void> {
+    const db = await getDb();
     await db
       .update(peerConnections)
       .set({ disconnectedAt: new Date() })
@@ -211,6 +254,7 @@ export class DbStorage implements IStorage {
   }
 
   async getActivePeerConnections(): Promise<PeerConnection[]> {
+    const db = await getDb();
     return await db
       .select()
       .from(peerConnections)
@@ -218,6 +262,7 @@ export class DbStorage implements IStorage {
   }
 
   async getPeersByRoom(roomId: string): Promise<PeerConnection[]> {
+    const db = await getDb();
     return await db
       .select()
       .from(peerConnections)
