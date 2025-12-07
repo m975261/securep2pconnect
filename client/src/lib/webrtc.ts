@@ -585,10 +585,19 @@ export function useWebRTC(config: WebRTCConfig) {
         
         // Now extract candidate info from the selected pair only
         if (selectedPair) {
+          console.log('[ModeDetect] Selected pair found:', {
+            state: selectedPair.state,
+            nominated: selectedPair.nominated,
+            selected: selectedPair.selected,
+            localCandidateId: selectedPair.localCandidateId,
+            remoteCandidateId: selectedPair.remoteCandidateId
+          });
+          
           const localCandidate = statsArray.find((s: any) => s.id === selectedPair.localCandidateId && s.type === 'local-candidate');
           const remoteCandidate = statsArray.find((s: any) => s.id === selectedPair.remoteCandidateId && s.type === 'remote-candidate');
           
           if (localCandidate) {
+            console.log('[ModeDetect] Local candidate:', localCandidate.candidateType, localCandidate.address || localCandidate.ip);
             selectedCandidateType = localCandidate.candidateType;
             localIP = localCandidate.address || localCandidate.ip;
             localPort = localCandidate.port;
@@ -599,13 +608,13 @@ export function useWebRTC(config: WebRTCConfig) {
           }
           
           if (remoteCandidate) {
+            console.log('[ModeDetect] Remote candidate:', remoteCandidate.candidateType, remoteCandidate.address || remoteCandidate.ip);
             remoteCandidateType = remoteCandidate.candidateType;
             remoteIP = remoteCandidate.address || remoteCandidate.ip || remoteCandidate.relatedAddress;
             remotePort = remoteCandidate.port || remoteCandidate.relatedPort;
             if (remoteCandidate.candidateType === 'relay' && !relayServerIP) {
               relayServerIP = remoteCandidate.address || remoteCandidate.ip;
             }
-            console.log('Remote candidate details:', JSON.stringify(remoteCandidate));
           }
           
           console.log('Final selected pair - local:', selectedCandidateType, localIP, '| remote:', remoteCandidateType, remoteIP);
