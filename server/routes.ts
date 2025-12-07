@@ -32,11 +32,12 @@ const updateRoomPasswordSchema = z.object({
 });
 
 interface WebRTCMessage {
-  type: "offer" | "answer" | "ice-candidate" | "join" | "peer-joined" | "peer-left" | "chat" | "file-metadata" | "file-chunk" | "file-eof" | "nc-status";
+  type: "offer" | "answer" | "ice-candidate" | "join" | "peer-joined" | "peer-left" | "chat" | "file-metadata" | "file-chunk" | "file-eof" | "nc-status" | "connection-mode";
   roomId?: string;
   data?: any;
   peerId?: string;
   nickname?: string;
+  mode?: string;
 }
 
 interface RoomPeer {
@@ -426,6 +427,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   peer.ws.send(JSON.stringify({
                     type: "nc-status",
                     data: message.data,
+                    from: currentPeer!.peerId,
+                  }));
+                }
+              }
+            });
+          }
+        } else if (currentPeer && message.type === "connection-mode") {
+          // Forward connection mode to peer for synchronization
+          console.log(`[WebSocket] Connection mode from ${currentPeer.peerId}: ${message.mode}`);
+          const peers = roomPeers.get(currentPeer.roomId);
+          if (peers) {
+            peers.forEach((peerId) => {
+              if (peerId !== currentPeer!.peerId) {
+                const peer = activePeers.get(peerId);
+                if (peer && peer.ws.readyState === WebSocket.OPEN) {
+                  peer.ws.send(JSON.stringify({
+                    type: "connection-mode",
+                    mode: message.mode,
                     from: currentPeer!.peerId,
                   }));
                 }

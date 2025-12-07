@@ -532,10 +532,8 @@ export function useWebRTC(config: WebRTCConfig) {
         candidateCount++;
         console.log('ICE candidate:', event.candidate.type, event.candidate.protocol, event.candidate.address);
         
-        // Track candidate types for mode detection
-        if (event.candidate.type && !detectedCandidateTypeRef.current) {
-          detectedCandidateTypeRef.current = event.candidate.type;
-        }
+        // Don't set detectedCandidateTypeRef here - let detectModeFromStats do proper detection
+        // from the actual selected candidate pair after connection is established
         
         if (currentWs && currentWs.readyState === WebSocket.OPEN) {
           console.log('Sending ICE candidate to peer');
@@ -624,6 +622,16 @@ export function useWebRTC(config: WebRTCConfig) {
             connectionModeRef.current = mode;
             setConnectionMode(mode);
             console.log('Connection mode detected:', mode, '(local:', selectedCandidateType, 'remote:', remoteCandidateType, ')');
+            
+            // Broadcast mode to peer for synchronization
+            const currentWs = wsRef.current;
+            if (currentWs && currentWs.readyState === WebSocket.OPEN) {
+              currentWs.send(JSON.stringify({
+                type: 'connection-mode',
+                mode: mode
+              }));
+              console.log('[ModeSync] Sent connection mode to peer:', mode);
+            }
           }
           
           // Update connection details - only show relevant IPs based on mode
@@ -725,6 +733,11 @@ export function useWebRTC(config: WebRTCConfig) {
       // Handle connection failures by triggering ICE restart
       if (pc.connectionState === 'failed') {
         console.log('WebRTC connection failed, attempting ICE restart');
+        // Reset mode to pending during ICE restart so it can be re-detected
+        connectionModeRef.current = 'reconnecting';
+        setConnectionMode('reconnecting');
+        detectedCandidateTypeRef.current = null; // Clear detected type for fresh detection
+        
         // Only restart if in stable signaling state to avoid "Called in wrong state" error
         if (pc.signalingState === 'stable' && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
           pc.createOffer({ iceRestart: true }).then(offer => {
@@ -841,6 +854,7 @@ export function useWebRTC(config: WebRTCConfig) {
                         // Set mode to TURN since we're forcing relay
                         connectionModeRef.current = 'turn';
                         setConnectionMode('turn');
+                        detectedCandidateTypeRef.current = 'relay'; // Mark as relay for consistency
                       }
                     }).catch(err => {
                       console.error('[FALLBACK] Error during ICE restart:', err);
@@ -1154,6 +1168,30 @@ export function useWebRTC(config: WebRTCConfig) {
           console.log('[NoiseSuppression] Peer NC status:', ncEnabled);
           setPeerNCEnabled(ncEnabled);
           configRef.current.onPeerNCStatusChange?.(ncEnabled);
+        } else if (message.type === 'connection-mode') {
+          const peerMode = message.mode;
+          const localMode = connectionModeRef.current;
+          console.log('[ModeSync] Received peer connection mode:', peerMode, '| local mode:', localMode);
+          
+          // Sync logic:
+          // 1. If peer reports TURN, always update local to TURN (TURN takes priority)
+          // 2. If peer reports P2P and we're pending/reconnecting, accept P2P
+          // 3. If both detected independently and agree, no change needed
+          if (peerMode === 'turn') {
+            // TURN always wins - if peer is using relay, show TURN for consistency
+            if (localMode !== 'turn') {
+              console.log('[ModeSync] Peer is using TURN, updating local mode to TURN for consistency');
+              connectionModeRef.current = 'turn';
+              setConnectionMode('turn');
+            }
+          } else if (peerMode === 'p2p') {
+            // Accept P2P only if we haven't determined mode yet
+            if (localMode === 'pending' || localMode === 'reconnecting') {
+              console.log('[ModeSync] Peer detected P2P, updating local mode');
+              connectionModeRef.current = 'p2p';
+              setConnectionMode('p2p');
+            }
+          }
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
