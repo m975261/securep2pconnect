@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { createNoiseSuppressedStream, NoiseSuppressedStream, isNoiseCancellationSupported } from "./audio/audio-pipeline";
 
 export interface TurnConfig {
   urls: string[];
@@ -103,6 +104,7 @@ interface WebRTCConfig {
   onPeerConnected?: (peerInfo?: { nickname?: string }) => void;
   onPeerDisconnected?: () => void;
   onRemoteStream?: (stream: MediaStream | null) => void;
+  onPeerNCStatusChange?: (enabled: boolean) => void;
 }
 
 interface SendFileOptions {
@@ -139,9 +141,13 @@ export function useWebRTC(config: WebRTCConfig) {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [connectionMode, setConnectionMode] = useState<ConnectionMode>('pending');
   const [connectionDetails, setConnectionDetails] = useState<ConnectionDetails>({ mode: 'pending' });
+  const [isNCEnabled, setIsNCEnabled] = useState(false);
+  const [peerNCEnabled, setPeerNCEnabled] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const rawStreamRef = useRef<MediaStream | null>(null);
+  const noiseSuppressedPipelineRef = useRef<NoiseSuppressedStream | null>(null);
   
   // File transfer state
   const fileMetadataRef = useRef<any>(null);
@@ -322,29 +328,69 @@ export function useWebRTC(config: WebRTCConfig) {
     }
   }, []);
 
+  // Send NC status to peer via WebSocket
+  const sendNCStatus = useCallback((enabled: boolean) => {
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: 'nc-status',
+        data: { enabled },
+      }));
+      console.log('[NoiseSuppression] Sent NC status to peer:', enabled);
+    }
+  }, []);
+
   const startVoiceChat = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      localStreamRef.current = stream;
+      console.log('[VoiceChat] Getting microphone access...');
+      const rawStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      rawStreamRef.current = rawStream;
+      
+      // Apply noise suppression if supported
+      let streamToUse: MediaStream;
+      let ncEnabled = false;
+      
+      if (isNoiseCancellationSupported()) {
+        console.log('[VoiceChat] Applying RNNoise noise suppression...');
+        try {
+          const pipeline = await createNoiseSuppressedStream(rawStream);
+          noiseSuppressedPipelineRef.current = pipeline;
+          streamToUse = pipeline.stream;
+          ncEnabled = pipeline.isNoiseCancellationEnabled;
+          console.log('[VoiceChat] Noise suppression applied:', ncEnabled);
+        } catch (err) {
+          console.warn('[VoiceChat] Noise suppression failed, using raw stream:', err);
+          streamToUse = rawStream;
+          ncEnabled = false;
+        }
+      } else {
+        console.log('[VoiceChat] Noise suppression not supported, using raw stream');
+        streamToUse = rawStream;
+        ncEnabled = false;
+      }
+      
+      localStreamRef.current = streamToUse;
+      setIsNCEnabled(ncEnabled);
+      sendNCStatus(ncEnabled);
       
       const pc = pcRef.current;
       
       if (pc) {
-        stream.getTracks().forEach(track => {
+        streamToUse.getTracks().forEach(track => {
           console.log('Adding audio track to peer connection');
-          pc.addTrack(track, stream);
+          pc.addTrack(track, streamToUse);
         });
         
         // Renegotiate with guard
         await performNegotiation();
       }
 
-      return stream;
+      return streamToUse;
     } catch (error) {
       console.error('Error starting voice chat:', error);
       throw error;
     }
-  }, [performNegotiation]);
+  }, [performNegotiation, sendNCStatus]);
 
   const stopVoiceChat = useCallback(() => {
     // Prevent stopping voice during active negotiation
@@ -377,12 +423,28 @@ export function useWebRTC(config: WebRTCConfig) {
       
       localStreamRef.current = null;
       
+      // Clean up noise suppression pipeline
+      if (noiseSuppressedPipelineRef.current) {
+        noiseSuppressedPipelineRef.current.cleanup();
+        noiseSuppressedPipelineRef.current = null;
+      }
+      
+      // Stop raw stream tracks
+      if (rawStreamRef.current) {
+        rawStreamRef.current.getTracks().forEach(track => track.stop());
+        rawStreamRef.current = null;
+      }
+      
+      // Reset NC status
+      setIsNCEnabled(false);
+      sendNCStatus(false);
+      
       // Renegotiate with guard (only if connection is still open)
       if (pc && pc.signalingState !== 'closed') {
         performNegotiation();
       }
     }
-  }, [performNegotiation]);
+  }, [performNegotiation, sendNCStatus]);
 
   useEffect(() => {
     // Only reconnect if we don't have a connection or if roomId actually changes
@@ -1084,8 +1146,14 @@ export function useWebRTC(config: WebRTCConfig) {
           setIsConnected(false);
           setConnectionState('disconnected');
           setRemoteStream(null);
+          setPeerNCEnabled(false);
           configRef.current.onRemoteStream?.(null);
           configRef.current.onPeerDisconnected?.();
+        } else if (message.type === 'nc-status') {
+          const ncEnabled = message.data?.enabled ?? false;
+          console.log('[NoiseSuppression] Peer NC status:', ncEnabled);
+          setPeerNCEnabled(ncEnabled);
+          configRef.current.onPeerNCStatusChange?.(ncEnabled);
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
@@ -1176,5 +1244,7 @@ export function useWebRTC(config: WebRTCConfig) {
     sendFile,
     startVoiceChat,
     stopVoiceChat,
+    isNCEnabled,
+    peerNCEnabled,
   };
 }

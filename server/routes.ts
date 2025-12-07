@@ -32,7 +32,7 @@ const updateRoomPasswordSchema = z.object({
 });
 
 interface WebRTCMessage {
-  type: "offer" | "answer" | "ice-candidate" | "join" | "peer-joined" | "peer-left" | "chat" | "file-metadata" | "file-chunk" | "file-eof";
+  type: "offer" | "answer" | "ice-candidate" | "join" | "peer-joined" | "peer-left" | "chat" | "file-metadata" | "file-chunk" | "file-eof" | "nc-status";
   roomId?: string;
   data?: any;
   peerId?: string;
@@ -409,6 +409,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   peer.ws.send(JSON.stringify({
                     type: message.type,
                     data: enrichedData,
+                    from: currentPeer!.peerId,
+                  }));
+                }
+              }
+            });
+          }
+        } else if (currentPeer && message.type === "nc-status") {
+          // Forward noise cancellation status to peer
+          const peers = roomPeers.get(currentPeer.roomId);
+          if (peers) {
+            peers.forEach((peerId) => {
+              if (peerId !== currentPeer!.peerId) {
+                const peer = activePeers.get(peerId);
+                if (peer && peer.ws.readyState === WebSocket.OPEN) {
+                  peer.ws.send(JSON.stringify({
+                    type: "nc-status",
+                    data: message.data,
                     from: currentPeer!.peerId,
                   }));
                 }

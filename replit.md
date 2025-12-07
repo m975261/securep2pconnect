@@ -1,8 +1,22 @@
 # Overview
 
-SECURE.LINK is a WebRTC communication application that enables secure, temporary connections between two users. The system supports P2P-first connections with automatic TURN fallback, facilitating real-time text messaging, voice chat, and file transfers. Features optional password protection, automatic room expiration, and 2-user room capacity limits. Users provide their own TURN server configuration for relay fallback.
+SECURE.LINK is a WebRTC communication application that enables secure, temporary connections between two users. The system supports P2P-first connections with automatic TURN fallback, facilitating real-time text messaging, voice chat, and file transfers. Features optional password protection, automatic room expiration, and 2-user room capacity limits. Users provide their own TURN server configuration for relay fallback. Voice chat includes AI-powered noise cancellation using RNNoise.
 
 ## Recent Updates
+
+### December 7, 2025 - AI Noise Cancellation (RNNoise)
+- **RNNoise Integration**: Added AI-powered noise suppression using `@sapphi-red/web-noise-suppressor` (RNNoise WASM)
+- **Audio Pipeline**: Created `client/src/lib/audio/audio-pipeline.ts` with AudioWorklet-based processing
+  - Microphone → AudioContext → RNNoise WASM processor → Cleaned audio → WebRTC
+  - 48kHz sample rate for optimal noise cancellation
+  - Automatic SIMD detection for better performance
+- **NC Status Sync**: Both peers see each other's noise cancellation status via WebSocket `nc-status` message
+- **NC Status Badges**: Visual indicators in room UI showing:
+  - Your NC status (green = enabled, gray = disabled)
+  - Peer's NC status (green = enabled, gray = disabled)
+  - Only displayed when mic is on
+- **Graceful Fallback**: If AudioWorklet/WASM fails, falls back to raw audio without crashing
+- **Bilingual Support**: NC status translations for English and Arabic
 
 ### December 3, 2025 - STABLE BASELINE (Fully Working)
 **This is the stable baseline to return to if issues arise.**

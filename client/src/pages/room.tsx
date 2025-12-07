@@ -128,6 +128,10 @@ export default function Room() {
       turnServerIP: 'TURN Server',
       protocol: 'Protocol',
       close: 'Close',
+      ncEnabled: 'NC On',
+      ncDisabled: 'NC Off',
+      ncYou: 'You',
+      ncPeer: 'Peer',
     },
     ar: {
       appName: 'SECURE.LINK',
@@ -166,6 +170,10 @@ export default function Room() {
       turnServerIP: 'خادم TURN',
       protocol: 'البروتوكول',
       close: 'إغلاق',
+      ncEnabled: 'إلغاء الضوضاء',
+      ncDisabled: 'بدون إلغاء',
+      ncYou: 'أنت',
+      ncPeer: 'النظير',
     },
   };
 
@@ -337,7 +345,7 @@ export default function Room() {
     onPeerDisconnected,
   }), [passwordVerified, roomId, peerId, nickname, turnConfig, onMessage, onFileReceive, onPeerConnected, onPeerDisconnected]);
 
-  const { connectionState, connectionMode, connectionDetails, remoteStream, sendMessage, sendFile, startVoiceChat, stopVoiceChat } = useWebRTC(webrtcConfig);
+  const { connectionState, connectionMode, connectionDetails, remoteStream, sendMessage, sendFile, startVoiceChat, stopVoiceChat, isNCEnabled, peerNCEnabled } = useWebRTC(webrtcConfig);
 
   // Attach remote audio stream to audio element
   useEffect(() => {
@@ -958,6 +966,47 @@ export default function Room() {
                   </Button>
                 </DialogContent>
               </Dialog>
+            )}
+
+            {/* NC Status Badges - Only show when mic is on */}
+            {isMicOn && (
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                {/* Your NC Status */}
+                <div 
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all ${
+                    isNCEnabled
+                      ? 'bg-green-500/10 border-green-500/30'
+                      : 'bg-gray-500/10 border-gray-500/30'
+                  }`}
+                  data-testid="nc-badge-local"
+                >
+                  <Mic className={`w-3 h-3 ${isNCEnabled ? 'text-green-500' : 'text-gray-500'}`} />
+                  <span className={`text-[10px] md:text-xs font-mono ${
+                    isNCEnabled ? 'text-green-500' : 'text-gray-500'
+                  }`}>
+                    {t.ncYou}: {isNCEnabled ? t.ncEnabled : t.ncDisabled}
+                  </span>
+                </div>
+
+                {/* Peer NC Status - Only show when peer is connected and has voice */}
+                {peerNickname && (
+                  <div 
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all ${
+                      peerNCEnabled
+                        ? 'bg-green-500/10 border-green-500/30'
+                        : 'bg-gray-500/10 border-gray-500/30'
+                    }`}
+                    data-testid="nc-badge-peer"
+                  >
+                    <Mic className={`w-3 h-3 ${peerNCEnabled ? 'text-green-500' : 'text-gray-500'}`} />
+                    <span className={`text-[10px] md:text-xs font-mono ${
+                      peerNCEnabled ? 'text-green-500' : 'text-gray-500'
+                    }`}>
+                      {t.ncPeer}: {peerNCEnabled ? t.ncEnabled : t.ncDisabled}
+                    </span>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Voice Controls */}
