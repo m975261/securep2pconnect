@@ -51,6 +51,7 @@ INCLUDE_DIRS=(
   "server"
   "shared"
   "public"
+  "attached_assets"
 )
 
 # Files and directories to exclude
@@ -65,7 +66,6 @@ EXCLUDE_PATTERNS=(
   ".upm"
   ".config"
   ".cache"
-  "attached_assets"
   "create_deploy_zip.sh"
 )
 
