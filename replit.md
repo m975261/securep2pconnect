@@ -14,10 +14,21 @@ The frontend is built with React 18 and TypeScript, utilizing Wouter for routing
 
 **Communication Features:**
 - **P2P-First with TURN Fallback:** Attempts direct P2P connection first (`iceTransportPolicy: 'all'`) with an automatic 5-second timeout triggering an ICE restart for TURN relay fallback.
-- **Connection Mode Indicator:** A visual badge displays the current connection mode (P2P, TURN, or Pending).
+- **Connection Mode Indicator:** A visual badge displays the current connection mode (P2P, TURN, Pending, or Reconnecting).
 - **User-Configured TURN Servers:** Users provide their own TURN server details via a bilingual `TurnConfigModal`.
 - **AI Noise Cancellation:** Integrates `@sapphi-red/web-noise-suppressor` (RNNoise WASM) via an AudioWorklet pipeline for real-time microphone noise reduction.
 - Text chat with history, drag-and-drop file transfer, QR code sharing/scanning for rooms, and voice chat.
+
+**Connection Mode Detection (Confirmed Working):**
+- **Detection Method:** Uses `RTCPeerConnection.getStats()` to find the selected ICE candidate pair and determine connection type based on candidate types (host/srflx = P2P, relay = TURN).
+- **Polling Strategy:** Continuous polling (500ms intervals, max 30 attempts) until mode is detected. Polling is triggered at multiple points:
+  - `[JOINER-INIT]`: When invited user sends initial offer after joining
+  - `[JOINER]`: When any peer receives an offer and sends an answer
+  - `[CREATOR]`: After sending an answer (hoster side during renegotiation)
+  - `[RECONNECT]`: After SDP incompatibility triggers peer connection recreation
+- **Mode Synchronization:** Detected modes (p2p/turn only, not transient states) are broadcast via WebSocket to peer. Server relays `connection-mode` messages between peers.
+- **Sync Logic:** TURN mode takes priority (if peer reports TURN, local updates to TURN). P2P is accepted only if local mode is still pending/reconnecting.
+- **State Preservation:** ICE disconnected doesn't overwrite 'pending' state (when peer has left). Mode detection retries work for both 'pending' and 'reconnecting' states.
 
 ## Backend Architecture
 
