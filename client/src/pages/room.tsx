@@ -537,32 +537,12 @@ export default function Room() {
     }
   };
 
-  const copyLink = async () => {
+  const copyLink = () => {
     if (shareLink) {
-      try {
-        // Try modern clipboard API first (requires HTTPS)
-        if (navigator.clipboard && window.isSecureContext) {
-          await navigator.clipboard.writeText(shareLink);
-        } else {
-          // Fallback for HTTP: use textarea method
-          const textArea = document.createElement('textarea');
-          textArea.value = shareLink;
-          textArea.style.position = 'fixed';
-          textArea.style.left = '-999999px';
-          textArea.style.top = '-999999px';
-          document.body.appendChild(textArea);
-          textArea.focus();
-          textArea.select();
-          document.execCommand('copy');
-          document.body.removeChild(textArea);
-        }
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-        toast.success('Link copied to clipboard!');
-      } catch (err) {
-        // Final fallback: prompt user to copy manually
-        toast.error('Could not copy automatically. Please copy the link manually.');
-      }
+      navigator.clipboard.writeText(shareLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast.success('Link copied to clipboard!');
     }
   };
 
