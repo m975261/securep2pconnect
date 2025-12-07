@@ -1,0 +1,88 @@
+[STEP] Step 6/8: Extracting and building project...
+[INFO] Extracting project files...
+[INFO] Creating environment configuration...
+[INFO] Installing npm dependencies (this may take a few minutes)...
+
+added 503 packages, and audited 504 packages in 9s
+
+47 packages are looking for funding
+  run `npm fund` for details
+
+6 vulnerabilities (2 low, 4 moderate)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+[INFO] Running database migrations...
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/secure-webrtc-app/drizzle.config.ts'
+Using 'pg' driver for database querying
+[✓] Pulling schema from database...
+[i] No changes detected
+[INFO] Building production assets...
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+vite v7.1.12 building for production...
+✓ 2269 modules transformed.
+../dist/public/index.html                                                                 2.01 kB │ gzip:   0.77 kB
+../dist/public/assets/workletProcessor-CqIjLsie.js                                       64.79 kB
+../dist/public/assets/rnnoise-lVVwgm0Y.wasm                                             152.66 kB │ gzip: 113.89 kB
+../dist/public/assets/dark_abstract_digital_security_network_background-D8u3YhhW.png  1,054.47 kB
+../dist/public/assets/index-CKARXDSi.css                                                107.29 kB │ gzip:  17.86 kB
+../dist/public/assets/index-CPvutXyj.js                                                 826.77 kB │ gzip: 261.70 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 8.00s
+
+  dist/index.js  36.4kb
+
+⚡ Done in 7ms
+[INFO] Pruning dev dependencies...
+
+up to date, audited 396 packages in 1s
+
+30 packages are looking for funding
+  run `npm fund` for details
+
+2 low severity vulnerabilities
+
+To address all issues, run:
+  npm audit fix
+
+Run `npm audit` for details.
+[INFO] Project built successfully
+[STEP] Step 7/8: Creating systemd service...
+[INFO] Systemd service created
+[STEP] Step 8/8: Starting application...
+[INFO] Waiting for application to start...
+[ERROR] Service failed to start. Checking logs...
+Dec 07 17:45:34 securelink systemd[1]: Started secure-webrtc-app.service - Secure WebRTC Application (SECURE.LINK).
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]: node:internal/modules/esm/resolve:873
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:   throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:         ^
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /opt/secure-webrtc-app/dist/index.js
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:     at packageResolve (node:internal/modules/esm/resolve:873:9)
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:     at moduleResolve (node:internal/modules/esm/resolve:946:18)
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:     at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:708:12)
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:     at #cachedDefaultResolve (node:internal/modules/esm/loader:657:25)
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:     at ModuleLoader.resolve (node:internal/modules/esm/loader:640:38)
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:264:38)
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:     at ModuleJob._link (node:internal/modules/esm/module_job:168:49) {
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:   code: 'ERR_MODULE_NOT_FOUND'
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]: }
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]: Node.js v20.19.6
+Dec 07 17:45:34 securelink systemd[1]: secure-webrtc-app.service: Main process exited, code=exited, status=1/FAILURE
+Dec 07 17:45:34 securelink systemd[1]: secure-webrtc-app.service: Failed with result 'exit-code'.
+[ERROR] Application failed to start
+m975261@securelink:~$ ^C
+m975261@securelink:~$

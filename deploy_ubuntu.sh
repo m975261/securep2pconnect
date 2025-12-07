@@ -295,9 +295,9 @@ NODE_ENV=development npx drizzle-kit push --force 2>/dev/null || NODE_ENV=develo
 log_info "Building production assets..."
 NODE_ENV=production npm run build || error_exit "Failed to build application"
 
-# Prune dev dependencies to reduce deployment size
-log_info "Pruning dev dependencies..."
-npm prune --omit=dev 2>/dev/null || true
+# Note: We keep all dependencies installed because server/vite.ts imports vite at top level
+# even though it's only used in development mode. This is a known architectural choice.
+log_info "Dependencies installed (keeping all for runtime compatibility)"
 
 # Set NODE_ENV for runtime
 export NODE_ENV=production
