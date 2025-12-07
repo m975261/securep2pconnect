@@ -959,9 +959,33 @@ export function useWebRTC(config: WebRTCConfig) {
                 currentWs.send(JSON.stringify({ type: 'answer', data: answer }));
                 console.log('[RECONNECT] Answer sent');
                 
-                // Reset connection mode
+                // Reset connection mode to pending so polling works
                 connectionModeRef.current = 'pending';
                 setConnectionMode('pending');
+                
+                // Start polling for mode detection after reconnect
+                let reconnectPollCount = 0;
+                const reconnectPollInterval = setInterval(() => {
+                  reconnectPollCount++;
+                  const currentMode = connectionModeRef.current;
+                  const reconnectPc = pcRef.current;
+                  
+                  console.log('[RECONNECT] Polling for connection mode, attempt:', reconnectPollCount, 'pc state:', reconnectPc?.iceConnectionState);
+                  
+                  // Stop if mode is detected or max attempts reached
+                  if ((currentMode === 'p2p' || currentMode === 'turn') || reconnectPollCount >= 30) {
+                    console.log('[RECONNECT] Stopping poll - mode:', currentMode, 'attempts:', reconnectPollCount);
+                    clearInterval(reconnectPollInterval);
+                    return;
+                  }
+                  
+                  // Try to detect mode if connected
+                  if (reconnectPc && (reconnectPc.iceConnectionState === 'connected' || reconnectPc.iceConnectionState === 'completed')) {
+                    console.log('[RECONNECT] ICE connected, detecting mode');
+                    detectModeFromStats();
+                  }
+                }, 500);
+                
                 return;
               }
               throw sdpError;
@@ -990,6 +1014,29 @@ export function useWebRTC(config: WebRTCConfig) {
               data: answer,
             }));
             console.log('Answer sent');
+            
+            // Start polling for mode detection (for invited user / joiner)
+            let joinerPollCount = 0;
+            const joinerPollInterval = setInterval(() => {
+              joinerPollCount++;
+              const currentMode = connectionModeRef.current;
+              const joinerPc = pcRef.current;
+              
+              console.log('[JOINER] Polling for connection mode, attempt:', joinerPollCount, 'pc state:', joinerPc?.iceConnectionState);
+              
+              // Stop if mode is detected or max attempts reached
+              if ((currentMode === 'p2p' || currentMode === 'turn') || joinerPollCount >= 30) {
+                console.log('[JOINER] Stopping poll - mode:', currentMode, 'attempts:', joinerPollCount);
+                clearInterval(joinerPollInterval);
+                return;
+              }
+              
+              // Try to detect mode if connected
+              if (joinerPc && (joinerPc.iceConnectionState === 'connected' || joinerPc.iceConnectionState === 'completed')) {
+                console.log('[JOINER] ICE connected, detecting mode');
+                detectModeFromStats();
+              }
+            }, 500);
             
             // Flush any buffered remote ICE candidates now that remote description is set
             if (pendingRemoteIceCandidates.length > 0) {
