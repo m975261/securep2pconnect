@@ -1174,6 +1174,10 @@ export function useWebRTC(config: WebRTCConfig) {
           setConnectionState('disconnected');
           setRemoteStream(null);
           setPeerNCEnabled(false);
+          // Reset connection mode to pending when peer leaves (waiting for reconnection)
+          connectionModeRef.current = 'pending';
+          setConnectionMode('pending');
+          setConnectionDetails({ mode: 'pending' });
           configRef.current.onRemoteStream?.(null);
           configRef.current.onPeerDisconnected?.();
         } else if (message.type === 'nc-status') {
