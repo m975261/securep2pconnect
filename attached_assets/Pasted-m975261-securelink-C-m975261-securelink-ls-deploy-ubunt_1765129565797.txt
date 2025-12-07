@@ -1,0 +1,247 @@
+m975261@securelink:~$ ^C
+m975261@securelink:~$ ls
+deploy_ubuntu.sh  securelink-deploy.zip  secure-webrtc-app
+m975261@securelink:~$ cd ~
+m975261@securelink:~$ unzip -o securelink-deploy.zip
+Archive:  securelink-deploy.zip
+  inflating: secure-webrtc-app/package.json
+  inflating: secure-webrtc-app/package-lock.json
+  inflating: secure-webrtc-app/tsconfig.json
+  inflating: secure-webrtc-app/drizzle.config.ts
+  inflating: secure-webrtc-app/vite.config.ts
+  inflating: secure-webrtc-app/postcss.config.js
+  inflating: secure-webrtc-app/components.json
+  inflating: secure-webrtc-app/deploy_ubuntu.sh
+  inflating: secure-webrtc-app/client/src/lib/utils.ts
+  inflating: secure-webrtc-app/client/src/lib/queryClient.ts
+  inflating: secure-webrtc-app/client/src/lib/audio/audio-pipeline.ts
+  inflating: secure-webrtc-app/client/src/lib/webrtc.ts
+  inflating: secure-webrtc-app/client/src/components/ui/tabs.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/dropdown-menu.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/toggle.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/popover.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/toggle-group.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/progress.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/button-group.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/aspect-ratio.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/select.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/input-group.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/dialog.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/collapsible.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/field.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/form.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/calendar.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/avatar.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/table.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/drawer.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/switch.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/menubar.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/tooltip.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/sidebar.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/badge.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/breadcrumb.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/checkbox.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/pagination.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/input-otp.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/radio-group.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/toaster.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/empty.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/input.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/hover-card.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/spinner.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/alert-dialog.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/resizable.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/alert.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/item.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/sonner.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/label.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/button.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/chart.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/separator.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/toast.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/navigation-menu.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/context-menu.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/skeleton.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/card.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/slider.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/sheet.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/scroll-area.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/textarea.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/carousel.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/kbd.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/accordion.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/command.tsx
+  inflating: secure-webrtc-app/client/src/components/file-transfer.tsx
+  inflating: secure-webrtc-app/client/src/components/chat-interface.tsx
+  inflating: secure-webrtc-app/client/src/components/qr-scanner.tsx
+  inflating: secure-webrtc-app/client/src/components/debug-panel.tsx
+  inflating: secure-webrtc-app/client/src/components/turn-config-modal.tsx
+  inflating: secure-webrtc-app/client/src/pages/not-found.tsx
+  inflating: secure-webrtc-app/client/src/pages/admin-login.tsx
+  inflating: secure-webrtc-app/client/src/pages/admin-change-password.tsx
+  inflating: secure-webrtc-app/client/src/pages/admin-dashboard.tsx
+  inflating: secure-webrtc-app/client/src/pages/home.tsx
+  inflating: secure-webrtc-app/client/src/pages/create-room.tsx
+  inflating: secure-webrtc-app/client/src/pages/join-room.tsx
+  inflating: secure-webrtc-app/client/src/pages/room.tsx
+  inflating: secure-webrtc-app/client/src/main.tsx
+  inflating: secure-webrtc-app/client/src/hooks/use-toast.ts
+  inflating: secure-webrtc-app/client/src/hooks/use-mobile.tsx
+  inflating: secure-webrtc-app/client/src/index.css
+  inflating: secure-webrtc-app/client/src/App.tsx
+  inflating: secure-webrtc-app/client/index.html
+  inflating: secure-webrtc-app/client/public/favicon.png
+  inflating: secure-webrtc-app/client/public/opengraph.jpg
+  inflating: secure-webrtc-app/server/vite.ts
+  inflating: secure-webrtc-app/server/index.ts
+  inflating: secure-webrtc-app/server/admin-routes.ts
+  inflating: secure-webrtc-app/server/encryption.ts
+  inflating: secure-webrtc-app/server/storage.ts
+  inflating: secure-webrtc-app/server/routes.ts
+  inflating: secure-webrtc-app/shared/schema.ts
+   creating: secure-webrtc-app/attached_assets/
+   creating: secure-webrtc-app/attached_assets/generated_images/
+  inflating: secure-webrtc-app/attached_assets/generated_images/dark_abstract_digital_security_network_background.png
+  inflating: secure-webrtc-app/attached_assets/Pasted--vite-connecting-Download-the-React-DevTools-for-a-better-development-experience-https-reac-1764259947101_1764259947103.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted--I-want-you-to-upgrade-my-existing-WebRTC-project-to-support-true-peer-to-peer-connections-with-hidd-1764261830819_1764261830821.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-WebSocket-connected-9-20-10-AMJoined-room-existing-peer_1764739421681.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-WebSocket-connected-9-28-20-AMJoined-room-existing-peer_1764739919607.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-S-52-CLEAR-9-34-22-AMWebSocket-connected-9-34-22-AMJoin_1764740127991.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-WebSocket-connected-9-37-40-AMJoined-room-existing-peer_1764740388285.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-TURN-config-available-true-turns-eu-central-turnix-io-4_1764740720542.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-OGS-100-CLEAR-9-49-42-AMAttempting-to-reconnect-in-1000_1764741085060.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-TURN-config-available-true-9-54-24-AMTURN-URLs-turns-eu_1764741346473.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-Chat-File-Transfer-ENCRYPTED-CHANNEL-P2P-WEBRTC-V2-2-CO_1764747056574.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-Chat-File-Transfer-ENCRYPTED-CHANNEL-P2P-WEBRTC-V2-2-CO_1764747457081.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-Chat-File-Transfer-ENCRYPTED-CHANNEL-P2P-WEBRTC-V2-2-CO_1764749492122.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-Chat-File-Transfer-ENCRYPTED-CHANNEL-P2P-WEBRTC-V2-2-CO_1764749920854.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-12-20-54-PMTURN-config-available-true-12-20-54-PMTURN-U_1764750115448.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-EBUG-LOGS-45-CLEAR-12-32-00-PMTURN-config-available-tru_1764750837178.txt
+ extracting: secure-webrtc-app/attached_assets/content-1764751396429.md
+  inflating: secure-webrtc-app/attached_assets/Pasted-Chat-File-Transfer-ENCRYPTED-CHANNEL-P2P-WEBRTC-V2-2-CO_1764751742639.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-Chat-File-Transfer-ENCRYPTED-CHANNEL-P2P-WEBRTC-V2-2-CO_1764752293604.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-Chat-File-Transfer-ENCRYPTED-CHANNEL-P2P-WEBRTC-V2-2-CO_1764752541377.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-Chat-File-Transfer-ENCRYPTED-CHANNEL-P2P-WEBRTC-V2-2-CO_1764752731967.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-Chat-File-Transfer-ENCRYPTED-CHANNEL-P2P-WEBRTC-V2-2-CO_1764752954143.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-10-54-PMTURN-config-available-false-1-10-54-PMICE-serve_1764753156786.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-DEBUG-LOGS-90-CLEAR-2-13-04-PMTURN-config-available-tru_1764756859854.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-2-17-48-PMReceived-ICE-candidate-from-peer-2-17-48-PMAd_1764757127178.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted--Reconnecting-Chat-File-Transfer-ENCRYPTED-CHANNEL-P2P-_1764757479553.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-AES-256-ENCRYPTED-P2P-Direct-Chat-File-Transfer-ENCRYPT_1764757894922.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-Chat-File-Transfer-ENCRYPTED-CHANNEL-P2P-WEBRTC-V2-2-CO_1764758247726.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-3-connected-2-connected-AES-256-ENCRYPTED-P2P-Direct-Ch_1764759141139.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-SECURE-LINK-1-connected-2-connected-AES-256-ENCRYPTED-P_1764759383548.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-Chat-File-Transfer-SEND-NEW-FILE-Transfer-History-Scree_1765066923495.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-m975261-securelink-cd-m975261-securelink-unzip-o-secure_1765128902116.txt
+  inflating: secure-webrtc-app/attached_assets/Pasted-m975261-securelink-cd-m975261-securelink-unzip-o-secure_1765129063617.txt
+m975261@securelink:~$ sudo bash secure-webrtc-app/deploy_ubuntu.sh ~/securelink-deploy.zip
+
+==========================================
+  SECURE.LINK Deployment Starting
+==========================================
+
+[INFO] Target: Ubuntu 24.04
+[INFO] App Name: secure-webrtc-app
+[INFO] Install Dir: /opt/secure-webrtc-app
+[INFO] Port: 5000
+
+[STEP] Step 1/8: Installing system dependencies...
+[INFO] System dependencies installed
+[STEP] Step 2/8: Setting up Node.js 20.x...
+[INFO] Node.js v20.19.6 already installed
+[STEP] Step 3/8: Configuring PostgreSQL...
+[INFO] PostgreSQL is running
+[STEP] Step 4/8: Managing credentials...
+[INFO] Loading existing credentials...
+[INFO] Updating database user password...
+[INFO] Database webrtc_app_db already exists
+[INFO] Database configured successfully
+[STEP] Step 5/8: Setting up application user...
+[INFO] System user webrtcapp already exists
+[STEP] Step 6/8: Extracting and building project...
+[INFO] Extracting project files...
+[INFO] Creating environment configuration...
+[INFO] Installing npm dependencies (this may take a few minutes)...
+
+added 503 packages, and audited 504 packages in 9s
+
+47 packages are looking for funding
+  run `npm fund` for details
+
+6 vulnerabilities (2 low, 4 moderate)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+[INFO] Running database migrations...
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/secure-webrtc-app/drizzle.config.ts'
+Using 'pg' driver for database querying
+[✓] Pulling schema from database...
+[i] No changes detected
+[INFO] Building production assets...
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+vite v7.1.12 building for production...
+✓ 2269 modules transformed.
+../dist/public/index.html                                                                 2.01 kB │ gzip:   0.77 kB
+../dist/public/assets/workletProcessor-CqIjLsie.js                                       64.79 kB
+../dist/public/assets/rnnoise-lVVwgm0Y.wasm                                             152.66 kB │ gzip: 113.89 kB
+../dist/public/assets/dark_abstract_digital_security_network_background-D8u3YhhW.png  1,054.47 kB
+../dist/public/assets/index-CKARXDSi.css                                                107.29 kB │ gzip:  17.86 kB
+../dist/public/assets/index-CPvutXyj.js                                                 826.77 kB │ gzip: 261.70 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 8.00s
+
+  dist/index.js  36.4kb
+
+⚡ Done in 7ms
+[INFO] Pruning dev dependencies...
+
+up to date, audited 396 packages in 1s
+
+30 packages are looking for funding
+  run `npm fund` for details
+
+2 low severity vulnerabilities
+
+To address all issues, run:
+  npm audit fix
+
+Run `npm audit` for details.
+[INFO] Project built successfully
+[STEP] Step 7/8: Creating systemd service...
+[INFO] Systemd service created
+[STEP] Step 8/8: Starting application...
+[INFO] Waiting for application to start...
+[ERROR] Service failed to start. Checking logs...
+Dec 07 17:45:34 securelink systemd[1]: Started secure-webrtc-app.service - Secure WebRTC Application (SECURE.LINK).
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]: node:internal/modules/esm/resolve:873
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:   throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:         ^
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /opt/secure-webrtc-app/dist/index.js
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:     at packageResolve (node:internal/modules/esm/resolve:873:9)
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:     at moduleResolve (node:internal/modules/esm/resolve:946:18)
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:     at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:708:12)
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:     at #cachedDefaultResolve (node:internal/modules/esm/loader:657:25)
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:     at ModuleLoader.resolve (node:internal/modules/esm/loader:640:38)
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:264:38)
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:     at ModuleJob._link (node:internal/modules/esm/module_job:168:49) {
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]:   code: 'ERR_MODULE_NOT_FOUND'
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]: }
+Dec 07 17:45:34 securelink secure-webrtc-app[4656]: Node.js v20.19.6
+Dec 07 17:45:34 securelink systemd[1]: secure-webrtc-app.service: Main process exited, code=exited, status=1/FAILURE
+Dec 07 17:45:34 securelink systemd[1]: secure-webrtc-app.service: Failed with result 'exit-code'.
+[ERROR] Application failed to start
+m975261@securelink:~$
