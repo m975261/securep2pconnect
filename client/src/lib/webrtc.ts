@@ -1010,8 +1010,10 @@ export function useWebRTC(config: WebRTCConfig) {
               creatorPollCount++;
               console.log('[CREATOR] Polling for connection mode, attempt:', creatorPollCount, 'pc state:', currentPc?.iceConnectionState);
               
-              if (connectionModeRef.current !== 'pending' || creatorPollCount >= 30) {
-                console.log('[CREATOR] Stopping poll - mode:', connectionModeRef.current, 'attempts:', creatorPollCount);
+              // Stop polling only if we have a definitive mode (p2p or turn), or max attempts reached
+              const currentMode = connectionModeRef.current;
+              if ((currentMode === 'p2p' || currentMode === 'turn') || creatorPollCount >= 30) {
+                console.log('[CREATOR] Stopping poll - mode:', currentMode, 'attempts:', creatorPollCount);
                 clearInterval(creatorPollInterval);
                 return;
               }
