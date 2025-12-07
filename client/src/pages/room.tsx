@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import QRCode from "react-qr-code";
 import { ChatInterface } from "@/components/chat-interface";
 import { FileTransfer } from "@/components/file-transfer";
-import { DebugPanel } from "@/components/debug-panel";
 import { useWebRTC, type TurnConfig, type ConnectionMode, type ConnectionDetails } from "@/lib/webrtc";
 import { toast } from "sonner";
 import {
@@ -1114,9 +1113,6 @@ export default function Room() {
       
       {/* Audio element for remote peer's voice */}
       <audio ref={remoteAudioRef} autoPlay playsInline muted />
-      
-      {/* Debug Panel for mobile testing */}
-      <DebugPanel />
     </div>
   );
 }
