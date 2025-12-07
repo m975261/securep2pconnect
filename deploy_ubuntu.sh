@@ -283,9 +283,9 @@ cd "$APP_DIR"
 export DATABASE_URL
 export NODE_ENV=production
 
-# Install dependencies
+# Install ALL dependencies first (including dev for build tools)
 log_info "Installing npm dependencies (this may take a few minutes)..."
-npm ci --omit=dev 2>/dev/null || npm install --omit=dev || error_exit "Failed to install npm dependencies"
+npm ci 2>/dev/null || npm install || error_exit "Failed to install npm dependencies"
 
 # Run database migrations
 log_info "Running database migrations..."
@@ -294,6 +294,10 @@ npx drizzle-kit push --force 2>/dev/null || npx drizzle-kit push || error_exit "
 # Build production assets
 log_info "Building production assets..."
 npm run build || error_exit "Failed to build application"
+
+# Prune dev dependencies to reduce deployment size
+log_info "Pruning dev dependencies..."
+npm prune --omit=dev 2>/dev/null || true
 
 # Final ownership set
 chown -R "$APP_USER":"$APP_USER" "$APP_DIR"
