@@ -677,8 +677,9 @@ export function useWebRTC(config: WebRTCConfig) {
           }
           setConnectionDetails(details);
           console.log('Connection details:', details);
-        } else if (connectionModeRef.current === 'pending') {
-          // Retry after a short delay if we couldn't detect yet
+        } else if (connectionModeRef.current === 'pending' || connectionModeRef.current === 'reconnecting') {
+          // Retry after a short delay if we couldn't detect yet (including after reconnection)
+          console.log('[ModeDetect] No selected pair yet, retrying... (current mode:', connectionModeRef.current, ')');
           setTimeout(detectModeFromStats, 500);
         }
       }).catch(err => {
@@ -703,8 +704,9 @@ export function useWebRTC(config: WebRTCConfig) {
       
       if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
         console.warn('ICE connection issue detected, may need to restart');
-        // Only show "reconnecting" if we were previously connected
-        if (hasConnectedRef.current && connectionModeRef.current !== 'pending') {
+        // Only show "reconnecting" if we were previously connected and peer hasn't left
+        // If mode is 'pending' (peer left), don't overwrite it
+        if (hasConnectedRef.current && connectionModeRef.current !== 'pending' && connectionModeRef.current !== 'reconnecting') {
           connectionModeRef.current = 'reconnecting';
           setConnectionMode('reconnecting');
           // Reset connection details when reconnecting
@@ -1052,7 +1054,7 @@ export function useWebRTC(config: WebRTCConfig) {
               
               // Trigger mode detection after answer is received (for joiner)
               setTimeout(() => {
-                if (connectionModeRef.current === 'pending') {
+                if (connectionModeRef.current === 'pending' || connectionModeRef.current === 'reconnecting') {
                   console.log('[JOINER] Triggering delayed mode detection after receiving answer');
                   detectModeFromStats();
                 }
