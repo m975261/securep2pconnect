@@ -1,0 +1,46 @@
+[STEP] Step 8/8: Starting application...
+[INFO] Waiting for application to start...
+
+==========================================
+  Deployment Complete!
+==========================================
+
+[INFO] Application is running on port 5000
+
+Useful commands:
+  - Check status:  sudo systemctl status secure-webrtc-app
+  - View logs:     sudo journalctl -u secure-webrtc-app -f
+  - Restart:       sudo systemctl restart secure-webrtc-app
+  - Stop:          sudo systemctl stop secure-webrtc-app
+
+Configuration:
+  - App directory: /opt/secure-webrtc-app
+  - Config file:   /opt/secure-webrtc-app/.env.production
+  - Credentials:   /root/.secure-webrtc-app-credentials
+  - Database:      webrtc_app_db
+
+Access the app at: http://YOUR_SERVER_IP:5000
+
+● secure-webrtc-app.service - Secure WebRTC Application (SECURE.LINK)
+     Loaded: loaded (/etc/systemd/system/secure-webrtc-app.service; enabled; preset: enabled)
+     Active: active (running) since Sun 2025-12-07 17:55:46 UTC; 3s ago
+       Docs: https://github.com/your-repo
+   Main PID: 7781 (node)
+      Tasks: 12 (limit: 2268)
+     Memory: 68.9M (peak: 69.1M)
+        CPU: 751ms
+     CGroup: /system.slice/secure-webrtc-app.service
+             └─7781 /usr/bin/node /opt/secure-webrtc-app/dist/index.js
+
+Dec 07 17:55:40 securelink systemd[1]: secure-webrtc-app.service: Failed with result 'exit-code'.
+Dec 07 17:55:46 securelink systemd[1]: secure-webrtc-app.service: Scheduled restart job, rest…t 111.
+Dec 07 17:55:46 securelink systemd[1]: Started secure-webrtc-app.service - Secure WebRTC Appl…LINK).
+Dec 07 17:55:46 securelink secure-webrtc-app[7781]: Warning: connect.session() MemoryStore is not
+Dec 07 17:55:46 securelink secure-webrtc-app[7781]: designed for a production environment, as … leak
+Dec 07 17:55:46 securelink secure-webrtc-app[7781]: memory, and will not scale past a single p…cess.
+Dec 07 17:55:46 securelink secure-webrtc-app[7781]: Default admin user created (username: admi…5261)
+Dec 07 17:55:46 securelink secure-webrtc-app[7781]: 5:55:46 PM [express] serving on port 5000
+Hint: Some lines were ellipsized, use -l to show in full.
+
+[INFO] Deployment completed successfully!
+m975261@securelink:~$
