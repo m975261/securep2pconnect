@@ -19,14 +19,19 @@ declare module 'express-session' {
   }
 }
 
+// Trust first proxy (nginx) for secure cookies behind reverse proxy
+app.set('trust proxy', 1);
+
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    // Only require secure cookies if explicitly set or if behind HTTPS proxy
+    secure: process.env.COOKIE_SECURE === 'true' || (process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS === 'true'),
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000,
+    sameSite: 'lax',
   }
 }));
 
