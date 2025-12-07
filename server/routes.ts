@@ -438,18 +438,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`[WebSocket] Connection mode from ${currentPeer.peerId}: ${message.mode}`);
           const peers = roomPeers.get(currentPeer.roomId);
           if (peers) {
+            let relayedCount = 0;
             peers.forEach((peerId) => {
               if (peerId !== currentPeer!.peerId) {
                 const peer = activePeers.get(peerId);
                 if (peer && peer.ws.readyState === WebSocket.OPEN) {
+                  console.log(`[WebSocket] Relaying connection mode ${message.mode} to ${peerId}`);
                   peer.ws.send(JSON.stringify({
                     type: "connection-mode",
                     mode: message.mode,
                     from: currentPeer!.peerId,
                   }));
+                  relayedCount++;
                 }
               }
             });
+            if (relayedCount === 0) {
+              console.log(`[WebSocket] No peers to relay connection mode to in room ${currentPeer.roomId}`);
+            }
           }
         }
       } catch (error) {
