@@ -1,0 +1,161 @@
+m975261@securelink:~$ cd ~
+m975261@securelink:~$ unzip -o secure-webrtc-deploy-20251207_172823.zip
+Archive:  secure-webrtc-deploy-20251207_172823.zip
+   creating: secure-webrtc-app/
+  inflating: secure-webrtc-app/package.json
+  inflating: secure-webrtc-app/package-lock.json
+  inflating: secure-webrtc-app/tsconfig.json
+  inflating: secure-webrtc-app/drizzle.config.ts
+  inflating: secure-webrtc-app/vite.config.ts
+  inflating: secure-webrtc-app/postcss.config.js
+  inflating: secure-webrtc-app/components.json
+  inflating: secure-webrtc-app/deploy_ubuntu.sh
+   creating: secure-webrtc-app/client/
+   creating: secure-webrtc-app/client/src/
+   creating: secure-webrtc-app/client/src/lib/
+  inflating: secure-webrtc-app/client/src/lib/utils.ts
+  inflating: secure-webrtc-app/client/src/lib/queryClient.ts
+   creating: secure-webrtc-app/client/src/lib/audio/
+  inflating: secure-webrtc-app/client/src/lib/audio/audio-pipeline.ts
+  inflating: secure-webrtc-app/client/src/lib/webrtc.ts
+   creating: secure-webrtc-app/client/src/components/
+   creating: secure-webrtc-app/client/src/components/ui/
+  inflating: secure-webrtc-app/client/src/components/ui/tabs.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/dropdown-menu.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/toggle.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/popover.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/toggle-group.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/progress.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/button-group.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/aspect-ratio.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/select.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/input-group.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/dialog.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/collapsible.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/field.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/form.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/calendar.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/avatar.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/table.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/drawer.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/switch.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/menubar.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/tooltip.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/sidebar.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/badge.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/breadcrumb.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/checkbox.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/pagination.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/input-otp.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/radio-group.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/toaster.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/empty.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/input.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/hover-card.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/spinner.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/alert-dialog.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/resizable.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/alert.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/item.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/sonner.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/label.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/button.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/chart.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/separator.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/toast.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/navigation-menu.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/context-menu.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/skeleton.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/card.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/slider.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/sheet.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/scroll-area.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/textarea.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/carousel.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/kbd.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/accordion.tsx
+  inflating: secure-webrtc-app/client/src/components/ui/command.tsx
+  inflating: secure-webrtc-app/client/src/components/file-transfer.tsx
+  inflating: secure-webrtc-app/client/src/components/chat-interface.tsx
+  inflating: secure-webrtc-app/client/src/components/qr-scanner.tsx
+  inflating: secure-webrtc-app/client/src/components/debug-panel.tsx
+  inflating: secure-webrtc-app/client/src/components/turn-config-modal.tsx
+   creating: secure-webrtc-app/client/src/pages/
+  inflating: secure-webrtc-app/client/src/pages/not-found.tsx
+  inflating: secure-webrtc-app/client/src/pages/admin-login.tsx
+  inflating: secure-webrtc-app/client/src/pages/admin-change-password.tsx
+  inflating: secure-webrtc-app/client/src/pages/admin-dashboard.tsx
+  inflating: secure-webrtc-app/client/src/pages/home.tsx
+  inflating: secure-webrtc-app/client/src/pages/create-room.tsx
+  inflating: secure-webrtc-app/client/src/pages/join-room.tsx
+  inflating: secure-webrtc-app/client/src/pages/room.tsx
+  inflating: secure-webrtc-app/client/src/main.tsx
+   creating: secure-webrtc-app/client/src/hooks/
+  inflating: secure-webrtc-app/client/src/hooks/use-toast.ts
+  inflating: secure-webrtc-app/client/src/hooks/use-mobile.tsx
+  inflating: secure-webrtc-app/client/src/index.css
+  inflating: secure-webrtc-app/client/src/App.tsx
+  inflating: secure-webrtc-app/client/index.html
+   creating: secure-webrtc-app/client/public/
+  inflating: secure-webrtc-app/client/public/favicon.png
+  inflating: secure-webrtc-app/client/public/opengraph.jpg
+   creating: secure-webrtc-app/server/
+  inflating: secure-webrtc-app/server/vite.ts
+  inflating: secure-webrtc-app/server/index.ts
+  inflating: secure-webrtc-app/server/admin-routes.ts
+  inflating: secure-webrtc-app/server/encryption.ts
+  inflating: secure-webrtc-app/server/storage.ts
+  inflating: secure-webrtc-app/server/routes.ts
+   creating: secure-webrtc-app/shared/
+  inflating: secure-webrtc-app/shared/schema.ts
+m975261@securelink:~$ sudo bash secure-webrtc-app/deploy_ubuntu.sh ~/secure-webrtc-deploy-20251207_172823.zip
+
+==========================================
+  SECURE.LINK Deployment Starting
+==========================================
+
+[INFO] Target: Ubuntu 24.04
+[INFO] App Name: secure-webrtc-app
+[INFO] Install Dir: /opt/secure-webrtc-app
+[INFO] Port: 5000
+
+[STEP] Step 1/8: Installing system dependencies...
+[INFO] System dependencies installed
+[STEP] Step 2/8: Setting up Node.js 20.x...
+[INFO] Node.js v20.19.6 already installed
+[STEP] Step 3/8: Configuring PostgreSQL...
+[INFO] PostgreSQL is running
+[STEP] Step 4/8: Managing credentials...
+[INFO] Loading existing credentials...
+[INFO] Updating database user password...
+[INFO] Database webrtc_app_db already exists
+[INFO] Database configured successfully
+[STEP] Step 5/8: Setting up application user...
+[INFO] System user webrtcapp already exists
+[STEP] Step 6/8: Extracting and building project...
+[INFO] Extracting project files...
+[INFO] Creating environment configuration...
+[INFO] Installing npm dependencies (this may take a few minutes)...
+
+added 395 packages, and audited 396 packages in 8s
+
+30 packages are looking for funding
+  run `npm fund` for details
+
+2 low severity vulnerabilities
+
+To address all issues, run:
+  npm audit fix
+
+Run `npm audit` for details.
+[INFO] Running database migrations...
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/secure-webrtc-app/drizzle.config.ts'
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/secure-webrtc-app/drizzle.config.ts'
+Cannot find module 'drizzle-kit'
+Require stack:
+- /opt/secure-webrtc-app/drizzle.config.ts
+- /root/.npm/_npx/7c7555b0b81cc7e0/node_modules/drizzle-kit/bin.cjs
+[ERROR] Failed to run database migrations
+m975261@securelink:~$
