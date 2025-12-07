@@ -1,0 +1,111 @@
+Chat
+File Transfer
+SEND NEW FILE
+Transfer History
+Screenshot 2025-12-06 174546.png
+0.13 MB • Sent by 1
+
+DEBUG LOGS
+(100)
+CLEAR
+
+
+4:21:29 AM[CREATOR] Polling for connection mode, attempt: 30 pc state: checking
+4:21:29 AM[CREATOR] Stopping poll - mode: pending attempts: 30
+4:21:30 AMICE connection state: disconnected
+4:21:30 AMWebRTC connection state: failed
+4:21:30 AMReceived offer, setting remote description
+4:21:30 AMCurrent signaling state before offer: stable
+4:21:30 AMReceived ICE candidate from peer: host 10.70.91.109 51473
+4:21:30 AMReceived ICE candidate from peer: host 2a00:f29:1005:26b5:4187:9d40:2a39:216b 56491
+4:21:30 AMRemote description set from offer, new signaling state: have-remote-offer
+4:21:30 AMCreating answer
+4:21:30 AMAdded ICE candidate successfully
+4:21:30 AMICE connection state: checking
+4:21:30 AMAdded ICE candidate successfully
+4:21:30 AMWebRTC connection state: connecting
+4:21:30 AMSending answer, signaling state: stable
+4:21:30 AMAnswer sent
+4:21:30 AMICE candidate: host udp 47d39e2c-50cb-4587-b05d-296addf7785a.local
+4:21:30 AMICE candidate: relay udp 86.97.141.235
+4:21:30 AMICE candidate: relay udp 86.97.141.235
+4:21:30 AMReceived ICE candidate from peer: relay 86.97.141.235 50401
+4:21:30 AMAdded ICE candidate successfully
+4:21:30 AM[CREATOR] Polling for connection mode, attempt: 1 pc state: checking
+4:21:31 AM[CREATOR] Polling for connection mode, attempt: 2 pc state: checking
+4:21:32 AM[CREATOR] Polling for connection mode, attempt: 3 pc state: checking
+4:21:32 AM[CREATOR] Polling for connection mode, attempt: 4 pc state: checking
+4:21:32 AM[CREATOR] Polling for connection mode, attempt: 5 pc state: checking
+4:21:33 AM[CREATOR] Polling for connection mode, attempt: 6 pc state: checking
+4:21:33 AM[CREATOR] Polling for connection mode, attempt: 7 pc state: checking
+4:21:34 AM[CREATOR] Polling for connection mode, attempt: 8 pc state: checking
+4:21:34 AM[CREATOR] Polling for connection mode, attempt: 9 pc state: checking
+4:21:35 AM[CREATOR] Polling for connection mode, attempt: 10 pc state: checking
+4:21:35 AM[CREATOR] Polling for connection mode, attempt: 11 pc state: checking
+4:21:36 AM[CREATOR] Polling for connection mode, attempt: 12 pc state: checking
+4:21:36 AM[CREATOR] Polling for connection mode, attempt: 13 pc state: checking
+4:21:37 AM[CREATOR] Polling for connection mode, attempt: 14 pc state: checking
+4:21:38 AM[CREATOR] Polling for connection mode, attempt: 15 pc state: checking
+4:21:38 AM[CREATOR] Polling for connection mode, attempt: 16 pc state: checking
+4:21:39 AM[CREATOR] Polling for connection mode, attempt: 17 pc state: checking
+4:21:39 AM[CREATOR] Polling for connection mode, attempt: 18 pc state: checking
+4:21:39 AM[CREATOR] Polling for connection mode, attempt: 19 pc state: checking
+4:21:40 AM[CREATOR] Polling for connection mode, attempt: 20 pc state: checking
+4:21:40 AM[CREATOR] Polling for connection mode, attempt: 21 pc state: checking
+4:21:41 AM[CREATOR] Polling for connection mode, attempt: 22 pc state: checking
+4:21:42 AM[CREATOR] Polling for connection mode, attempt: 23 pc state: checking
+4:21:42 AM[CREATOR] Polling for connection mode, attempt: 24 pc state: checking
+4:21:42 AM[CREATOR] Polling for connection mode, attempt: 25 pc state: checking
+4:21:43 AM[CREATOR] Polling for connection mode, attempt: 26 pc state: checking
+4:21:43 AM[CREATOR] Polling for connection mode, attempt: 27 pc state: checking
+4:21:44 AM[CREATOR] Polling for connection mode, attempt: 28 pc state: checking
+4:21:44 AM[CREATOR] Polling for connection mode, attempt: 29 pc state: checking
+4:21:45 AM[CREATOR] Polling for connection mode, attempt: 30 pc state: checking
+4:21:45 AM[CREATOR] Stopping poll - mode: pending attempts: 30
+4:21:46 AMICE connection state: disconnected
+4:21:46 AMWebRTC connection state: failed
+4:21:46 AMReceived offer, setting remote description
+4:21:46 AMCurrent signaling state before offer: stable
+4:21:46 AMReceived ICE candidate from peer: host 10.70.91.109 55938
+4:21:46 AMReceived ICE candidate from peer: host 2a00:f29:1005:26b5:4187:9d40:2a39:216b 54000
+4:21:46 AMRemote description set from offer, new signaling state: have-remote-offer
+4:21:46 AMCreating answer
+4:21:46 AMAdded ICE candidate successfully
+4:21:46 AMICE connection state: checking
+4:21:46 AMAdded ICE candidate successfully
+4:21:46 AMWebRTC connection state: connecting
+4:21:46 AMSending answer, signaling state: stable
+4:21:46 AMAnswer sent
+4:21:46 AMICE candidate: host udp 47d39e2c-50cb-4587-b05d-296addf7785a.local
+4:21:46 AMICE candidate: relay udp 86.97.141.235
+4:21:46 AMICE candidate: relay udp 86.97.141.235
+4:21:46 AMReceived ICE candidate from peer: relay 86.97.141.235 50084
+4:21:46 AMAdded ICE candidate successfully
+4:21:46 AM[CREATOR] Polling for connection mode, attempt: 1 pc state: checking
+4:21:47 AM[CREATOR] Polling for connection mode, attempt: 2 pc state: checking
+4:21:47 AM[CREATOR] Polling for connection mode, attempt: 3 pc state: checking
+4:21:48 AM[CREATOR] Polling for connection mode, attempt: 4 pc state: checking
+4:21:48 AM[CREATOR] Polling for connection mode, attempt: 5 pc state: checking
+4:21:49 AM[CREATOR] Polling for connection mode, attempt: 6 pc state: checking
+4:21:49 AM[CREATOR] Polling for connection mode, attempt: 7 pc state: checking
+4:21:50 AM[CREATOR] Polling for connection mode, attempt: 8 pc state: checking
+4:21:50 AM[CREATOR] Polling for connection mode, attempt: 9 pc state: checking
+4:21:51 AM[CREATOR] Polling for connection mode, attempt: 10 pc state: checking
+4:21:51 AM[CREATOR] Polling for connection mode, attempt: 11 pc state: checking
+4:21:52 AM[CREATOR] Polling for connection mode, attempt: 12 pc state: checking
+4:21:52 AM[CREATOR] Polling for connection mode, attempt: 13 pc state: checking
+4:21:53 AM[CREATOR] Polling for connection mode, attempt: 14 pc state: checking
+4:21:53 AM[CREATOR] Polling for connection mode, attempt: 15 pc state: checking
+4:21:54 AM[CREATOR] Polling for connection mode, attempt: 16 pc state: checking
+4:21:54 AM[CREATOR] Polling for connection mode, attempt: 17 pc state: checking
+4:21:55 AM[CREATOR] Polling for connection mode, attempt: 18 pc state: checking
+4:21:55 AM[CREATOR] Polling for connection mode, attempt: 19 pc state: checking
+4:21:56 AM[CREATOR] Polling for connection mode, attempt: 20 pc state: checking
+4:21:56 AM[CREATOR] Polling for connection mode, attempt: 21 pc state: checking
+4:21:57 AM[CREATOR] Polling for connection mode, attempt: 22 pc state: checking
+4:21:57 AM[CREATOR] Polling for connection mode, attempt: 23 pc state: checking
+4:21:58 AM[CREATOR] Polling for connection mode, attempt: 24 pc state: checking
+4:21:58 AM[CREATOR] Polling for connection mode, attempt: 25 pc state: checking
+4:21:59 AM[CREATOR] Polling for connection mode, attempt: 26 pc state: checking
+4:21:59 AM[CREATOR] Polling for connection mode, attempt: 27 pc state: checking
+4:22:00 AM[CREATOR] Polling for connection mode, attempt: 28 pc state: checking
