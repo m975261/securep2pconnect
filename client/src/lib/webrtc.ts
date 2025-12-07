@@ -632,14 +632,16 @@ export function useWebRTC(config: WebRTCConfig) {
             setConnectionMode(mode);
             console.log('Connection mode detected:', mode, '(local:', selectedCandidateType, 'remote:', remoteCandidateType, ')');
             
-            // Broadcast mode to peer for synchronization
-            const currentWs = wsRef.current;
-            if (currentWs && currentWs.readyState === WebSocket.OPEN) {
-              currentWs.send(JSON.stringify({
-                type: 'connection-mode',
-                mode: mode
-              }));
-              console.log('[ModeSync] Sent connection mode to peer:', mode);
+            // Broadcast mode to peer for synchronization (only for actual detected modes, not pending)
+            if (mode === 'p2p' || mode === 'turn') {
+              const currentWs = wsRef.current;
+              if (currentWs && currentWs.readyState === WebSocket.OPEN) {
+                currentWs.send(JSON.stringify({
+                  type: 'connection-mode',
+                  mode: mode
+                }));
+                console.log('[ModeSync] Sent connection mode to peer:', mode);
+              }
             }
           }
           
