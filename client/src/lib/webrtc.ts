@@ -1180,7 +1180,7 @@ export function useWebRTC(config: WebRTCConfig) {
         } else if (message.type === 'connection-mode') {
           const peerMode = message.mode;
           const localMode = connectionModeRef.current;
-          console.log('[ModeSync] Received peer connection mode:', peerMode, '| local mode:', localMode);
+          console.log('[ModeSync] *** RECEIVED peer connection mode:', peerMode, '| local mode:', localMode, '| from:', message.from);
           
           // Sync logic:
           // 1. If peer reports TURN, always update local to TURN (TURN takes priority)
@@ -1189,16 +1189,18 @@ export function useWebRTC(config: WebRTCConfig) {
           if (peerMode === 'turn') {
             // TURN always wins - if peer is using relay, show TURN for consistency
             if (localMode !== 'turn') {
-              console.log('[ModeSync] Peer is using TURN, updating local mode to TURN for consistency');
+              console.log('[ModeSync] *** UPDATING local mode to TURN (peer is using TURN)');
               connectionModeRef.current = 'turn';
               setConnectionMode('turn');
             }
           } else if (peerMode === 'p2p') {
             // Accept P2P only if we haven't determined mode yet
             if (localMode === 'pending' || localMode === 'reconnecting') {
-              console.log('[ModeSync] Peer detected P2P, updating local mode');
+              console.log('[ModeSync] *** UPDATING local mode to P2P (accepting from peer)');
               connectionModeRef.current = 'p2p';
               setConnectionMode('p2p');
+            } else {
+              console.log('[ModeSync] Not updating - local mode already set to:', localMode);
             }
           }
         }
