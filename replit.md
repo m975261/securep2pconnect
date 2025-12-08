@@ -1,6 +1,13 @@
 # Overview
 
-SECURE.LINK is a WebRTC communication application designed for secure, temporary, peer-to-peer (P2P-first) connections. It supports real-time text messaging, voice chat with AI-powered noise cancellation, and file transfers between two users. Key features include optional password protection, automatic room expiration, and a strict two-user room capacity. The system prioritizes P2P connections with automatic fallback to user-provided TURN servers for relay.
+SECURE.LINK is a WebRTC communication application designed for secure, temporary, peer-to-peer (P2P-first) connections.
+
+## Recent Changes (December 2025)
+- Removed debug panel from room page
+- Added dual database driver support (Neon cloud + local PostgreSQL) for deployment flexibility
+- Created Ubuntu 24.04 LTS deployment package (`securelink-deploy.zip`)
+
+It supports real-time text messaging, voice chat with AI-powered noise cancellation, and file transfers between two users. Key features include optional password protection, automatic room expiration, and a strict two-user room capacity. The system prioritizes P2P connections with automatic fallback to user-provided TURN servers for relay.
 
 # User Preferences
 
