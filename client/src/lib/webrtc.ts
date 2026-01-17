@@ -211,6 +211,7 @@ export function useWebRTC(config: WebRTCConfig) {
   // Mode locking - once mode is determined, it should not change unless connection is fully lost
   const modeLockedRef = useRef(false);
   const fallbackAttemptedRef = useRef(false); // Track if we've already attempted TURN fallback
+  const isInitiatorRef = useRef(false); // Track if this peer initiated the connection (joiner = true)
   
   // Store peer's IP from ICE candidates (for P2P mode display)
   const peerIPFromCandidatesRef = useRef<{ ip: string; port: number } | null>(null);
@@ -630,6 +631,7 @@ export function useWebRTC(config: WebRTCConfig) {
       fallbackAttemptedRef.current = false;
       hasConnectedRef.current = false;
       detectedCandidateTypeRef.current = null;
+      // Note: Don't reset isInitiatorRef here - it's set based on room join order
       clearPersistedMode(configRef.current.roomId);
       setConnectionMode('pending');
       setConnectionDetails({ mode: 'pending' });
@@ -866,10 +868,20 @@ export function useWebRTC(config: WebRTCConfig) {
       }
       
       // Handle connection failures by forcing TURN-only mode
+      // Only the INITIATOR (joiner) should trigger TURN fallback to avoid offer collision
       if (pc.connectionState === 'failed') {
         // Only attempt fallback if not already attempted
         if (fallbackAttemptedRef.current) {
           console.log('WebRTC connection failed, but TURN fallback already attempted - not retrying');
+          return;
+        }
+        
+        // Only initiator should recreate and send offer - non-initiator waits for offer
+        if (!isInitiatorRef.current) {
+          console.log('[TURN-FALLBACK] Connection failed but this peer is not initiator - waiting for offer from initiator');
+          connectionModeRef.current = 'reconnecting';
+          setConnectionMode('reconnecting');
+          setConnectionDetails({ mode: 'reconnecting' });
           return;
         }
         
@@ -1027,7 +1039,8 @@ export function useWebRTC(config: WebRTCConfig) {
 
         if (message.type === 'joined') {
           const isJoiner = message.existingPeers.length > 0;
-          console.log(`[${isJoiner ? 'JOINER' : 'CREATOR'}] Joined room, existing peers:`, message.existingPeers);
+          isInitiatorRef.current = isJoiner; // Track who initiated - joiner sends first offer
+          console.log(`[${isJoiner ? 'JOINER' : 'CREATOR'}] Joined room, existing peers:`, message.existingPeers, 'isInitiator:', isJoiner);
           console.log(`[${isJoiner ? 'JOINER' : 'CREATOR'}] ICE servers count:`, currentPc?.getConfiguration().iceServers?.length || 0);
           setIsConnected(true);
           setConnectionState('connected');
