@@ -604,21 +604,8 @@ export function useWebRTC(config: WebRTCConfig) {
           setIsConnected(true);
           setConnectionState('connected');
           configRef.current.onPeerConnected?.({ nickname: message.nickname });
-          
-          // Controller starts fallback timer when peer joins
-          if (roleRef.current === 'controller' && !modeLockedRef.current && !fallbackTriggeredRef.current) {
-            console.log('[Controller] Starting 5s fallback timer');
-            fallbackTimerRef.current = setTimeout(() => {
-              fallbackTimerRef.current = null;
-              if (!modeLockedRef.current && !fallbackTriggeredRef.current) {
-                const state = pc.iceConnectionState;
-                if (state !== 'connected' && state !== 'completed') {
-                  console.log('[Controller] Fallback timer fired - triggering relay');
-                  createRelayConnection();
-                }
-              }
-            }, 5000);
-          }
+          // No timer-based fallback - rely only on ICE failure events
+          // Fallback is triggered by onconnectionstatechange when state === 'failed'
         } else if (message.type === 'offer') {
           console.log('[WebRTC] Received offer');
           await pc.setRemoteDescription(new RTCSessionDescription(message.data));
