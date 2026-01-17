@@ -143,7 +143,6 @@ export function useWebRTC(config: WebRTCConfig) {
   // Role and mode state (immutable once set)
   const roleRef = useRef<PeerRole>(null);
   const modeLockedRef = useRef(false);
-  const fallbackTimerRef = useRef<NodeJS.Timeout | null>(null);
   const fallbackTriggeredRef = useRef(false);
   
   // File transfer state
@@ -170,12 +169,6 @@ export function useWebRTC(config: WebRTCConfig) {
 
   // Helper: rebuild RTCPeerConnection with clean state
   const rebuildPeerConnection = useCallback((iceTransportPolicy: 'all' | 'relay' = 'all') => {
-    // Clear any active timers first
-    if (fallbackTimerRef.current) {
-      clearTimeout(fallbackTimerRef.current);
-      fallbackTimerRef.current = null;
-    }
-    
     // Close existing connection (removes all listeners)
     pcRef.current?.close();
     
@@ -237,12 +230,6 @@ export function useWebRTC(config: WebRTCConfig) {
     modeLockedRef.current = true;
     setConnectionMode(mode);
     setConnectionDetails(details);
-    
-    // Clear fallback timer
-    if (fallbackTimerRef.current) {
-      clearTimeout(fallbackTimerRef.current);
-      fallbackTimerRef.current = null;
-    }
     
     // Only controller broadcasts mode
     if (roleRef.current === 'controller') {
@@ -711,12 +698,6 @@ export function useWebRTC(config: WebRTCConfig) {
           setConnectionMode('pending');
           setConnectionDetails({ mode: 'pending' });
           
-          // Clear fallback timer
-          if (fallbackTimerRef.current) {
-            clearTimeout(fallbackTimerRef.current);
-            fallbackTimerRef.current = null;
-          }
-          
           // Use centralized rebuild helper
           rebuildPeerConnection('all');
           
@@ -736,11 +717,6 @@ export function useWebRTC(config: WebRTCConfig) {
     // Cleanup on unmount
     return () => {
       console.log('[WebRTC] Cleanup');
-      
-      if (fallbackTimerRef.current) {
-        clearTimeout(fallbackTimerRef.current);
-        fallbackTimerRef.current = null;
-      }
       
       if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
         ws.close();
