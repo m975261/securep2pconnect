@@ -357,6 +357,38 @@ export function useWebRTC(config: WebRTCConfig) {
         return;
       }
       console.log('[Connection]', pc.connectionState);
+      
+      // Post-lock connection failed = terminal event, not recoverable
+      // Send explicit leave to server and hard reset locally
+      if (modeLockedRef.current && pc.connectionState === 'failed') {
+        console.log('[WebRTC] post-lock connection failed → clean leave');
+        const ws = wsRef.current;
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'leave' }));
+        }
+        
+        // Hard reset locally (don't rely on server response)
+        setIsConnected(false);
+        setConnectionState('disconnected');
+        setRemoteStream(null);
+        setPeerNCEnabled(false);
+        modeLockedRef.current = false;
+        fallbackTriggeredRef.current = false;
+        connectionEstablishedRef.current = false;
+        pendingModeRef.current = null;
+        disconnectedSinceRef.current = null;
+        if (disconnectedTimerRef.current) {
+          clearInterval(disconnectedTimerRef.current);
+          disconnectedTimerRef.current = null;
+        }
+        setConnectionMode('pending');
+        setConnectionDetails({ mode: 'pending' });
+        rebuildPeerConnection('all');
+        configRef.current.onRemoteStream?.(null);
+        configRef.current.onPeerDisconnected?.();
+        return;
+      }
+      
       if (pc.connectionState === 'connected') {
         if (roleRef.current === 'controller' && !modeLockedRef.current) {
           detectAndLockModeFn();

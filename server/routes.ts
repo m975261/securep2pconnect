@@ -32,7 +32,7 @@ const updateRoomPasswordSchema = z.object({
 });
 
 interface WebRTCMessage {
-  type: "offer" | "answer" | "ice-candidate" | "join" | "peer-joined" | "peer-left" | "chat" | "file-metadata" | "file-chunk" | "file-eof" | "nc-status" | "connection-mode";
+  type: "offer" | "answer" | "ice-candidate" | "join" | "leave" | "peer-joined" | "peer-left" | "chat" | "file-metadata" | "file-chunk" | "file-eof" | "nc-status" | "connection-mode";
   roomId?: string;
   data?: any;
   peerId?: string;
@@ -589,6 +589,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             });
           }
+        } else if (currentPeer && message.type === "leave") {
+          // Explicit leave request - immediately clean up peer slot
+          console.log(`[WebSocket] Explicit leave from ${currentPeer.peerId} in room ${currentPeer.roomId}`);
+          
+          const peers = roomPeers.get(currentPeer.roomId);
+          if (peers) {
+            peers.delete(currentPeer.peerId);
+            
+            // If controller left, promote remaining peer to controller
+            if (roomControllers.get(currentPeer.roomId) === currentPeer.peerId) {
+              roomControllers.delete(currentPeer.roomId);
+              const remainingPeerId = Array.from(peers)[0];
+              if (remainingPeerId) {
+                roomControllers.set(currentPeer.roomId, remainingPeerId);
+                const remainingPeer = activePeers.get(remainingPeerId);
+                if (remainingPeer) {
+                  remainingPeer.role = 'controller';
+                  if (remainingPeer.ws.readyState === WebSocket.OPEN) {
+                    remainingPeer.ws.send(JSON.stringify({ type: "role-update", role: "controller" }));
+                  }
+                }
+              }
+            }
+            
+            // Notify other peers
+            peers.forEach((peerId) => {
+              const peer = activePeers.get(peerId);
+              if (peer && peer.ws.readyState === WebSocket.OPEN) {
+                peer.ws.send(JSON.stringify({ type: "peer-left", peerId: currentPeer!.peerId }));
+              }
+            });
+            
+            if (peers.size === 0) {
+              roomPeers.delete(currentPeer.roomId);
+              roomControllers.delete(currentPeer.roomId);
+            }
+          }
+          
+          activePeers.delete(currentPeer.peerId);
+          await storage.disconnectPeer(currentPeer.peerId);
+          
+          // Clear currentPeer to prevent duplicate cleanup on ws.close
+          currentPeer = null;
+          
+          console.log(`[WebSocket] Peer slot freed, room ready for rejoin`);
         } else if (currentPeer && message.type === "connection-mode") {
           // Forward connection mode to peer for synchronization
           console.log(`[WebSocket] Connection mode from ${currentPeer.peerId}: ${message.mode}`);
