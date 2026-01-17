@@ -497,29 +497,33 @@ export function useWebRTC(config: WebRTCConfig) {
       }
     };
 
-    // Controller detects mode when connected
+    // Controller detects mode when connected, triggers fallback ONLY on iceConnectionState === 'failed'
     pc.oniceconnectionstatechange = () => {
       console.log('[ICE]', pc.iceConnectionState);
       if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
         if (roleRef.current === 'controller' && !modeLockedRef.current) {
           detectAndLockMode();
         }
-      }
-    };
-
-    pc.onconnectionstatechange = () => {
-      console.log('[Connection]', pc.connectionState);
-      if (pc.connectionState === 'connected') {
-        if (roleRef.current === 'controller' && !modeLockedRef.current) {
-          detectAndLockMode();
-        }
-      } else if (pc.connectionState === 'failed') {
-        // Only controller triggers fallback on explicit failure
-        console.log('[WebRTC] connectionState=failed - triggering relay fallback');
+      } else if (pc.iceConnectionState === 'failed') {
+        // Only trigger relay fallback on definitive ICE failure
+        console.log('[WebRTC] iceConnectionState=failed - triggering relay fallback');
         if (roleRef.current === 'controller' && !modeLockedRef.current && !fallbackTriggeredRef.current) {
           createRelayConnection();
         }
       }
+      // 'checking', 'disconnected' are transient - do nothing, allow ICE to recover
+    };
+
+    // connectionState is for logging/display only - never triggers fallback
+    pc.onconnectionstatechange = () => {
+      console.log('[Connection]', pc.connectionState);
+      // Mode detection backup (some browsers fire this before iceConnectionState)
+      if (pc.connectionState === 'connected') {
+        if (roleRef.current === 'controller' && !modeLockedRef.current) {
+          detectAndLockMode();
+        }
+      }
+      // Note: 'failed' here does NOT trigger fallback - only iceConnectionState === 'failed' does
     };
 
     pc.ontrack = (event) => {
