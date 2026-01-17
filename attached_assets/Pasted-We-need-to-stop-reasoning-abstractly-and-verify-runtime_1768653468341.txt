@@ -1,0 +1,141 @@
+We need to stop reasoning abstractly and verify runtime behavior.
+Please add the following explicit logs and share the full sequence from controller startup until the reconnecting UI appears.
+
+1️⃣ ICE STATE TRACE (MANDATORY)
+
+Add this log inside pc.oniceconnectionstatechange before any logic:
+
+console.log(
+  '[ICE-TRACE]',
+  {
+    state: pc.iceConnectionState,
+    role: roleRef.current,
+    modeLocked: modeLockedRef.current,
+    fallbackTriggered: fallbackTriggeredRef.current,
+    disconnectedSince
+  }
+);
+
+
+This must log every ICE transition.
+
+2️⃣ MODE DETECTION TRACE (MANDATORY)
+
+Inside detectAndLockMode() add logs at every exit point:
+
+console.log('[MODE] detectAndLockMode CALLED');
+
+if (modeLockedRef.current) {
+  console.log('[MODE] already locked — exiting');
+  return;
+}
+
+console.log('[MODE] calling getStats');
+
+
+After classification:
+
+console.log('[MODE] detected mode =', detectedMode);
+console.log('[MODE] broadcasting mode');
+
+
+And when locking:
+
+console.log('[MODE] mode locked');
+
+
+We must see whether this function runs at all.
+
+3️⃣ RECONNECTING UI TRACE (CRITICAL)
+
+Every place that sets reconnecting UI state must log why:
+
+console.log(
+  '[UI] reconnecting triggered',
+  {
+    reason: 'EXACT_CODE_PATH_HERE',
+    connectionState: pc?.connectionState,
+    iceState: pc?.iceConnectionState
+  }
+);
+
+
+There must be no reconnecting UI unless fallback is actually triggered.
+
+4️⃣ RELAY FALLBACK TRACE (CRITICAL)
+
+At the top of createRelayConnection():
+
+console.log('[RELAY] createRelayConnection CALLED', {
+  role: roleRef.current,
+  modeLocked: modeLockedRef.current,
+  fallbackTriggered: fallbackTriggeredRef.current,
+  iceState: pc?.iceConnectionState
+});
+
+
+This will tell us if fallback is being triggered unexpectedly.
+
+5️⃣ MODE VISIBILITY TRACE (UI)
+
+Wherever the mode label is rendered / hidden:
+
+console.log('[UI] mode render check', {
+  mode,
+  modeLocked: modeLockedRef.current,
+  connectionState,
+  iceState
+});
+
+
+This will tell us if:
+
+Mode exists but is hidden
+
+Mode was never set
+
+Mode was cleared incorrectly
+
+What We Are Specifically Looking For
+
+From the logs, we must answer one of these:
+
+Case A — Mode detection never runs
+
+➡ ICE never reaches connected/completed
+➡ TURN fallback not triggering when it should
+➡ Grace logic not firing
+
+Case B — Mode detected but never broadcast
+
+➡ WebSocket signaling issue
+➡ Controller/follower mismatch
+
+Case C — Mode broadcast but UI hides it
+
+➡ UI incorrectly tied to reconnecting/connectionState
+➡ Mode cleared on transient state
+
+Case D — Fallback triggered unexpectedly
+
+➡ disconnected grace logic misfiring
+➡ fallbackTriggeredRef not locking properly
+➡ Multiple ICE handlers firing
+
+VERY IMPORTANT INSTRUCTION
+
+Please do not summarize or interpret the logs yet.
+
+Just provide:
+
+Full ICE-TRACE log sequence
+
+MODE logs
+
+RELAY logs
+
+UI reconnecting logs
+
+From room join → second peer join → reconnecting appears
+
+Once we see the logs, the fault will be obvious in one pass.
