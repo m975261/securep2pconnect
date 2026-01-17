@@ -182,6 +182,33 @@ export function useWebRTC(config: WebRTCConfig) {
   ) => {
     console.log('[WebRTC] attachPeerConnectionHandlers called');
     
+    // Transport-level mode detection via candidate-pair stats (controller only)
+    let modeDetectionInProgress = false;
+    const tryDetectModeFromStats = async () => {
+      if (modeLockedRef.current || modeDetectionInProgress) return;
+      if (roleRef.current !== 'controller') return;
+      
+      modeDetectionInProgress = true;
+      try {
+        const currentPc = pcRef.current;
+        if (!currentPc) return;
+        
+        const stats = await currentPc.getStats();
+        stats.forEach((report: any) => {
+          if (
+            report.type === 'candidate-pair' &&
+            report.nominated === true &&
+            report.state === 'succeeded'
+          ) {
+            console.log('[MODE] candidate-pair succeeded — detecting mode');
+            detectAndLockModeFn();
+          }
+        });
+      } finally {
+        modeDetectionInProgress = false;
+      }
+    };
+    
     // ICE candidate handler with grace window reset
     pc.onicecandidate = (event) => {
       if (event.candidate) {
@@ -193,6 +220,9 @@ export function useWebRTC(config: WebRTCConfig) {
           console.log('[ICE] candidate received - resetting grace window');
           disconnectedSinceRef.current = Date.now();
         }
+        
+        // Try transport-level mode detection (controller only)
+        tryDetectModeFromStats();
         
         const ws = wsRef.current;
         if (ws?.readyState === WebSocket.OPEN) {
@@ -224,6 +254,9 @@ export function useWebRTC(config: WebRTCConfig) {
         fallbackTriggered: fallbackTriggeredRef.current,
         disconnectedSince: disconnectedSince ? Date.now() - disconnectedSince : null
       });
+      
+      // Try transport-level mode detection (controller only)
+      tryDetectModeFromStats();
 
       // Success → detect mode, clear grace timer, mark connection established
       if (state === 'connected' || state === 'completed') {
