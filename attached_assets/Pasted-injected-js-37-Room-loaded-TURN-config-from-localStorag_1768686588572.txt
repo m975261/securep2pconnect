@@ -1,0 +1,246 @@
+injected.js:37 Room loaded TURN config from localStorage: true ['turns:tur.rotiti.com:443?transport=tcp']
+injected.js:37 [WebRTC] attachPeerConnectionHandlers called
+injected.js:37 [WS] Connected, joining room
+injected.js:37 User interacted with page - enabling audio
+injected.js:37 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ injected.js:37
+(anonymous) @ @radix-ui_react-dialog.js?v=192b443c:1552
+react_stack_bottom_frame @ react-dom_client.js?v=192b443c:18567
+runWithFiberInDEV @ react-dom_client.js?v=192b443c:997
+commitHookEffectListMount @ react-dom_client.js?v=192b443c:9411
+commitHookPassiveMountEffects @ react-dom_client.js?v=192b443c:9465
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11040
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=192b443c:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=192b443c:11066
+flushPassiveEffects @ react-dom_client.js?v=192b443c:13150
+flushPendingEffects @ react-dom_client.js?v=192b443c:13088
+flushSpawnedWork @ react-dom_client.js?v=192b443c:13062
+commitRoot @ react-dom_client.js?v=192b443c:12804
+commitRootWhenReady @ react-dom_client.js?v=192b443c:12016
+performWorkOnRoot @ react-dom_client.js?v=192b443c:11950
+performSyncWorkOnRoot @ react-dom_client.js?v=192b443c:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=192b443c:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=192b443c:13437
+(anonymous) @ react-dom_client.js?v=192b443c:13531
+<DescriptionWarning>
+exports.jsx @ chunk-FXVZLN7E.js?v=192b443c:247
+(anonymous) @ @radix-ui_react-dialog.js?v=192b443c:1480
+react_stack_bottom_frame @ react-dom_client.js?v=192b443c:18509
+renderWithHooks @ react-dom_client.js?v=192b443c:5654
+updateForwardRef @ react-dom_client.js?v=192b443c:7198
+beginWork @ react-dom_client.js?v=192b443c:8735
+runWithFiberInDEV @ react-dom_client.js?v=192b443c:997
+performUnitOfWork @ react-dom_client.js?v=192b443c:12561
+workLoopSync @ react-dom_client.js?v=192b443c:12424
+renderRootSync @ react-dom_client.js?v=192b443c:12408
+performWorkOnRoot @ react-dom_client.js?v=192b443c:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=192b443c:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=192b443c:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=192b443c:13437
+(anonymous) @ react-dom_client.js?v=192b443c:13531
+<ForwardRef>
+exports.jsx @ chunk-FXVZLN7E.js?v=192b443c:247
+(anonymous) @ @radix-ui_react-dialog.js?v=192b443c:1382
+react_stack_bottom_frame @ react-dom_client.js?v=192b443c:18509
+renderWithHooks @ react-dom_client.js?v=192b443c:5654
+updateForwardRef @ react-dom_client.js?v=192b443c:7198
+beginWork @ react-dom_client.js?v=192b443c:8735
+runWithFiberInDEV @ react-dom_client.js?v=192b443c:997
+performUnitOfWork @ react-dom_client.js?v=192b443c:12561
+workLoopSync @ react-dom_client.js?v=192b443c:12424
+renderRootSync @ react-dom_client.js?v=192b443c:12408
+performWorkOnRoot @ react-dom_client.js?v=192b443c:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=192b443c:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=192b443c:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=192b443c:13437
+(anonymous) @ react-dom_client.js?v=192b443c:13531
+<ForwardRef>
+exports.jsx @ chunk-FXVZLN7E.js?v=192b443c:247
+DialogContent @ @radix-ui_react-dialog.js?v=192b443c:1369
+react_stack_bottom_frame @ react-dom_client.js?v=192b443c:18509
+renderWithHooks @ react-dom_client.js?v=192b443c:5654
+updateForwardRef @ react-dom_client.js?v=192b443c:7198
+beginWork @ react-dom_client.js?v=192b443c:8735
+runWithFiberInDEV @ react-dom_client.js?v=192b443c:997
+performUnitOfWork @ react-dom_client.js?v=192b443c:12561
+workLoopSync @ react-dom_client.js?v=192b443c:12424
+renderRootSync @ react-dom_client.js?v=192b443c:12408
+performWorkOnRoot @ react-dom_client.js?v=192b443c:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=192b443c:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=192b443c:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=192b443c:13437
+(anonymous) @ react-dom_client.js?v=192b443c:13531
+<DialogContent>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=192b443c:247
+_c3 @ dialog.tsx:36
+react_stack_bottom_frame @ react-dom_client.js?v=192b443c:18509
+renderWithHooks @ react-dom_client.js?v=192b443c:5654
+updateForwardRef @ react-dom_client.js?v=192b443c:7198
+beginWork @ react-dom_client.js?v=192b443c:8735
+runWithFiberInDEV @ react-dom_client.js?v=192b443c:997
+performUnitOfWork @ react-dom_client.js?v=192b443c:12561
+workLoopSync @ react-dom_client.js?v=192b443c:12424
+renderRootSync @ react-dom_client.js?v=192b443c:12408
+performWorkOnRoot @ react-dom_client.js?v=192b443c:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=192b443c:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=192b443c:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=192b443c:13437
+(anonymous) @ react-dom_client.js?v=192b443c:13531
+<DialogContent>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=192b443c:247
+Room @ room.tsx:795
+react_stack_bottom_frame @ react-dom_client.js?v=192b443c:18509
+renderWithHooks @ react-dom_client.js?v=192b443c:5654
+updateFunctionComponent @ react-dom_client.js?v=192b443c:7475
+beginWork @ react-dom_client.js?v=192b443c:8525
+runWithFiberInDEV @ react-dom_client.js?v=192b443c:997
+performUnitOfWork @ react-dom_client.js?v=192b443c:12561
+workLoopSync @ react-dom_client.js?v=192b443c:12424
+renderRootSync @ react-dom_client.js?v=192b443c:12408
+performWorkOnRoot @ react-dom_client.js?v=192b443c:11766
+performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=192b443c:13505
+performWorkUntilDeadline @ react-dom_client.js?v=192b443c:36
+<Room>
+exports.createElement @ chunk-KMU3Z7QX.js?v=192b443c:793
+h_route @ wouter.js?v=192b443c:255
+Route @ wouter.js?v=192b443c:274
+react_stack_bottom_frame @ react-dom_client.js?v=192b443c:18509
+renderWithHooks @ react-dom_client.js?v=192b443c:5654
+updateFunctionComponent @ react-dom_client.js?v=192b443c:7475
+beginWork @ react-dom_client.js?v=192b443c:8525
+runWithFiberInDEV @ react-dom_client.js?v=192b443c:997
+performUnitOfWork @ react-dom_client.js?v=192b443c:12561
+workLoopSync @ react-dom_client.js?v=192b443c:12424
+renderRootSync @ react-dom_client.js?v=192b443c:12408
+performWorkOnRoot @ react-dom_client.js?v=192b443c:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=192b443c:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=192b443c:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=192b443c:13437
+(anonymous) @ react-dom_client.js?v=192b443c:13531
+<Route>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=192b443c:247
+Router @ App.tsx:18
+react_stack_bottom_frame @ react-dom_client.js?v=192b443c:18509
+renderWithHooks @ react-dom_client.js?v=192b443c:5654
+updateFunctionComponent @ react-dom_client.js?v=192b443c:7475
+beginWork @ react-dom_client.js?v=192b443c:8525
+runWithFiberInDEV @ react-dom_client.js?v=192b443c:997
+performUnitOfWork @ react-dom_client.js?v=192b443c:12561
+workLoopSync @ react-dom_client.js?v=192b443c:12424
+renderRootSync @ react-dom_client.js?v=192b443c:12408
+performWorkOnRoot @ react-dom_client.js?v=192b443c:11766
+performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=192b443c:13505
+performWorkUntilDeadline @ react-dom_client.js?v=192b443c:36
+<Router>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=192b443c:247
+App @ App.tsx:35
+react_stack_bottom_frame @ react-dom_client.js?v=192b443c:18509
+renderWithHooks @ react-dom_client.js?v=192b443c:5654
+updateFunctionComponent @ react-dom_client.js?v=192b443c:7475
+beginWork @ react-dom_client.js?v=192b443c:8525
+runWithFiberInDEV @ react-dom_client.js?v=192b443c:997
+performUnitOfWork @ react-dom_client.js?v=192b443c:12561
+workLoopSync @ react-dom_client.js?v=192b443c:12424
+renderRootSync @ react-dom_client.js?v=192b443c:12408
+performWorkOnRoot @ react-dom_client.js?v=192b443c:11766
+performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=192b443c:13505
+performWorkUntilDeadline @ react-dom_client.js?v=192b443c:36
+<App>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=192b443c:247
+(anonymous) @ main.tsx:5
+injected.js:37 [WebRTC] Role assigned by server: controller
+injected.js:37 [WebRTC] Peer joined: 2
+injected.js:37 [WebRTC] Received offer
+injected.js:37 [WebRTC] Answer sent
+injected.js:37 [ICE-Gathering] gathering
+injected.js:37 [ICE-CANDIDATE] host udp 192.168.1.185
+injected.js:37 [ICE-REMOTE] addIceCandidate host udp
+injected.js:37 [ICE-TRACE] {state: 'checking', role: 'controller', modeLocked: false, fallbackTriggered: false, disconnectedSince: null}
+injected.js:37 [Connection] connecting
+injected.js:37 [ICE-CANDIDATE] relay udp 92.96.56.244
+injected.js:37 [ICE-REMOTE] addIceCandidate relay udp
+injected.js:37 [ICE-CANDIDATE] host tcp 192.168.1.185
+injected.js:37 [ICE-Gathering] complete
+injected.js:37 [ICE-TRACE] {state: 'connected', role: 'controller', modeLocked: false, fallbackTriggered: false, disconnectedSince: null}
+injected.js:37 [MODE] detectAndLockMode CALLED {role: 'controller', modeLocked: false}
+injected.js:37 [MODE] calling getStats
+injected.js:37 [MODE] candidate-pair succeeded — detecting mode
+injected.js:37 [MODE] detectAndLockMode CALLED {role: 'controller', modeLocked: false}
+injected.js:37 [MODE] calling getStats
+injected.js:37 [MODE] detected mode = p2p {localType: 'host', remoteType: 'host'}
+injected.js:37 [MODE] broadcasting and locking mode
+injected.js:37 [WebRTC] LOCKING mode: p2p role: controller
+injected.js:37 [WebRTC] Controller broadcasted mode: p2p
+injected.js:37 [MODE] mode locked
+injected.js:37 [MODE] mode locked during getStats — exiting
+injected.js:37 [Connection] connected
+injected.js:37 [DataChannel] opened
+injected.js:37 [ICE-TRACE] {state: 'disconnected', role: 'controller', modeLocked: true, fallbackTriggered: false, disconnectedSince: null}
+injected.js:37 [ICE] disconnected - starting 12s grace window
+injected.js:37 [Connection] disconnected
+injected.js:37 [Connection] failed
+injected.js:37 [ICE] disconnected too long (12s) → fallback to relay

@@ -46,6 +46,7 @@ interface RoomPeer {
   roomId: string;
   nickname?: string;
   role?: 'controller' | 'follower';
+  ipAddress?: string;
 }
 
 const activePeers = new Map<string, RoomPeer>();
@@ -100,6 +101,116 @@ async function fetchLocationFromIP(ip: string): Promise<{
   }
   
   return { country: null, city: null, latitude: null, longitude: null };
+}
+
+// Prune peers with CLOSING or CLOSED WebSocket from room tracking
+function pruneRoomStalePeers(roomId: string): void {
+  const peers = roomPeers.get(roomId);
+  if (!peers) return;
+  
+  const stalePeerIds: string[] = [];
+  
+  peers.forEach((peerId) => {
+    const peer = activePeers.get(peerId);
+    if (!peer || peer.ws.readyState === WebSocket.CLOSING || peer.ws.readyState === WebSocket.CLOSED) {
+      stalePeerIds.push(peerId);
+    }
+  });
+  
+  stalePeerIds.forEach((peerId) => {
+    console.log(`[ROOM] pruning stale peer ${peerId}`);
+    peers.delete(peerId);
+    activePeers.delete(peerId);
+    
+    // Clean up controller tracking if stale peer was controller
+    if (roomControllers.get(roomId) === peerId) {
+      roomControllers.delete(roomId);
+    }
+  });
+  
+  if (peers.size === 0) {
+    roomPeers.delete(roomId);
+  }
+}
+
+// Find a peer that can be replaced by the joining user
+// Returns: { peerId, reason } or null
+// Priority: peerId match + dead socket > createdBy match + dead socket > IP match + dead socket
+// SAFETY: Only replace peers with CLOSING/CLOSED sockets - NEVER replace OPEN sockets
+function findReplaceablePeer(
+  roomId: string,
+  joiningPeerId: string | undefined,
+  joiningCreatedBy: string | undefined,
+  roomCreatedBy: string | undefined,
+  joiningIP: string
+): { peerId: string; reason: 'peerId' | 'createdBy' | 'ip' } | null {
+  const peers = roomPeers.get(roomId);
+  if (!peers) return null;
+  
+  let peerIdMatch: string | null = null;
+  let createdByMatch: string | null = null;
+  let ipMatch: string | null = null;
+  
+  const peerArray = Array.from(peers);
+  for (let i = 0; i < peerArray.length; i++) {
+    const peerId = peerArray[i];
+    const peer = activePeers.get(peerId);
+    if (!peer) continue;
+    
+    const isDeadSocket = peer.ws.readyState === WebSocket.CLOSING || peer.ws.readyState === WebSocket.CLOSED;
+    
+    // SAFETY: Only consider dead sockets for replacement
+    if (!isDeadSocket) continue;
+    
+    // Priority 1: Same peerId (strongest identity) + dead socket
+    if (joiningPeerId && peerId === joiningPeerId) {
+      peerIdMatch = peerId;
+    }
+    
+    // Priority 2: Same createdBy (room owner) + dead socket
+    // If joining user is room creator and existing peer was also room creator
+    if (joiningCreatedBy && roomCreatedBy && joiningCreatedBy === roomCreatedBy) {
+      createdByMatch = peerId;
+    }
+    
+    // Priority 3: Same IP + dead socket (last resort)
+    if (peer.ipAddress === joiningIP) {
+      ipMatch = peerId;
+    }
+  }
+  
+  // Return in priority order
+  if (peerIdMatch) {
+    return { peerId: peerIdMatch, reason: 'peerId' };
+  }
+  if (createdByMatch) {
+    return { peerId: createdByMatch, reason: 'createdBy' };
+  }
+  if (ipMatch) {
+    return { peerId: ipMatch, reason: 'ip' };
+  }
+  
+  return null;
+}
+
+// Remove a specific peer from tracking (for replacement)
+function removePeerFromRoom(roomId: string, peerId: string): void {
+  const peers = roomPeers.get(roomId);
+  if (peers) {
+    peers.delete(peerId);
+    if (peers.size === 0) {
+      roomPeers.delete(roomId);
+    }
+  }
+  
+  const peer = activePeers.get(peerId);
+  if (peer && (peer.ws.readyState === WebSocket.CLOSING || peer.ws.readyState === WebSocket.CLOSED)) {
+    activePeers.delete(peerId);
+  }
+  
+  if (roomControllers.get(roomId) === peerId) {
+    roomControllers.delete(roomId);
+  }
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -209,7 +320,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Room not found" });
       }
 
-      // Check if room is already full (2 users connected)
+      // Step 1: Prune stale peers (CLOSING/CLOSED WebSocket)
+      pruneRoomStalePeers(id);
+      
+      // Step 2: Check for replaceable peer (identity-based)
+      // HTTP join doesn't have peerId (generated client-side), but has createdBy
+      const replaceable = findReplaceablePeer(id, undefined, body.createdBy, room.createdBy ?? undefined, ipAddress);
+      if (replaceable) {
+        console.log(`[ROOM] replacing peer ${replaceable.peerId} (reason: ${replaceable.reason})`);
+        removePeerFromRoom(id, replaceable.peerId);
+      }
+      
+      // Step 3: Check if room is full (after prune and replacement)
       const currentPeerCount = roomPeers.get(id)?.size || 0;
       if (currentPeerCount >= 2) {
         return res.status(403).json({ 
@@ -217,6 +339,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           code: "ROOM_FULL"
         });
       }
+      
+      console.log(`[ROOM] join allowed after prune/replacement for room ${id}`);
 
       const isCreator = room.createdBy && body.createdBy && room.createdBy === body.createdBy;
 
@@ -292,12 +416,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return;
           }
 
+          // Step 1: Prune stale peers (CLOSING/CLOSED WebSocket)
+          pruneRoomStalePeers(message.roomId);
+          
+          // Step 2: Check for replaceable peer (identity-based)
+          // WS join has peerId but not createdBy; pass room.createdBy for context
+          const replaceable = findReplaceablePeer(message.roomId, message.peerId, undefined, room.createdBy ?? undefined, ipAddress);
+          if (replaceable) {
+            console.log(`[ROOM] WS replacing peer ${replaceable.peerId} with ${message.peerId} (reason: ${replaceable.reason})`);
+            removePeerFromRoom(message.roomId, replaceable.peerId);
+          }
+          
+          // Step 3: Check if room is full (after prune and replacement)
           const peers = roomPeers.get(message.roomId) || new Set();
           
           if (peers.size >= 2 && !peers.has(message.peerId)) {
             ws.send(JSON.stringify({ type: "error", message: "Room is full" }));
             return;
           }
+          
+          console.log(`[ROOM] WS join allowed for peer ${message.peerId} in room ${message.roomId}`);
 
           // Determine role: first peer in room is controller, second is follower
           const isController = peers.size === 0 || !roomControllers.has(message.roomId);
@@ -313,6 +451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             roomId: message.roomId,
             nickname: message.nickname,
             role,
+            ipAddress,
           };
 
           activePeers.set(message.peerId, currentPeer);
