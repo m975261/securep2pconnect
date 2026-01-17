@@ -170,7 +170,13 @@ export function useWebRTC(config: WebRTCConfig) {
 
   // Helper: rebuild RTCPeerConnection with clean state
   const rebuildPeerConnection = useCallback((iceTransportPolicy: 'all' | 'relay' = 'all') => {
-    // Close existing connection
+    // Clear any active timers first
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+    
+    // Close existing connection (removes all listeners)
     pcRef.current?.close();
     
     // Reset all negotiation state
