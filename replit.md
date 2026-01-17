@@ -3,12 +3,14 @@
 SECURE.LINK is a WebRTC communication application designed for secure, temporary, peer-to-peer (P2P-first) connections.
 
 ## Recent Changes (January 2026)
-- **Connection Mode Stability Improvements:**
-  - Added mode locking mechanism - once connection mode (P2P/TURN) is determined, it's locked for the session to prevent oscillation
-  - Implemented sessionStorage persistence per room for mode state (survives page refresh)
-  - Made TURN fallback deterministic with single-attempt logic (`fallbackAttemptedRef`)
-  - Added mode sync with TURN-priority upgrade (TURN always wins over P2P, no downgrade)
-  - Helper functions: `getPersistedMode()`, `persistMode()`, `clearPersistedMode()`
+- **FallbackController Architecture Refactor:**
+  - Replaced scattered mode detection logic (~500 lines) with single `FallbackController` class
+  - Clean state machine: pending → (p2p | turn) with permanent mode locking
+  - One-way upgrade path: P2P → TURN allowed (for connectivity), TURN → P2P blocked
+  - Mode detection: Single attempt from WebRTC stats after ICE connected (max 3 retries at 500ms)
+  - Only initiator (joiner) triggers TURN fallback after 5-second P2P timeout
+  - Controller methods: `init()`, `setInitiator()`, `startP2PTimeout()`, `cancelTimeout()`, `onConnected()`, `onFailed()`, `handlePeerMode()`, `reset()`, `lockToTurn()`, `upgradeToTurn()`
+- Session storage persistence per room (survives page refresh)
 - TURN/STUN hostname-only input normalization (auto-constructs full URLs)
 - Removed debug panel from room page
 
@@ -35,16 +37,13 @@ The frontend is built with React 18 and TypeScript, utilizing Wouter for routing
 - **AI Noise Cancellation:** Integrates `@sapphi-red/web-noise-suppressor` (RNNoise WASM) via an AudioWorklet pipeline for real-time microphone noise reduction.
 - Text chat with history, drag-and-drop file transfer, QR code sharing/scanning for rooms, and voice chat.
 
-**Connection Mode Detection (Confirmed Working):**
+**Connection Mode Detection (FallbackController):**
 - **Detection Method:** Uses `RTCPeerConnection.getStats()` to find the selected ICE candidate pair and determine connection type based on candidate types (host/srflx = P2P, relay = TURN).
-- **Polling Strategy:** Continuous polling (500ms intervals, max 30 attempts) until mode is detected. Polling is triggered at multiple points:
-  - `[JOINER-INIT]`: When invited user sends initial offer after joining
-  - `[JOINER]`: When any peer receives an offer and sends an answer
-  - `[CREATOR]`: After sending an answer (hoster side during renegotiation)
-  - `[RECONNECT]`: After SDP incompatibility triggers peer connection recreation
-- **Mode Synchronization:** Detected modes (p2p/turn only, not transient states) are broadcast via WebSocket to peer. Server relays `connection-mode` messages between peers.
-- **Sync Logic:** TURN mode takes priority (if peer reports TURN, local updates to TURN). P2P is accepted only if local mode is still pending/reconnecting.
-- **State Preservation:** ICE disconnected doesn't overwrite 'pending' state (when peer has left). Mode detection retries work for both 'pending' and 'reconnecting' states.
+- **Detection Strategy:** Single detection attempt after ICE connected, with max 3 retries (500ms each) if stats not yet available. No continuous polling.
+- **State Machine:** `pending` → `p2p` or `turn` (locked). Mode is frozen once determined except for P2P → TURN upgrade.
+- **Fallback Logic:** Only the initiator (joiner) triggers TURN fallback after 5-second timeout. Non-initiator waits for new offer.
+- **Mode Synchronization:** Detected modes broadcast via WebSocket. TURN takes priority (peer TURN → local upgrades). P2P accepted only if pending/reconnecting.
+- **Persistence:** Mode persisted to sessionStorage per room, restored on page refresh.
 
 ## Backend Architecture
 

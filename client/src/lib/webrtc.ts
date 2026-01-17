@@ -113,42 +113,293 @@ interface SendFileOptions {
 
 export type ConnectionMode = 'pending' | 'p2p' | 'turn' | 'reconnecting';
 
-// Session storage key for persisting connection mode per room
+// Session storage helpers
 function getModeStorageKey(roomId: string): string {
   return `connection-mode-${roomId}`;
 }
 
-// Get persisted mode from sessionStorage
 function getPersistedMode(roomId: string): ConnectionMode | null {
   try {
     const stored = sessionStorage.getItem(getModeStorageKey(roomId));
-    if (stored === 'p2p' || stored === 'turn') {
-      return stored;
-    }
-  } catch (e) {
-    console.warn('Failed to read persisted mode:', e);
-  }
-  return null;
+    return (stored === 'p2p' || stored === 'turn') ? stored : null;
+  } catch { return null; }
 }
 
-// Persist mode to sessionStorage (only for final modes: p2p or turn)
 function persistMode(roomId: string, mode: ConnectionMode): void {
   try {
     if (mode === 'p2p' || mode === 'turn') {
       sessionStorage.setItem(getModeStorageKey(roomId), mode);
-      console.log('[ModePersist] Saved mode to sessionStorage:', mode);
     }
-  } catch (e) {
-    console.warn('Failed to persist mode:', e);
-  }
+  } catch {}
 }
 
-// Clear persisted mode (when peer leaves or room is closed)
 function clearPersistedMode(roomId: string): void {
-  try {
-    sessionStorage.removeItem(getModeStorageKey(roomId));
-  } catch (e) {
-    console.warn('Failed to clear persisted mode:', e);
+  try { sessionStorage.removeItem(getModeStorageKey(roomId)); } catch {}
+}
+
+/**
+ * FallbackController - Single authoritative controller for connection mode decisions
+ * 
+ * State machine: pending → (p2p | turn)
+ * 
+ * Mode locking rules:
+ * - Once mode is locked, it cannot be changed EXCEPT:
+ *   - P2P can UPGRADE to TURN (if peer requires TURN for connectivity)
+ *   - This is a one-way upgrade path: P2P → TURN is allowed, TURN → P2P is not
+ * - This ensures maximum connectivity (TURN always wins) while preferring P2P
+ * 
+ * Detection strategy:
+ * - Mode is detected ONCE from WebRTC stats after ICE connected
+ * - Max 3 retry attempts (500ms each) if stats not yet available
+ * - No continuous polling - detection stops after lock or max retries
+ */
+class FallbackController {
+  private mode: ConnectionMode = 'pending';
+  private locked = false;
+  private fallbackTimer: NodeJS.Timeout | null = null;
+  private isInitiator = false;
+  private roomId = '';
+  private onModeChange: ((mode: ConnectionMode, details: ConnectionDetails) => void) | null = null;
+  private getTurnConfig: (() => TurnConfig | undefined) | null = null;
+  private getPc: (() => RTCPeerConnection | null) | null = null;
+  private getWs: (() => WebSocket | null) | null = null;
+  private onCreateRelayConnection: (() => void) | null = null;
+  
+  init(
+    roomId: string,
+    onModeChange: (mode: ConnectionMode, details: ConnectionDetails) => void,
+    getTurnConfig: () => TurnConfig | undefined,
+    getPc: () => RTCPeerConnection | null,
+    getWs: () => WebSocket | null,
+    onCreateRelayConnection: () => void
+  ) {
+    this.roomId = roomId;
+    this.onModeChange = onModeChange;
+    this.getTurnConfig = getTurnConfig;
+    this.getPc = getPc;
+    this.getWs = getWs;
+    this.onCreateRelayConnection = onCreateRelayConnection;
+    
+    // Check for persisted mode
+    const persisted = getPersistedMode(roomId);
+    if (persisted) {
+      console.log('[FallbackController] Restored locked mode:', persisted);
+      this.mode = persisted;
+      this.locked = true;
+      this.onModeChange(persisted, { mode: persisted });
+    }
+  }
+  
+  setInitiator(isInitiator: boolean) {
+    this.isInitiator = isInitiator;
+    console.log('[FallbackController] Initiator set:', isInitiator);
+  }
+  
+  isLocked(): boolean {
+    return this.locked;
+  }
+  
+  getMode(): ConnectionMode {
+    return this.mode;
+  }
+  
+  // Start the P2P timeout - only called by initiator after first offer
+  startP2PTimeout() {
+    if (this.locked || this.fallbackTimer) return;
+    
+    console.log('[FallbackController] Starting 5s P2P timeout');
+    this.fallbackTimer = setTimeout(() => {
+      this.fallbackTimer = null;
+      if (this.locked) return;
+      
+      const pc = this.getPc?.();
+      if (!pc) return;
+      
+      const state = pc.iceConnectionState;
+      if (state !== 'connected' && state !== 'completed') {
+        console.log('[FallbackController] P2P timeout - triggering TURN fallback');
+        this.triggerTurnFallback();
+      }
+    }, 5000);
+  }
+  
+  // Cancel the timeout (called when connection succeeds)
+  cancelTimeout() {
+    if (this.fallbackTimer) {
+      clearTimeout(this.fallbackTimer);
+      this.fallbackTimer = null;
+    }
+  }
+  
+  // Called when ICE reaches connected/completed state
+  onConnected() {
+    this.cancelTimeout();
+    if (this.locked) return;
+    
+    // Detect mode once from stats
+    this.detectModeOnce();
+  }
+  
+  // Called when connection fails
+  onFailed() {
+    if (this.locked) return;
+    
+    if (!this.isInitiator) {
+      console.log('[FallbackController] Connection failed - not initiator, waiting for offer');
+      this.mode = 'reconnecting';
+      this.onModeChange?.(this.mode, { mode: this.mode });
+      return;
+    }
+    
+    this.triggerTurnFallback();
+  }
+  
+  private detectRetryCount = 0;
+  private readonly MAX_DETECT_RETRIES = 3;
+  
+  // Single mode detection from stats - runs ONCE (with bounded retry)
+  private detectModeOnce() {
+    if (this.locked) return;
+    
+    const pc = this.getPc?.();
+    if (!pc || pc.connectionState === 'closed') return;
+    
+    pc.getStats().then(stats => {
+      if (this.locked) return; // Double-check after async
+      
+      const statsArray = Array.from(stats.values());
+      const candidatePairs = statsArray.filter((r: any) => r.type === 'candidate-pair');
+      
+      let selectedPair = candidatePairs.find((r: any) => r.selected === true) ||
+                         candidatePairs.find((r: any) => r.state === 'succeeded' && r.nominated) ||
+                         candidatePairs.find((r: any) => r.state === 'succeeded');
+      
+      if (!selectedPair) {
+        this.detectRetryCount++;
+        if (this.detectRetryCount < this.MAX_DETECT_RETRIES) {
+          console.log('[FallbackController] No selected pair - retry', this.detectRetryCount, 'of', this.MAX_DETECT_RETRIES);
+          setTimeout(() => {
+            if (!this.locked) this.detectModeOnce();
+          }, 500);
+        } else {
+          console.log('[FallbackController] Max retries reached, giving up mode detection');
+        }
+        return;
+      }
+      
+      // Reset retry count on success
+      this.detectRetryCount = 0;
+      
+      const localCandidate = statsArray.find((s: any) => s.id === selectedPair.localCandidateId);
+      const remoteCandidate = statsArray.find((s: any) => s.id === selectedPair.remoteCandidateId);
+      
+      const localType = localCandidate?.candidateType;
+      const remoteType = remoteCandidate?.candidateType;
+      const isRelay = localType === 'relay' || remoteType === 'relay';
+      
+      const detectedMode: ConnectionMode = isRelay ? 'turn' : 'p2p';
+      this.lockMode(detectedMode, {
+        mode: detectedMode,
+        remoteIP: remoteCandidate?.address || remoteCandidate?.ip,
+        protocol: localCandidate?.protocol,
+        turnServerIP: isRelay ? (localCandidate?.relayAddress || localCandidate?.address) : undefined
+      });
+    }).catch(err => console.warn('[FallbackController] Stats error:', err));
+  }
+  
+  // Lock mode permanently
+  private lockMode(mode: ConnectionMode, details: ConnectionDetails) {
+    if (this.locked) return;
+    
+    console.log('[FallbackController] LOCKING mode:', mode);
+    this.mode = mode;
+    this.locked = true;
+    this.cancelTimeout();
+    persistMode(this.roomId, mode);
+    this.onModeChange?.(mode, details);
+    
+    // Broadcast to peer
+    const ws = this.getWs?.();
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'connection-mode', mode }));
+    }
+  }
+  
+  // Force TURN mode and recreate connection
+  private triggerTurnFallback() {
+    if (this.locked) return;
+    
+    const turnConfig = this.getTurnConfig?.();
+    if (!turnConfig) {
+      console.error('[FallbackController] No TURN config for fallback');
+      return;
+    }
+    
+    console.log('[FallbackController] Triggering TURN-only fallback');
+    this.mode = 'reconnecting';
+    this.onModeChange?.(this.mode, { mode: this.mode });
+    
+    // Delegate connection recreation to hook
+    this.onCreateRelayConnection?.();
+  }
+  
+  // Handle mode sync from peer - TURN always wins, P2P accepted if pending
+  // Explicit one-way upgrade: P2P → TURN is allowed (see class doc)
+  handlePeerMode(peerMode: ConnectionMode) {
+    if (peerMode === 'turn') {
+      if (this.mode === 'p2p') {
+        // One-way upgrade: P2P → TURN (peer requires relay for connectivity)
+        console.log('[FallbackController] Upgrading P2P → TURN (peer requires relay)');
+        this.upgradeToTurn();
+      } else if (!this.locked) {
+        // Not locked yet, lock to TURN
+        this.lockMode('turn', { mode: 'turn' });
+      } else {
+        // Already locked to TURN, no action needed
+        console.log('[FallbackController] Already locked to TURN');
+      }
+      return;
+    }
+    
+    // P2P from peer - only accept if not locked
+    if (peerMode === 'p2p' && !this.locked && (this.mode === 'pending' || this.mode === 'reconnecting')) {
+      this.lockMode('p2p', { mode: 'p2p' });
+    } else if (this.locked) {
+      console.log('[FallbackController] Ignoring peer mode, already locked:', this.mode);
+    }
+  }
+  
+  // Explicit P2P → TURN upgrade (one-way only, see class doc)
+  private upgradeToTurn() {
+    console.log('[FallbackController] Executing P2P → TURN upgrade');
+    this.cancelTimeout();
+    this.mode = 'turn';
+    this.locked = true;
+    persistMode(this.roomId, 'turn');
+    this.onModeChange?.('turn', { mode: 'turn' });
+    
+    // Broadcast upgrade to peer
+    const ws = this.getWs?.();
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'connection-mode', mode: 'turn' }));
+    }
+  }
+  
+  // Reset for new peer
+  reset() {
+    console.log('[FallbackController] Resetting');
+    this.cancelTimeout();
+    this.mode = 'pending';
+    this.locked = false;
+    this.detectRetryCount = 0;
+    clearPersistedMode(this.roomId);
+    this.onModeChange?.('pending', { mode: 'pending' });
+  }
+  
+  // For TURN fallback - lock to TURN mode after relay connection succeeds
+  lockToTurn(details: ConnectionDetails) {
+    if (this.locked && this.mode === 'turn') return;
+    this.lockMode('turn', details);
   }
 }
 
@@ -202,19 +453,8 @@ export function useWebRTC(config: WebRTCConfig) {
   const pendingNegotiationRef = useRef(false);
   const pendingStopRef = useRef(false); // Track pending voice stop during negotiation
   
-  // P2P fallback state
-  const fallbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const hasConnectedRef = useRef(false);
-  const connectionModeRef = useRef<ConnectionMode>('pending');
-  const detectedCandidateTypeRef = useRef<string | null>(null);
-  
-  // Mode locking - once mode is determined, it should not change unless connection is fully lost
-  const modeLockedRef = useRef(false);
-  const fallbackAttemptedRef = useRef(false); // Track if we've already attempted TURN fallback
-  const isInitiatorRef = useRef(false); // Track if this peer initiated the connection (joiner = true)
-  
-  // Store peer's IP from ICE candidates (for P2P mode display)
-  const peerIPFromCandidatesRef = useRef<{ ip: string; port: number } | null>(null);
+  // Single authoritative fallback controller
+  const fallbackControllerRef = useRef<FallbackController>(new FallbackController());
   
   // Use refs for callbacks to prevent reconnections on re-renders
   const configRef = useRef(config);
@@ -552,441 +792,126 @@ export function useWebRTC(config: WebRTCConfig) {
     dataChannel.onopen = () => console.log('[DataChannel] Connection channel opened');
     dataChannel.onclose = () => console.log('[DataChannel] Connection channel closed');
 
-    // Reset connection mode tracking - check for persisted mode first
-    hasConnectedRef.current = false;
-    detectedCandidateTypeRef.current = null;
-    modeLockedRef.current = false;
-    fallbackAttemptedRef.current = false;
-    
-    // Check for persisted mode from previous session
-    const persistedMode = getPersistedMode(config.roomId);
-    if (persistedMode) {
-      console.log('[ModeInit] Restored persisted mode from sessionStorage:', persistedMode);
-      connectionModeRef.current = persistedMode;
-      setConnectionMode(persistedMode);
-      modeLockedRef.current = true; // Lock the mode since it was already determined
-    } else {
-      connectionModeRef.current = 'pending';
-      setConnectionMode('pending');
-    }
+    const controller = fallbackControllerRef.current;
 
-    // Function to detect connection mode from ICE candidate type
-    const detectConnectionMode = (candidateType: string) => {
-      // host = direct P2P, srflx = P2P through NAT, relay = TURN
-      if (candidateType === 'relay') {
-        return 'turn';
-      } else if (candidateType === 'host' || candidateType === 'srflx') {
-        return 'p2p';
+    // Function to create TURN-only relay connection (called by controller)
+    const createRelayConnection = () => {
+      const turnConfig = configRef.current.turnConfig;
+      if (!turnConfig) {
+        console.error('[RelayConnection] No TURN config');
+        return;
       }
-      return 'pending';
+      
+      // Close old connection
+      pcRef.current?.close();
+      
+      const newPc = new RTCPeerConnection({
+        iceServers: [{ urls: turnConfig.urls, username: turnConfig.username, credential: turnConfig.credential }],
+        iceTransportPolicy: 'relay',
+        iceCandidatePoolSize: 10,
+      });
+      pcRef.current = newPc;
+      console.log('[RelayConnection] Created new relay-only PeerConnection');
+      
+      // Create data channel
+      const dc = newPc.createDataChannel('connection-init', { negotiated: true, id: 0 });
+      dc.onopen = () => console.log('[DataChannel] opened');
+      dc.onclose = () => console.log('[DataChannel] closed');
+      
+      // Re-add local stream
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => newPc.addTrack(track, localStreamRef.current!));
+      }
+      
+      // Setup handlers
+      newPc.onicecandidate = (e) => {
+        const ws = wsRef.current;
+        if (e.candidate && ws?.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'ice-candidate', data: e.candidate }));
+        }
+      };
+      
+      newPc.oniceconnectionstatechange = () => {
+        console.log('[RelayConnection] ICE:', newPc.iceConnectionState);
+        if (newPc.iceConnectionState === 'connected' || newPc.iceConnectionState === 'completed') {
+          controller.lockToTurn({ mode: 'turn', turnServerIP: extractTurnServerHost(turnConfig.urls) });
+        }
+      };
+      
+      newPc.ontrack = (e) => {
+        if (e.streams?.[0]) {
+          setRemoteStream(e.streams[0]);
+          configRef.current.onRemoteStream?.(e.streams[0]);
+        }
+      };
+      
+      // Create and send offer
+      const ws = wsRef.current;
+      if (ws?.readyState === WebSocket.OPEN) {
+        newPc.createOffer().then(offer => {
+          return newPc.setLocalDescription(offer);
+        }).then(() => {
+          ws.send(JSON.stringify({ type: 'offer', data: newPc.localDescription }));
+          console.log('[RelayConnection] Offer sent');
+        }).catch(err => console.error('[RelayConnection] Error:', err));
+      }
     };
+
+    // Initialize controller now that createRelayConnection is defined
+    controller.init(
+      config.roomId,
+      (mode, details) => {
+        setConnectionMode(mode);
+        setConnectionDetails(details);
+      },
+      () => configRef.current.turnConfig,
+      () => pcRef.current,
+      () => wsRef.current,
+      createRelayConnection
+    );
 
     let candidateCount = 0;
     pc.onicecandidate = (event) => {
       const currentWs = wsRef.current;
       if (event.candidate) {
         candidateCount++;
-        console.log('ICE candidate:', event.candidate.type, event.candidate.protocol, event.candidate.address);
-        
-        // Don't set detectedCandidateTypeRef here - let detectModeFromStats do proper detection
-        // from the actual selected candidate pair after connection is established
-        
-        if (currentWs && currentWs.readyState === WebSocket.OPEN) {
-          console.log('Sending ICE candidate to peer');
-          currentWs.send(JSON.stringify({
-            type: 'ice-candidate',
-            data: event.candidate,
-          }));
+        console.log('ICE candidate:', event.candidate.type, event.candidate.protocol);
+        if (currentWs?.readyState === WebSocket.OPEN) {
+          currentWs.send(JSON.stringify({ type: 'ice-candidate', data: event.candidate }));
         } else {
-          console.log('WebSocket not ready, queuing ICE candidate');
           pendingIceCandidates.push(event.candidate);
         }
       } else {
-        console.log('ICE gathering complete, total candidates:', candidateCount);
-        if (candidateCount === 0) {
-          console.error('NO ICE candidates generated! TURN server may be unreachable or credentials invalid.');
-        }
+        console.log('ICE gathering complete, total:', candidateCount);
       }
     };
 
-    // Function to detect connection mode from stats (with retry limit)
-    // Track pending detection timeouts to allow cancellation on reset
-    const modeDetectRetryCountRef = { current: 0 };
-    const modeDetectTimeoutRef = { current: null as ReturnType<typeof setTimeout> | null };
-    const MAX_MODE_DETECT_RETRIES = 30; // Maximum 15 seconds of retrying (30 * 500ms)
-    
-    const resetModeDetection = () => {
-      console.log('[ModeReset] Resetting all mode detection state');
-      
-      // Cancel any pending detection timeout
-      if (modeDetectTimeoutRef.current) {
-        clearTimeout(modeDetectTimeoutRef.current);
-        modeDetectTimeoutRef.current = null;
-      }
-      
-      // Reset all state
-      modeDetectRetryCountRef.current = 0;
-      connectionModeRef.current = 'pending';
-      modeLockedRef.current = false;
-      fallbackAttemptedRef.current = false;
-      hasConnectedRef.current = false;
-      detectedCandidateTypeRef.current = null;
-      // Note: Don't reset isInitiatorRef here - it's set based on room join order
-      clearPersistedMode(configRef.current.roomId);
-      setConnectionMode('pending');
-      setConnectionDetails({ mode: 'pending' });
-    };
-    
-    const detectModeFromStats = () => {
-      const currentPc = pcRef.current;
-      if (!currentPc || currentPc.connectionState === 'closed') return;
-      
-      // Don't retry if mode is already locked
-      if (modeLockedRef.current) {
-        console.log('[ModeDetect] Mode already locked, skipping detection');
-        return;
-      }
-      
-      currentPc.getStats().then(stats => {
-        let selectedCandidateType: string | null = null;
-        let remoteCandidateType: string | null = null;
-        let localIP: string | undefined;
-        let remoteIP: string | undefined;
-        let localPort: number | undefined;
-        let remotePort: number | undefined;
-        let protocol: string | undefined;
-        let relayServerIP: string | undefined;
-        
-        // Convert stats to array for easier processing
-        const statsArray = Array.from(stats.values());
-        
-        // Find the ACTUALLY selected candidate pair
-        // Priority: selected === true > (state === 'succeeded' && nominated) > state === 'succeeded'
-        const candidatePairs = statsArray.filter((r: any) => r.type === 'candidate-pair');
-        
-        let selectedPair = candidatePairs.find((r: any) => r.selected === true);
-        if (!selectedPair) {
-          selectedPair = candidatePairs.find((r: any) => r.state === 'succeeded' && r.nominated === true);
-        }
-        if (!selectedPair) {
-          selectedPair = candidatePairs.find((r: any) => r.state === 'succeeded');
-        }
-        
-        // Now extract candidate info from the selected pair only
-        if (selectedPair) {
-          console.log('[ModeDetect] Selected pair found:', {
-            state: selectedPair.state,
-            nominated: selectedPair.nominated,
-            selected: selectedPair.selected,
-            localCandidateId: selectedPair.localCandidateId,
-            remoteCandidateId: selectedPair.remoteCandidateId
-          });
-          
-          const localCandidate = statsArray.find((s: any) => s.id === selectedPair.localCandidateId && s.type === 'local-candidate');
-          const remoteCandidate = statsArray.find((s: any) => s.id === selectedPair.remoteCandidateId && s.type === 'remote-candidate');
-          
-          if (localCandidate) {
-            console.log('[ModeDetect] Local candidate:', localCandidate.candidateType, localCandidate.address || localCandidate.ip);
-            selectedCandidateType = localCandidate.candidateType;
-            localIP = localCandidate.address || localCandidate.ip;
-            localPort = localCandidate.port;
-            protocol = localCandidate.protocol;
-            if (localCandidate.candidateType === 'relay') {
-              relayServerIP = localCandidate.relayAddress || localCandidate.address || localCandidate.ip;
-            }
-          }
-          
-          if (remoteCandidate) {
-            console.log('[ModeDetect] Remote candidate:', remoteCandidate.candidateType, remoteCandidate.address || remoteCandidate.ip);
-            remoteCandidateType = remoteCandidate.candidateType;
-            remoteIP = remoteCandidate.address || remoteCandidate.ip || remoteCandidate.relatedAddress;
-            remotePort = remoteCandidate.port || remoteCandidate.relatedPort;
-            if (remoteCandidate.candidateType === 'relay' && !relayServerIP) {
-              relayServerIP = remoteCandidate.address || remoteCandidate.ip;
-            }
-          }
-          
-          console.log('Final selected pair - local:', selectedCandidateType, localIP, '| remote:', remoteCandidateType, remoteIP);
-        }
-        
-        // Use local candidate type, fallback to remote, or check if either is relay
-        const effectiveType = selectedCandidateType || remoteCandidateType;
-        const isRelay = selectedCandidateType === 'relay' || remoteCandidateType === 'relay';
-        
-        if (effectiveType) {
-          // If mode is already locked, skip re-evaluation (prevents oscillation)
-          if (modeLockedRef.current && (connectionModeRef.current === 'p2p' || connectionModeRef.current === 'turn')) {
-            console.log('[ModeDetect] Mode already locked to:', connectionModeRef.current, '- skipping re-evaluation');
-            return;
-          }
-          
-          // If either side uses relay, it's TURN mode
-          const mode = isRelay ? 'turn' : detectConnectionMode(effectiveType);
-          if (connectionModeRef.current !== mode) {
-            connectionModeRef.current = mode;
-            setConnectionMode(mode);
-            console.log('Connection mode detected:', mode, '(local:', selectedCandidateType, 'remote:', remoteCandidateType, ')');
-            
-            // Lock the mode once determined (p2p or turn) - prevents future oscillation
-            if (mode === 'p2p' || mode === 'turn') {
-              modeLockedRef.current = true;
-              persistMode(configRef.current.roomId, mode);
-              console.log('[ModeLock] Mode locked to:', mode);
-              
-              // Broadcast mode to peer for synchronization
-              const currentWs = wsRef.current;
-              if (currentWs && currentWs.readyState === WebSocket.OPEN) {
-                currentWs.send(JSON.stringify({
-                  type: 'connection-mode',
-                  mode: mode
-                }));
-                console.log('[ModeSync] Sent connection mode to peer:', mode);
-              }
-            }
-          }
-          
-          // Update connection details - only show relevant IPs based on mode
-          let details: ConnectionDetails;
-          if (isRelay) {
-            // TURN mode - get TURN server IP from stats or config URL
-            let turnIP = relayServerIP || localIP;
-            // Fallback to extracting from TURN config URL if not available from stats
-            if (!turnIP && turnConfig?.urls) {
-              turnIP = extractTurnServerHost(turnConfig.urls);
-            }
-            // Final fallback to remoteIP if nothing else worked
-            if (!turnIP) {
-              turnIP = remoteIP;
-            }
-            details = {
-              mode,
-              protocol,
-              turnServerIP: turnIP,
-            };
-          } else {
-            // P2P mode - show only remote peer's IP (not our local IP)
-            // Use IP from candidates if stats don't provide it (browser privacy)
-            const effectiveRemoteIP = remoteIP || peerIPFromCandidatesRef.current?.ip;
-            const effectiveRemotePort = remotePort || peerIPFromCandidatesRef.current?.port;
-            details = {
-              mode,
-              remoteIP: effectiveRemoteIP,
-              remotePort: effectiveRemotePort,
-              protocol,
-            };
-          }
-          setConnectionDetails(details);
-          console.log('Connection details:', details);
-        } else if (connectionModeRef.current === 'pending' || connectionModeRef.current === 'reconnecting') {
-          // Retry after a short delay if we couldn't detect yet (including after reconnection)
-          modeDetectRetryCountRef.current++;
-          
-          // Check if peer connection is still in a valid state for detection
-          const iceState = currentPc.iceConnectionState;
-          const isConnected = iceState === 'connected' || iceState === 'completed' || iceState === 'checking';
-          
-          if (modeDetectRetryCountRef.current >= MAX_MODE_DETECT_RETRIES) {
-            console.log('[ModeDetect] Max retries reached, stopping detection attempts');
-            // Don't give up completely - oniceconnectionstatechange will re-trigger if connection recovers
-          } else {
-            // Continue retrying even if disconnected - connection may recover via ICE restart
-            // oniceconnectionstatechange will also trigger fresh detection on recovery
-            console.log('[ModeDetect] No selected pair yet, retrying... (attempt:', modeDetectRetryCountRef.current, '/', MAX_MODE_DETECT_RETRIES, 'mode:', connectionModeRef.current, 'ice:', iceState, ')');
-            // Store timeout reference for cancellation on reset
-            modeDetectTimeoutRef.current = setTimeout(detectModeFromStats, 500);
-          }
-        }
-      }).catch(err => {
-        console.warn('Could not get connection stats:', err);
-      });
-    };
-
+    // Simple ICE/connection handlers that delegate to controller
     pc.oniceconnectionstatechange = () => {
-      console.log('ICE connection state:', pc.iceConnectionState);
-      
+      console.log('ICE state:', pc.iceConnectionState);
       if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
-        // Clear fallback timeout since we're connected
-        if (fallbackTimeoutRef.current) {
-          clearTimeout(fallbackTimeoutRef.current);
-          fallbackTimeoutRef.current = null;
-        }
-        hasConnectedRef.current = true;
-        
-        // Reset retry counter for fresh detection after connection recovery
-        modeDetectRetryCountRef.current = 0;
-        console.log('[ICE-Connected] Connection established, triggering mode detection');
-        
-        // Detect connection mode using getStats
-        detectModeFromStats();
-      }
-      
-      if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
-        console.warn('ICE connection issue detected, may need to restart');
-        // Only show "reconnecting" if we were previously connected, peer hasn't left, and mode isn't locked
-        // If mode is locked, keep showing the locked mode - don't oscillate
-        if (hasConnectedRef.current && 
-            !modeLockedRef.current &&
-            connectionModeRef.current !== 'pending' && 
-            connectionModeRef.current !== 'reconnecting') {
-          connectionModeRef.current = 'reconnecting';
-          setConnectionMode('reconnecting');
-          // Reset connection details when reconnecting
-          setConnectionDetails({ mode: 'reconnecting' });
-        }
+        controller.onConnected();
       }
     };
 
     pc.onicegatheringstatechange = () => {
-      console.log('ICE gathering state:', pc.iceGatheringState);
+      console.log('ICE gathering:', pc.iceGatheringState);
     };
 
     pc.ontrack = (event) => {
-      console.log('Received remote audio track, track kind:', event.track.kind);
-      // Expose remote stream to UI for playback
-      if (event.streams && event.streams[0]) {
+      console.log('Remote track received:', event.track.kind);
+      if (event.streams?.[0]) {
         setRemoteStream(event.streams[0]);
         configRef.current.onRemoteStream?.(event.streams[0]);
       }
     };
 
     pc.onconnectionstatechange = () => {
-      console.log('WebRTC connection state:', pc.connectionState);
-      
-      // Also detect mode when connection state changes to connected
+      console.log('Connection state:', pc.connectionState);
       if (pc.connectionState === 'connected') {
-        hasConnectedRef.current = true;
-        // Clear fallback timeout
-        if (fallbackTimeoutRef.current) {
-          clearTimeout(fallbackTimeoutRef.current);
-          fallbackTimeoutRef.current = null;
-        }
-        // Reset retry counter for fresh detection after connection recovery
-        modeDetectRetryCountRef.current = 0;
-        console.log('[WebRTC-Connected] Connection established, triggering mode detection');
-        // Detect connection mode
-        detectModeFromStats();
-      }
-      
-      // Handle connection failures by forcing TURN-only mode
-      // Only the INITIATOR (joiner) should trigger TURN fallback to avoid offer collision
-      if (pc.connectionState === 'failed') {
-        // Only attempt fallback if not already attempted
-        if (fallbackAttemptedRef.current) {
-          console.log('WebRTC connection failed, but TURN fallback already attempted - not retrying');
-          return;
-        }
-        
-        // Only initiator should recreate and send offer - non-initiator waits for offer
-        if (!isInitiatorRef.current) {
-          console.log('[TURN-FALLBACK] Connection failed but this peer is not initiator - waiting for offer from initiator');
-          connectionModeRef.current = 'reconnecting';
-          setConnectionMode('reconnecting');
-          setConnectionDetails({ mode: 'reconnecting' });
-          return;
-        }
-        
-        console.log('[TURN-FALLBACK] P2P connection failed, recreating with TURN-only (relay) policy');
-        fallbackAttemptedRef.current = true; // Mark as attempted
-        
-        // Show reconnecting state
-        connectionModeRef.current = 'reconnecting';
-        setConnectionMode('reconnecting');
-        setConnectionDetails({ mode: 'reconnecting' });
-        detectedCandidateTypeRef.current = null;
-        modeDetectRetryCountRef.current = 0;
-        
-        // Get current TURN config
-        const turnConfig = configRef.current.turnConfig;
-        if (!turnConfig) {
-          console.error('[TURN-FALLBACK] No TURN config available, cannot fallback');
-          return;
-        }
-        
-        // Close old connection
-        pc.close();
-        
-        // Create new peer connection with relay-only policy (forces TURN)
-        const relayOnlyIceServers: RTCIceServer[] = [{
-          urls: turnConfig.urls,
-          username: turnConfig.username,
-          credential: turnConfig.credential,
-        }];
-        
-        const newPc = new RTCPeerConnection({
-          iceServers: relayOnlyIceServers,
-          iceTransportPolicy: 'relay', // Force TURN relay only
-          iceCandidatePoolSize: 10,
-        });
-        pcRef.current = newPc;
-        
-        console.log('[TURN-FALLBACK] Created new PeerConnection with relay-only policy');
-        
-        // Create data channel
-        const dataChannel = newPc.createDataChannel('connection-init', { negotiated: true, id: 0 });
-        dataChannel.onopen = () => console.log('[DataChannel] Connection channel opened');
-        dataChannel.onclose = () => console.log('[DataChannel] Connection channel closed');
-        
-        // Re-add local stream if exists
-        if (localStreamRef.current) {
-          localStreamRef.current.getTracks().forEach(track => {
-            newPc.addTrack(track, localStreamRef.current!);
-          });
-        }
-        
-        // Setup event handlers on new PC
-        const currentWs = wsRef.current;
-        
-        newPc.onicecandidate = (event) => {
-          if (event.candidate && currentWs && currentWs.readyState === WebSocket.OPEN) {
-            console.log('[TURN-FALLBACK] ICE candidate:', event.candidate.type, event.candidate.protocol);
-            currentWs.send(JSON.stringify({ type: 'ice-candidate', data: event.candidate }));
-          }
-        };
-        
-        newPc.oniceconnectionstatechange = () => {
-          console.log('[TURN-FALLBACK] ICE connection state:', newPc.iceConnectionState);
-          if (newPc.iceConnectionState === 'connected' || newPc.iceConnectionState === 'completed') {
-            hasConnectedRef.current = true;
-            modeDetectRetryCountRef.current = 0;
-            // Force set to TURN since we're using relay-only policy
-            connectionModeRef.current = 'turn';
-            modeLockedRef.current = true;
-            persistMode(configRef.current.roomId, 'turn');
-            setConnectionMode('turn');
-            console.log('[TURN-FALLBACK] Connected via TURN relay');
-            detectModeFromStats();
-          }
-        };
-        
-        newPc.onconnectionstatechange = () => {
-          console.log('[TURN-FALLBACK] WebRTC connection state:', newPc.connectionState);
-          if (newPc.connectionState === 'connected') {
-            hasConnectedRef.current = true;
-          }
-        };
-        
-        newPc.ontrack = (event) => {
-          console.log('[TURN-FALLBACK] Received remote audio track');
-          if (event.streams && event.streams[0]) {
-            setRemoteStream(event.streams[0]);
-            configRef.current.onRemoteStream?.(event.streams[0]);
-          }
-        };
-        
-        // Create and send offer with relay-only connection
-        if (currentWs && currentWs.readyState === WebSocket.OPEN) {
-          newPc.createOffer().then(offer => {
-            return newPc.setLocalDescription(offer);
-          }).then(() => {
-            currentWs.send(JSON.stringify({
-              type: 'offer',
-              data: newPc.localDescription,
-            }));
-            console.log('[TURN-FALLBACK] Offer sent with relay-only policy');
-          }).catch(err => {
-            console.error('[TURN-FALLBACK] Error creating offer:', err);
-          });
-        }
+        controller.onConnected();
+      } else if (pc.connectionState === 'failed') {
+        controller.onFailed();
       }
     };
 
@@ -1039,176 +964,24 @@ export function useWebRTC(config: WebRTCConfig) {
 
         if (message.type === 'joined') {
           const isJoiner = message.existingPeers.length > 0;
-          isInitiatorRef.current = isJoiner; // Track who initiated - joiner sends first offer
-          console.log(`[${isJoiner ? 'JOINER' : 'CREATOR'}] Joined room, existing peers:`, message.existingPeers, 'isInitiator:', isJoiner);
-          console.log(`[${isJoiner ? 'JOINER' : 'CREATOR'}] ICE servers count:`, currentPc?.getConfiguration().iceServers?.length || 0);
+          controller.setInitiator(isJoiner);
+          console.log(`[${isJoiner ? 'JOINER' : 'CREATOR'}] Joined room, peers:`, message.existingPeers.length);
           setIsConnected(true);
           setConnectionState('connected');
           
           if (isJoiner) {
             configRef.current.onPeerConnected?.({ nickname: message.existingPeers[0]?.nickname });
             
-            // Create WebRTC offer for voice (joiner initiates)
-            if (currentPc && currentWs && currentWs.readyState === WebSocket.OPEN) {
+            // Joiner creates and sends initial offer
+            if (currentPc && currentWs?.readyState === WebSocket.OPEN) {
               console.log('[JOINER] Creating initial offer...');
-              console.log('[JOINER] PC ICE gathering state before offer:', currentPc.iceGatheringState);
               const offer = await currentPc.createOffer();
               await currentPc.setLocalDescription(offer);
-              console.log('[JOINER] Local description set, ICE gathering state:', currentPc.iceGatheringState);
-              currentWs.send(JSON.stringify({
-                type: 'offer',
-                data: offer,
-              }));
-              console.log('[JOINER] Offer sent, waiting for ICE candidates...');
+              currentWs.send(JSON.stringify({ type: 'offer', data: offer }));
+              console.log('[JOINER] Offer sent');
               
-              // Start polling for mode detection (for initial joiner offer)
-              let initialJoinerPollCount = 0;
-              const initialJoinerPollInterval = setInterval(() => {
-                initialJoinerPollCount++;
-                const currentMode = connectionModeRef.current;
-                const pollPc = pcRef.current;
-                
-                console.log('[JOINER-INIT] Polling for connection mode, attempt:', initialJoinerPollCount, 'pc state:', pollPc?.iceConnectionState, 'locked:', modeLockedRef.current);
-                
-                // Stop if mode is detected/locked or max attempts reached
-                if (modeLockedRef.current || (currentMode === 'p2p' || currentMode === 'turn') || initialJoinerPollCount >= 30) {
-                  console.log('[JOINER-INIT] Stopping poll - mode:', currentMode, 'locked:', modeLockedRef.current, 'attempts:', initialJoinerPollCount);
-                  clearInterval(initialJoinerPollInterval);
-                  return;
-                }
-                
-                // Try to detect mode if connected
-                if (pollPc && (pollPc.iceConnectionState === 'connected' || pollPc.iceConnectionState === 'completed')) {
-                  console.log('[JOINER-INIT] ICE connected, detecting mode');
-                  detectModeFromStats();
-                }
-              }, 500);
-              
-              // Start TURN fallback timer (5 seconds) - recreates connection with relay-only policy
-              if (fallbackTimeoutRef.current) {
-                clearTimeout(fallbackTimeoutRef.current);
-              }
-              
-              // Only attempt fallback if not already attempted
-              if (!fallbackAttemptedRef.current) {
-                console.log('[TURN-FALLBACK] Starting 5-second P2P timeout timer');
-                fallbackTimeoutRef.current = setTimeout(async () => {
-                  console.log('[TURN-FALLBACK] Timer fired - checking conditions...');
-                  // Check if we're still not connected AND haven't already attempted fallback
-                  const pollPc = pcRef.current;
-                  const freshWs = wsRef.current; // Use fresh WebSocket reference
-                  
-                  console.log('[TURN-FALLBACK] Conditions:', {
-                    hasConnected: hasConnectedRef.current,
-                    fallbackAttempted: fallbackAttemptedRef.current,
-                    pcExists: !!pollPc,
-                    iceState: pollPc?.iceConnectionState,
-                    wsReady: freshWs?.readyState === WebSocket.OPEN
-                  });
-                  
-                  if (!hasConnectedRef.current && 
-                      !fallbackAttemptedRef.current &&
-                      pollPc &&
-                      pollPc.iceConnectionState !== 'connected' && 
-                      pollPc.iceConnectionState !== 'completed') {
-                    
-                    console.log('[TURN-FALLBACK] P2P timeout after 5s, recreating with TURN-only policy');
-                    fallbackAttemptedRef.current = true;
-                    
-                    // Show reconnecting state
-                    connectionModeRef.current = 'reconnecting';
-                    setConnectionMode('reconnecting');
-                    setConnectionDetails({ mode: 'reconnecting' });
-                    modeDetectRetryCountRef.current = 0;
-                    
-                    // Get TURN config
-                    const turnConfig = configRef.current.turnConfig;
-                    if (!turnConfig) {
-                      console.error('[TURN-FALLBACK] No TURN config available');
-                      return;
-                    }
-                    
-                    // Close old connection
-                    pollPc.close();
-                    
-                    // Create new peer connection with relay-only policy
-                    const relayOnlyIceServers: RTCIceServer[] = [{
-                      urls: turnConfig.urls,
-                      username: turnConfig.username,
-                      credential: turnConfig.credential,
-                    }];
-                    
-                    const newPc = new RTCPeerConnection({
-                      iceServers: relayOnlyIceServers,
-                      iceTransportPolicy: 'relay',
-                      iceCandidatePoolSize: 10,
-                    });
-                    pcRef.current = newPc;
-                    
-                    console.log('[TURN-FALLBACK] Created new PeerConnection with relay-only policy');
-                    
-                    // Create data channel
-                    const dc = newPc.createDataChannel('connection-init', { negotiated: true, id: 0 });
-                    dc.onopen = () => console.log('[DataChannel] Connection channel opened');
-                    dc.onclose = () => console.log('[DataChannel] Connection channel closed');
-                    
-                    // Re-add local stream if exists
-                    if (localStreamRef.current) {
-                      localStreamRef.current.getTracks().forEach(track => {
-                        newPc.addTrack(track, localStreamRef.current!);
-                      });
-                    }
-                    
-                    // Setup event handlers - use wsRef.current for fresh reference
-                    newPc.onicecandidate = (event) => {
-                      const ws = wsRef.current;
-                      if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
-                        console.log('[TURN-FALLBACK] ICE candidate:', event.candidate.type);
-                        ws.send(JSON.stringify({ type: 'ice-candidate', data: event.candidate }));
-                      }
-                    };
-                    
-                    newPc.oniceconnectionstatechange = () => {
-                      console.log('[TURN-FALLBACK] ICE state:', newPc.iceConnectionState);
-                      if (newPc.iceConnectionState === 'connected' || newPc.iceConnectionState === 'completed') {
-                        hasConnectedRef.current = true;
-                        connectionModeRef.current = 'turn';
-                        modeLockedRef.current = true;
-                        persistMode(configRef.current.roomId, 'turn');
-                        setConnectionMode('turn');
-                        console.log('[TURN-FALLBACK] Connected via TURN relay');
-                        detectModeFromStats();
-                      }
-                    };
-                    
-                    newPc.onconnectionstatechange = () => {
-                      console.log('[TURN-FALLBACK] WebRTC state:', newPc.connectionState);
-                    };
-                    
-                    newPc.ontrack = (event) => {
-                      if (event.streams && event.streams[0]) {
-                        setRemoteStream(event.streams[0]);
-                        configRef.current.onRemoteStream?.(event.streams[0]);
-                      }
-                    };
-                    
-                    // Create and send offer - use wsRef.current for fresh reference
-                    try {
-                      const ws = wsRef.current;
-                      const offer = await newPc.createOffer();
-                      await newPc.setLocalDescription(offer);
-                      if (ws && ws.readyState === WebSocket.OPEN) {
-                        ws.send(JSON.stringify({ type: 'offer', data: offer }));
-                        console.log('[TURN-FALLBACK] Offer sent with relay-only policy');
-                      } else {
-                        console.error('[TURN-FALLBACK] WebSocket not open, cannot send offer');
-                      }
-                    } catch (err) {
-                      console.error('[TURN-FALLBACK] Error creating offer:', err);
-                    }
-                  }
-                }, 5000);
-              }
+              // Start P2P timeout (initiator only)
+              controller.startP2PTimeout();
             }
           }
         } else if (message.type === 'peer-joined') {
@@ -1216,210 +989,98 @@ export function useWebRTC(config: WebRTCConfig) {
           setIsConnected(true);
           setConnectionState('connected');
           
-          // Always reset mode detection state for fresh detection with new peer
-          // This handles: previous peer left, stale locked mode, or any inconsistent state
-          console.log('[PeerJoined] Resetting mode detection for new peer connection');
-          resetModeDetection();
-          
-          // Trigger mode detection after connection is established (will be called by ICE state change)
-          // But also schedule one check in case ICE is already connected
-          const currentPc = pcRef.current;
-          if (currentPc && (currentPc.iceConnectionState === 'connected' || currentPc.iceConnectionState === 'completed')) {
-            console.log('[PeerJoined] ICE already connected, triggering mode detection');
-            detectModeFromStats();
-          }
-          
+          // Reset controller for new peer
+          controller.reset();
           configRef.current.onPeerConnected?.({ nickname: message.nickname });
         } else if (message.type === 'offer') {
           if (currentPc && currentWs && currentWs.readyState === WebSocket.OPEN) {
-            console.log('Received offer, setting remote description');
-            console.log('Current signaling state before offer:', currentPc.signalingState);
+            console.log('Received offer');
             
             try {
               await currentPc.setRemoteDescription(new RTCSessionDescription(message.data));
             } catch (sdpError: any) {
-              // If SDP error (e.g., m-line order mismatch), we need to recreate the peer connection
+              // If SDP error, recreate peer connection
               if (sdpError.message?.includes('m-lines') || sdpError.message?.includes('Failed to set remote')) {
-                console.log('[RECONNECT] SDP incompatible, recreating peer connection...');
-                
-                // Close old peer connection
+                console.log('[RECONNECT] SDP incompatible, recreating...');
                 currentPc.close();
                 
-                // Reset peer IP from candidates for fresh detection
-                peerIPFromCandidatesRef.current = null;
-                
-                // Recreate peer connection with same config
                 const newPc = new RTCPeerConnection(currentPc.getConfiguration());
                 pcRef.current = newPc;
                 
-                // Create data channel for ICE gathering
-                const dataChannel = newPc.createDataChannel('connection-init', { negotiated: true, id: 0 });
-                dataChannel.onopen = () => console.log('[DataChannel] Connection channel opened');
-                dataChannel.onclose = () => console.log('[DataChannel] Connection channel closed');
+                const dc = newPc.createDataChannel('connection-init', { negotiated: true, id: 0 });
+                dc.onopen = () => console.log('[DataChannel] opened');
+                dc.onclose = () => console.log('[DataChannel] closed');
                 
-                // Re-add local stream if exists
                 if (localStreamRef.current) {
-                  localStreamRef.current.getTracks().forEach(track => {
-                    newPc.addTrack(track, localStreamRef.current!);
-                  });
+                  localStreamRef.current.getTracks().forEach(track => newPc.addTrack(track, localStreamRef.current!));
                 }
                 
-                // Setup event handlers on new PC
-                newPc.onicecandidate = (event) => {
-                  if (event.candidate && currentWs.readyState === WebSocket.OPEN) {
-                    console.log('ICE candidate:', event.candidate.type, event.candidate.protocol, event.candidate.address);
-                    currentWs.send(JSON.stringify({ type: 'ice-candidate', data: event.candidate }));
+                newPc.onicecandidate = (e) => {
+                  if (e.candidate && currentWs.readyState === WebSocket.OPEN) {
+                    currentWs.send(JSON.stringify({ type: 'ice-candidate', data: e.candidate }));
                   }
                 };
                 
                 newPc.oniceconnectionstatechange = () => {
-                  console.log('ICE connection state:', newPc.iceConnectionState);
+                  console.log('ICE state:', newPc.iceConnectionState);
                   if (newPc.iceConnectionState === 'connected' || newPc.iceConnectionState === 'completed') {
-                    hasConnectedRef.current = true;
-                    connectionModeRef.current = 'pending';
-                    detectModeFromStats();
+                    controller.onConnected();
                   }
                 };
                 
                 newPc.onconnectionstatechange = () => {
-                  console.log('WebRTC connection state:', newPc.connectionState);
-                  if (newPc.connectionState === 'connected') {
-                    hasConnectedRef.current = true;
-                    detectModeFromStats();
+                  console.log('Connection state:', newPc.connectionState);
+                  if (newPc.connectionState === 'connected') controller.onConnected();
+                  else if (newPc.connectionState === 'failed') controller.onFailed();
+                };
+                
+                newPc.ontrack = (e) => {
+                  if (e.streams?.[0]) {
+                    setRemoteStream(e.streams[0]);
+                    configRef.current.onRemoteStream?.(e.streams[0]);
                   }
                 };
                 
-                newPc.ontrack = (event) => {
-                  console.log('Received remote audio track');
-                  if (event.streams && event.streams[0]) {
-                    setRemoteStream(event.streams[0]);
-                    configRef.current.onRemoteStream?.(event.streams[0]);
-                  }
-                };
-                
-                // Now set the remote description on the new PC
                 await newPc.setRemoteDescription(new RTCSessionDescription(message.data));
-                console.log('[RECONNECT] Remote description set on new peer connection');
-                
-                // Create and send answer
                 const answer = await newPc.createAnswer();
                 await newPc.setLocalDescription(answer);
                 currentWs.send(JSON.stringify({ type: 'answer', data: answer }));
                 console.log('[RECONNECT] Answer sent');
-                
-                // Reset connection mode to pending so polling works
-                connectionModeRef.current = 'pending';
-                setConnectionMode('pending');
-                
-                // Start polling for mode detection after reconnect
-                let reconnectPollCount = 0;
-                const reconnectPollInterval = setInterval(() => {
-                  reconnectPollCount++;
-                  const currentMode = connectionModeRef.current;
-                  const reconnectPc = pcRef.current;
-                  
-                  console.log('[RECONNECT] Polling for connection mode, attempt:', reconnectPollCount, 'pc state:', reconnectPc?.iceConnectionState);
-                  
-                  // Stop if mode is detected or max attempts reached
-                  if ((currentMode === 'p2p' || currentMode === 'turn') || reconnectPollCount >= 30) {
-                    console.log('[RECONNECT] Stopping poll - mode:', currentMode, 'attempts:', reconnectPollCount);
-                    clearInterval(reconnectPollInterval);
-                    return;
-                  }
-                  
-                  // Try to detect mode if connected
-                  if (reconnectPc && (reconnectPc.iceConnectionState === 'connected' || reconnectPc.iceConnectionState === 'completed')) {
-                    console.log('[RECONNECT] ICE connected, detecting mode');
-                    detectModeFromStats();
-                  }
-                }, 500);
-                
                 return;
               }
               throw sdpError;
             }
             
-            console.log('Remote description set from offer, new signaling state:', currentPc.signalingState);
+            console.log('Remote description set');
             
-            // If we have a local stream, add our tracks before creating the answer
+            // Add local stream tracks if exist
             if (localStreamRef.current) {
               const existingTracks = currentPc.getSenders().map(s => s.track);
               localStreamRef.current.getTracks().forEach(track => {
-                // Only add track if it's not already added
                 if (!existingTracks.includes(track)) {
-                  console.log('Adding local audio track when answering offer');
                   currentPc.addTrack(track, localStreamRef.current!);
                 }
               });
             }
             
-            console.log('Creating answer');
+            // Create and send answer
             const answer = await currentPc.createAnswer();
             await currentPc.setLocalDescription(answer);
-            console.log('Sending answer, signaling state:', currentPc.signalingState);
-            currentWs.send(JSON.stringify({
-              type: 'answer',
-              data: answer,
-            }));
+            currentWs.send(JSON.stringify({ type: 'answer', data: answer }));
             console.log('Answer sent');
             
-            // Start polling for mode detection (for invited user / joiner)
-            let joinerPollCount = 0;
-            const joinerPollInterval = setInterval(() => {
-              joinerPollCount++;
-              const currentMode = connectionModeRef.current;
-              const joinerPc = pcRef.current;
-              
-              console.log('[JOINER] Polling for connection mode, attempt:', joinerPollCount, 'pc state:', joinerPc?.iceConnectionState);
-              
-              // Stop if mode is detected or max attempts reached
-              if ((currentMode === 'p2p' || currentMode === 'turn') || joinerPollCount >= 30) {
-                console.log('[JOINER] Stopping poll - mode:', currentMode, 'attempts:', joinerPollCount);
-                clearInterval(joinerPollInterval);
-                return;
-              }
-              
-              // Try to detect mode if connected
-              if (joinerPc && (joinerPc.iceConnectionState === 'connected' || joinerPc.iceConnectionState === 'completed')) {
-                console.log('[JOINER] ICE connected, detecting mode');
-                detectModeFromStats();
-              }
-            }, 500);
-            
-            // Flush any buffered remote ICE candidates now that remote description is set
+            // Flush any buffered remote ICE candidates
             if (pendingRemoteIceCandidates.length > 0) {
-              console.log('[CREATOR] Flushing', pendingRemoteIceCandidates.length, 'buffered remote ICE candidates');
+              console.log('Flushing', pendingRemoteIceCandidates.length, 'buffered ICE candidates');
               for (const candidate of pendingRemoteIceCandidates) {
                 try {
                   await currentPc.addIceCandidate(new RTCIceCandidate(candidate));
-                  console.log('[CREATOR] Added buffered ICE candidate successfully');
                 } catch (err) {
-                  console.error('[CREATOR] Failed to add buffered ICE candidate:', err);
+                  console.error('Failed to add buffered ICE candidate:', err);
                 }
               }
               pendingRemoteIceCandidates.length = 0;
             }
-            
-            // Trigger continuous mode detection after answer is sent (for creator/hoster)
-            // Keep polling until connection is established
-            let creatorPollCount = 0;
-            const creatorPollInterval = setInterval(() => {
-              creatorPollCount++;
-              console.log('[CREATOR] Polling for connection mode, attempt:', creatorPollCount, 'pc state:', currentPc?.iceConnectionState);
-              
-              // Stop polling only if we have a definitive mode (p2p or turn), or max attempts reached
-              const currentMode = connectionModeRef.current;
-              if ((currentMode === 'p2p' || currentMode === 'turn') || creatorPollCount >= 30) {
-                console.log('[CREATOR] Stopping poll - mode:', currentMode, 'attempts:', creatorPollCount);
-                clearInterval(creatorPollInterval);
-                return;
-              }
-              
-              if (currentPc && (currentPc.iceConnectionState === 'connected' || currentPc.iceConnectionState === 'completed')) {
-                console.log('[CREATOR] ICE connected, detecting mode');
-                detectModeFromStats();
-              }
-            }, 500);
           }
         } else if (message.type === 'answer') {
           if (currentPc) {
@@ -1433,27 +1094,18 @@ export function useWebRTC(config: WebRTCConfig) {
               // Clear negotiating flag when answer is received
               negotiatingRef.current = false;
               
-              // Flush any buffered remote ICE candidates now that remote description is set
+              // Flush any buffered remote ICE candidates
               if (pendingRemoteIceCandidates.length > 0) {
-                console.log('[JOINER] Flushing', pendingRemoteIceCandidates.length, 'buffered remote ICE candidates');
+                console.log('Flushing', pendingRemoteIceCandidates.length, 'buffered ICE candidates');
                 for (const candidate of pendingRemoteIceCandidates) {
                   try {
                     await currentPc.addIceCandidate(new RTCIceCandidate(candidate));
-                    console.log('[JOINER] Added buffered ICE candidate successfully');
                   } catch (err) {
-                    console.error('[JOINER] Failed to add buffered ICE candidate:', err);
+                    console.error('Failed to add buffered ICE candidate:', err);
                   }
                 }
                 pendingRemoteIceCandidates.length = 0;
               }
-              
-              // Trigger mode detection after answer is received (for joiner)
-              setTimeout(() => {
-                if (connectionModeRef.current === 'pending' || connectionModeRef.current === 'reconnecting') {
-                  console.log('[JOINER] Triggering delayed mode detection after receiving answer');
-                  detectModeFromStats();
-                }
-              }, 1000);
               
               // Check if voice stop was requested during negotiation
               if (pendingStopRef.current) {
@@ -1495,18 +1147,7 @@ export function useWebRTC(config: WebRTCConfig) {
               }
             }
             
-            console.log('Received ICE candidate from peer:', candidateType, candidateIP, candidatePort);
-            
-            // Extract peer's IP from non-relay candidates (for P2P mode display)
-            // We prefer srflx (server reflexive = public IP), then host candidates
-            if (candidateIP && !candidateIP.endsWith('.local') && candidateType !== 'relay') {
-              // Store public IP from peer's candidates
-              // Prefer srflx (public IP) over host (private IP)
-              if (candidateType === 'srflx' || !peerIPFromCandidatesRef.current) {
-                peerIPFromCandidatesRef.current = { ip: candidateIP, port: candidatePort };
-                console.log('Stored peer IP from candidate:', candidateIP, candidatePort, '(type:', candidateType + ')');
-              }
-            }
+            console.log('Received ICE candidate:', candidateType);
             
             // Check if remote description is set - if not, buffer the candidate
             if (!currentPc.remoteDescription) {
@@ -1571,8 +1212,8 @@ export function useWebRTC(config: WebRTCConfig) {
           setConnectionState('disconnected');
           setRemoteStream(null);
           setPeerNCEnabled(false);
-          // Reset connection mode and detection state when peer leaves
-          resetModeDetection();
+          // Reset controller when peer leaves
+          controller.reset();
           configRef.current.onRemoteStream?.(null);
           configRef.current.onPeerDisconnected?.();
         } else if (message.type === 'nc-status') {
@@ -1581,45 +1222,8 @@ export function useWebRTC(config: WebRTCConfig) {
           setPeerNCEnabled(ncEnabled);
           configRef.current.onPeerNCStatusChange?.(ncEnabled);
         } else if (message.type === 'connection-mode') {
-          const peerMode = message.mode;
-          const localMode = connectionModeRef.current;
-          console.log('[ModeSync] *** RECEIVED peer connection mode:', peerMode, '| local mode:', localMode, '| locked:', modeLockedRef.current, '| from:', message.from);
-          
-          // If mode is already locked and matches, do nothing
-          if (modeLockedRef.current && (localMode === 'p2p' || localMode === 'turn')) {
-            // Exception: TURN always wins over P2P (upgrade only)
-            if (peerMode === 'turn' && localMode === 'p2p') {
-              console.log('[ModeSync] *** UPGRADING from P2P to TURN (peer requires TURN)');
-              connectionModeRef.current = 'turn';
-              setConnectionMode('turn');
-              persistMode(configRef.current.roomId, 'turn');
-            } else {
-              console.log('[ModeSync] Mode already locked to:', localMode, '- ignoring peer mode');
-            }
-            return;
-          }
-          
-          // Sync logic:
-          // 1. If peer reports TURN, always update local to TURN (TURN takes priority)
-          // 2. If peer reports P2P and we're pending/reconnecting, accept P2P
-          // 3. Lock the mode after accepting from peer
-          if (peerMode === 'turn') {
-            console.log('[ModeSync] *** UPDATING local mode to TURN (peer is using TURN)');
-            connectionModeRef.current = 'turn';
-            setConnectionMode('turn');
-            modeLockedRef.current = true;
-            persistMode(configRef.current.roomId, 'turn');
-          } else if (peerMode === 'p2p') {
-            if (localMode === 'pending' || localMode === 'reconnecting') {
-              console.log('[ModeSync] *** UPDATING local mode to P2P (accepting from peer)');
-              connectionModeRef.current = 'p2p';
-              setConnectionMode('p2p');
-              modeLockedRef.current = true;
-              persistMode(configRef.current.roomId, 'p2p');
-            } else {
-              console.log('[ModeSync] Not updating - local mode already set to:', localMode);
-            }
-          }
+          // Let controller handle peer mode sync
+          controller.handlePeerMode(message.mode);
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
@@ -1679,11 +1283,8 @@ export function useWebRTC(config: WebRTCConfig) {
         reconnectTimeoutRef.current = null;
       }
       
-      // Clear TURN fallback timeout
-      if (fallbackTimeoutRef.current) {
-        clearTimeout(fallbackTimeoutRef.current);
-        fallbackTimeoutRef.current = null;
-      }
+      // Cancel controller timeout
+      controller.cancelTimeout();
       
       // Only clean up if websocket is actually open/connecting
       if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
