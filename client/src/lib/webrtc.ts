@@ -257,6 +257,13 @@ export function useWebRTC(config: WebRTCConfig) {
     
     // Full ICE connection state machine
     pc.oniceconnectionstatechange = () => {
+      // Once mode is locked, ICE fluctuations are irrelevant
+      // Temporary disconnects (refresh, Wi-Fi ↔ 5G, browser rebinding) are normal
+      if (modeLockedRef.current) {
+        console.log('[WebRTC] ICE state ignored after mode lock:', pc.iceConnectionState);
+        return;
+      }
+      
       const state = pc.iceConnectionState;
       const disconnectedSince = disconnectedSinceRef.current;
       console.log('[ICE-TRACE]', {
