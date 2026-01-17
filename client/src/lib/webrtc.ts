@@ -311,6 +311,11 @@ export function useWebRTC(config: WebRTCConfig) {
 
     // connectionState for logging/backup mode detection only
     pc.onconnectionstatechange = () => {
+      // Relay is final - completely ignore connectionState during relay
+      if (fallbackTriggeredRef.current) {
+        console.log('[WebRTC] connectionState ignored during relay:', pc.connectionState);
+        return;
+      }
       console.log('[Connection]', pc.connectionState);
       if (pc.connectionState === 'connected') {
         if (roleRef.current === 'controller' && !modeLockedRef.current) {
