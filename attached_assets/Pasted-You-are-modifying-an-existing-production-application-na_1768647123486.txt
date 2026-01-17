@@ -1,0 +1,199 @@
+You are modifying an existing production application named SECURE.LINK.
+This is a 2-peer, ephemeral, encrypted WebRTC application.
+The system is already working functionally and must not be refactored or redesigned.
+
+Your task is to fix connection-mode instability and normalize TURN/STUN address input, with minimal and targeted changes only.
+
+Application Context (Do Not Change)
+
+Exactly 2 peers per room
+
+P2P-first WebRTC
+
+TURN fallback supported
+
+User-provided TURN/STUN only (no defaults)
+
+TURN credentials stored encrypted (AES-256-GCM) in DB
+
+Mode detection via RTCPeerConnection.getStats()
+
+Mode synchronized via WebSocket
+
+UI already shows mode (P2P / TURN) — keep it exactly as is
+
+Current Problems (Must Be Fixed)
+
+Mode instability
+
+One peer shows P2P while the other shows TURN
+
+Mode disappears after refresh
+
+Mode changes without actual reconnection
+
+Reconnect loops
+
+Repeated ICE restarts
+
+Connection drops and re-establishes unnecessarily
+
+Network-type sensitivity
+
+Issues increase when one peer is on Wi-Fi and the other on 5G
+
+TURN fallback inconsistency
+
+TURN fallback is delayed or sometimes never triggers
+
+Peers may disagree on the final mode
+
+Mandatory Target Behavior (Strict)
+1. Deterministic Connection Flow
+
+Attempt direct P2P first
+
+If P2P is not established within a strict timeout (existing 5s logic may be reused or stabilized):
+
+Perform one controlled ICE restart
+
+Force TURN relay usage
+
+Once a mode is selected:
+
+Never oscillate
+
+Never downgrade or re-negotiate unless connection is fully lost
+
+2. Mode Authority & Synchronization
+
+Mode must be:
+
+Single-source-of-truth
+
+Identical on both peers
+
+Once detected:
+
+Broadcast via WebSocket
+
+Persist for the session
+
+Refreshing the page:
+
+Must re-display the correct mode
+
+Must not reset or re-evaluate the mode unless the peer connection is recreated
+
+3. TURN / STUN Address Input Change (Critical)
+
+User Input Rule
+
+Users enter hostname or IP only
+
+Example: turn.example.com
+
+Example: stun.example.com
+
+Internal Handling (Mandatory)
+
+Automatically construct internally:
+
+turns:HOST:443?transport=tcp
+
+stun:stun.HOST:443
+
+Do not require users to enter:
+
+turns: or :443?transport=tcp
+
+
+stun:stun. or :443
+
+
+
+Persistence Rules
+
+TURN/STUN configuration:
+
+Must remain stored exactly as today (encrypted)
+
+Must not reset
+
+Must not change DB structure
+
+Must be reused automatically on reload
+
+4. ICE / WebRTC Stability Rules
+
+Eliminate:
+
+Race conditions in ICE candidate handling
+
+Multiple concurrent ICE restarts
+
+Mode re-evaluation loops
+
+Ensure:
+
+ICE state transitions are handled cleanly
+
+connected → completed does not retrigger logic
+
+TURN fallback must be:
+
+Immediate
+
+Deterministic
+
+Final
+
+5. UI & Scope Lock (Non-Negotiable)
+
+Do NOT change:
+
+UI layout
+
+Mode indicator location or styling
+
+Language handling (EN/AR)
+
+Security model
+
+Encryption logic
+
+Database schema
+
+Room lifecycle logic
+
+Only touch:
+
+WebRTC connection logic
+
+Mode detection & synchronization
+
+TURN/STUN address normalization
+
+Files Expected to Be Modified (Only If Needed)
+
+client/src/lib/webrtc.ts
+
+Possibly minimal logic in:
+
+client/src/pages/room.tsx
+
+WebSocket signaling in server/routes.ts
+
+Final Deliverables
+
+Stable, deterministic P2P → TURN behavior
+
+Identical mode shown on both peers at all times
+
+No reconnect loops
+
+Hostname-only TURN/STUN input with implicit port 443
+
+No other changes
+
+Proceed carefully and minimally.

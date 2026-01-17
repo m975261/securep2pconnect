@@ -2,8 +2,17 @@
 
 SECURE.LINK is a WebRTC communication application designed for secure, temporary, peer-to-peer (P2P-first) connections.
 
-## Recent Changes (December 2025)
+## Recent Changes (January 2026)
+- **Connection Mode Stability Improvements:**
+  - Added mode locking mechanism - once connection mode (P2P/TURN) is determined, it's locked for the session to prevent oscillation
+  - Implemented sessionStorage persistence per room for mode state (survives page refresh)
+  - Made TURN fallback deterministic with single-attempt logic (`fallbackAttemptedRef`)
+  - Added mode sync with TURN-priority upgrade (TURN always wins over P2P, no downgrade)
+  - Helper functions: `getPersistedMode()`, `persistMode()`, `clearPersistedMode()`
+- TURN/STUN hostname-only input normalization (auto-constructs full URLs)
 - Removed debug panel from room page
+
+## Changes (December 2025)
 - Added dual database driver support (Neon cloud + local PostgreSQL) for deployment flexibility
 - Created Ubuntu 24.04 LTS deployment package (`securelink-deploy.zip`)
 

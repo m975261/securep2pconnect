@@ -113,6 +113,45 @@ interface SendFileOptions {
 
 export type ConnectionMode = 'pending' | 'p2p' | 'turn' | 'reconnecting';
 
+// Session storage key for persisting connection mode per room
+function getModeStorageKey(roomId: string): string {
+  return `connection-mode-${roomId}`;
+}
+
+// Get persisted mode from sessionStorage
+function getPersistedMode(roomId: string): ConnectionMode | null {
+  try {
+    const stored = sessionStorage.getItem(getModeStorageKey(roomId));
+    if (stored === 'p2p' || stored === 'turn') {
+      return stored;
+    }
+  } catch (e) {
+    console.warn('Failed to read persisted mode:', e);
+  }
+  return null;
+}
+
+// Persist mode to sessionStorage (only for final modes: p2p or turn)
+function persistMode(roomId: string, mode: ConnectionMode): void {
+  try {
+    if (mode === 'p2p' || mode === 'turn') {
+      sessionStorage.setItem(getModeStorageKey(roomId), mode);
+      console.log('[ModePersist] Saved mode to sessionStorage:', mode);
+    }
+  } catch (e) {
+    console.warn('Failed to persist mode:', e);
+  }
+}
+
+// Clear persisted mode (when peer leaves or room is closed)
+function clearPersistedMode(roomId: string): void {
+  try {
+    sessionStorage.removeItem(getModeStorageKey(roomId));
+  } catch (e) {
+    console.warn('Failed to clear persisted mode:', e);
+  }
+}
+
 // Extract IP/host from TURN URL like "turn:1.2.3.4:3478" or "turns:server.example.com:5349"
 function extractTurnServerHost(urls: string[]): string | undefined {
   for (const url of urls) {
@@ -168,6 +207,10 @@ export function useWebRTC(config: WebRTCConfig) {
   const hasConnectedRef = useRef(false);
   const connectionModeRef = useRef<ConnectionMode>('pending');
   const detectedCandidateTypeRef = useRef<string | null>(null);
+  
+  // Mode locking - once mode is determined, it should not change unless connection is fully lost
+  const modeLockedRef = useRef(false);
+  const fallbackAttemptedRef = useRef(false); // Track if we've already attempted TURN fallback
   
   // Store peer's IP from ICE candidates (for P2P mode display)
   const peerIPFromCandidatesRef = useRef<{ ip: string; port: number } | null>(null);
@@ -508,11 +551,23 @@ export function useWebRTC(config: WebRTCConfig) {
     dataChannel.onopen = () => console.log('[DataChannel] Connection channel opened');
     dataChannel.onclose = () => console.log('[DataChannel] Connection channel closed');
 
-    // Reset connection mode tracking
+    // Reset connection mode tracking - check for persisted mode first
     hasConnectedRef.current = false;
-    connectionModeRef.current = 'pending';
     detectedCandidateTypeRef.current = null;
-    setConnectionMode('pending');
+    modeLockedRef.current = false;
+    fallbackAttemptedRef.current = false;
+    
+    // Check for persisted mode from previous session
+    const persistedMode = getPersistedMode(config.roomId);
+    if (persistedMode) {
+      console.log('[ModeInit] Restored persisted mode from sessionStorage:', persistedMode);
+      connectionModeRef.current = persistedMode;
+      setConnectionMode(persistedMode);
+      modeLockedRef.current = true; // Lock the mode since it was already determined
+    } else {
+      connectionModeRef.current = 'pending';
+      setConnectionMode('pending');
+    }
 
     // Function to detect connection mode from ICE candidate type
     const detectConnectionMode = (candidateType: string) => {
@@ -625,6 +680,12 @@ export function useWebRTC(config: WebRTCConfig) {
         const isRelay = selectedCandidateType === 'relay' || remoteCandidateType === 'relay';
         
         if (effectiveType) {
+          // If mode is already locked, skip re-evaluation (prevents oscillation)
+          if (modeLockedRef.current && (connectionModeRef.current === 'p2p' || connectionModeRef.current === 'turn')) {
+            console.log('[ModeDetect] Mode already locked to:', connectionModeRef.current, '- skipping re-evaluation');
+            return;
+          }
+          
           // If either side uses relay, it's TURN mode
           const mode = isRelay ? 'turn' : detectConnectionMode(effectiveType);
           if (connectionModeRef.current !== mode) {
@@ -632,8 +693,13 @@ export function useWebRTC(config: WebRTCConfig) {
             setConnectionMode(mode);
             console.log('Connection mode detected:', mode, '(local:', selectedCandidateType, 'remote:', remoteCandidateType, ')');
             
-            // Broadcast mode to peer for synchronization (only for actual detected modes, not pending)
+            // Lock the mode once determined (p2p or turn) - prevents future oscillation
             if (mode === 'p2p' || mode === 'turn') {
+              modeLockedRef.current = true;
+              persistMode(configRef.current.roomId, mode);
+              console.log('[ModeLock] Mode locked to:', mode);
+              
+              // Broadcast mode to peer for synchronization
               const currentWs = wsRef.current;
               if (currentWs && currentWs.readyState === WebSocket.OPEN) {
                 currentWs.send(JSON.stringify({
@@ -704,9 +770,12 @@ export function useWebRTC(config: WebRTCConfig) {
       
       if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
         console.warn('ICE connection issue detected, may need to restart');
-        // Only show "reconnecting" if we were previously connected and peer hasn't left
-        // If mode is 'pending' (peer left), don't overwrite it
-        if (hasConnectedRef.current && connectionModeRef.current !== 'pending' && connectionModeRef.current !== 'reconnecting') {
+        // Only show "reconnecting" if we were previously connected, peer hasn't left, and mode isn't locked
+        // If mode is locked, keep showing the locked mode - don't oscillate
+        if (hasConnectedRef.current && 
+            !modeLockedRef.current &&
+            connectionModeRef.current !== 'pending' && 
+            connectionModeRef.current !== 'reconnecting') {
           connectionModeRef.current = 'reconnecting';
           setConnectionMode('reconnecting');
           // Reset connection details when reconnecting
@@ -743,12 +812,22 @@ export function useWebRTC(config: WebRTCConfig) {
         detectModeFromStats();
       }
       
-      // Handle connection failures by triggering ICE restart
+      // Handle connection failures by triggering ICE restart - SINGLE ATTEMPT ONLY
       if (pc.connectionState === 'failed') {
-        console.log('WebRTC connection failed, attempting ICE restart');
-        // Reset mode to pending during ICE restart so it can be re-detected
-        connectionModeRef.current = 'reconnecting';
-        setConnectionMode('reconnecting');
+        // Only attempt restart if fallback hasn't been attempted
+        if (fallbackAttemptedRef.current) {
+          console.log('WebRTC connection failed, but fallback already attempted - not retrying');
+          return;
+        }
+        
+        console.log('WebRTC connection failed, attempting ONE controlled ICE restart');
+        fallbackAttemptedRef.current = true; // Mark as attempted
+        
+        // Show reconnecting state but don't unlock mode
+        if (!modeLockedRef.current) {
+          connectionModeRef.current = 'reconnecting';
+          setConnectionMode('reconnecting');
+        }
         detectedCandidateTypeRef.current = null; // Clear detected type for fresh detection
         
         // Only restart if in stable signaling state to avoid "Called in wrong state" error
@@ -760,6 +839,7 @@ export function useWebRTC(config: WebRTCConfig) {
               type: 'offer',
               data: pc.localDescription,
             }));
+            console.log('[ICE-RESTART] Offer sent after connection failure');
           }).catch(err => {
             console.error('Error restarting ICE:', err);
           });
@@ -846,11 +926,11 @@ export function useWebRTC(config: WebRTCConfig) {
                 const currentMode = connectionModeRef.current;
                 const pollPc = pcRef.current;
                 
-                console.log('[JOINER-INIT] Polling for connection mode, attempt:', initialJoinerPollCount, 'pc state:', pollPc?.iceConnectionState);
+                console.log('[JOINER-INIT] Polling for connection mode, attempt:', initialJoinerPollCount, 'pc state:', pollPc?.iceConnectionState, 'locked:', modeLockedRef.current);
                 
-                // Stop if mode is detected or max attempts reached
-                if ((currentMode === 'p2p' || currentMode === 'turn') || initialJoinerPollCount >= 30) {
-                  console.log('[JOINER-INIT] Stopping poll - mode:', currentMode, 'attempts:', initialJoinerPollCount);
+                // Stop if mode is detected/locked or max attempts reached
+                if (modeLockedRef.current || (currentMode === 'p2p' || currentMode === 'turn') || initialJoinerPollCount >= 30) {
+                  console.log('[JOINER-INIT] Stopping poll - mode:', currentMode, 'locked:', modeLockedRef.current, 'attempts:', initialJoinerPollCount);
                   clearInterval(initialJoinerPollInterval);
                   return;
                 }
@@ -862,42 +942,49 @@ export function useWebRTC(config: WebRTCConfig) {
                 }
               }, 500);
               
-              // Start TURN fallback timer (5 seconds)
+              // Start TURN fallback timer (5 seconds) - SINGLE ATTEMPT ONLY
               if (fallbackTimeoutRef.current) {
                 clearTimeout(fallbackTimeoutRef.current);
               }
-              fallbackTimeoutRef.current = setTimeout(() => {
-                // Check if we're still not connected
-                if (!hasConnectedRef.current && currentPc.iceConnectionState !== 'connected' && currentPc.iceConnectionState !== 'completed') {
-                  console.log('[FALLBACK] P2P connection timeout, falling back to TURN-only mode');
-                  
-                  // Close current connection and create a new one with relay-only policy
-                  // This will force the connection through TURN
-                  if (currentPc.signalingState !== 'closed') {
-                    currentPc.restartIce();
+              
+              // Only attempt fallback if not already attempted
+              if (!fallbackAttemptedRef.current) {
+                fallbackTimeoutRef.current = setTimeout(() => {
+                  // Check if we're still not connected AND haven't already attempted fallback
+                  if (!hasConnectedRef.current && 
+                      !fallbackAttemptedRef.current &&
+                      currentPc.iceConnectionState !== 'connected' && 
+                      currentPc.iceConnectionState !== 'completed') {
                     
-                    // Create a new offer with iceRestart to force re-negotiation
-                    currentPc.createOffer({ iceRestart: true }).then(newOffer => {
-                      return currentPc.setLocalDescription(newOffer);
-                    }).then(() => {
-                      if (currentWs && currentWs.readyState === WebSocket.OPEN) {
-                        currentWs.send(JSON.stringify({
-                          type: 'offer',
-                          data: currentPc.localDescription,
-                        }));
-                        console.log('[FALLBACK] ICE restart offer sent');
-                        
-                        // Set mode to TURN since we're forcing relay
-                        connectionModeRef.current = 'turn';
-                        setConnectionMode('turn');
-                        detectedCandidateTypeRef.current = 'relay'; // Mark as relay for consistency
-                      }
-                    }).catch(err => {
-                      console.error('[FALLBACK] Error during ICE restart:', err);
-                    });
+                    console.log('[FALLBACK] P2P connection timeout, performing ONE controlled ICE restart');
+                    fallbackAttemptedRef.current = true; // Mark as attempted - prevents future retries
+                    
+                    // Perform controlled ICE restart to force TURN relay
+                    if (currentPc.signalingState !== 'closed') {
+                      currentPc.restartIce();
+                      
+                      // Create a new offer with iceRestart to force re-negotiation
+                      currentPc.createOffer({ iceRestart: true }).then(newOffer => {
+                        return currentPc.setLocalDescription(newOffer);
+                      }).then(() => {
+                        if (currentWs && currentWs.readyState === WebSocket.OPEN) {
+                          currentWs.send(JSON.stringify({
+                            type: 'offer',
+                            data: currentPc.localDescription,
+                          }));
+                          console.log('[FALLBACK] ICE restart offer sent - TURN fallback initiated');
+                          
+                          // Don't immediately set mode to TURN - let detectModeFromStats determine actual mode
+                          // This prevents premature mode setting before connection is established
+                          detectedCandidateTypeRef.current = 'relay'; // Hint for detection
+                        }
+                      }).catch(err => {
+                        console.error('[FALLBACK] Error during ICE restart:', err);
+                      });
+                    }
                   }
-                }
-              }, 5000);
+                }, 5000);
+              }
             }
           }
         } else if (message.type === 'peer-joined') {
@@ -1248,6 +1335,9 @@ export function useWebRTC(config: WebRTCConfig) {
           setPeerNCEnabled(false);
           // Reset connection mode to pending when peer leaves (waiting for reconnection)
           connectionModeRef.current = 'pending';
+          modeLockedRef.current = false;
+          fallbackAttemptedRef.current = false;
+          clearPersistedMode(configRef.current.roomId);
           setConnectionMode('pending');
           setConnectionDetails({ mode: 'pending' });
           configRef.current.onRemoteStream?.(null);
@@ -1260,25 +1350,39 @@ export function useWebRTC(config: WebRTCConfig) {
         } else if (message.type === 'connection-mode') {
           const peerMode = message.mode;
           const localMode = connectionModeRef.current;
-          console.log('[ModeSync] *** RECEIVED peer connection mode:', peerMode, '| local mode:', localMode, '| from:', message.from);
+          console.log('[ModeSync] *** RECEIVED peer connection mode:', peerMode, '| local mode:', localMode, '| locked:', modeLockedRef.current, '| from:', message.from);
+          
+          // If mode is already locked and matches, do nothing
+          if (modeLockedRef.current && (localMode === 'p2p' || localMode === 'turn')) {
+            // Exception: TURN always wins over P2P (upgrade only)
+            if (peerMode === 'turn' && localMode === 'p2p') {
+              console.log('[ModeSync] *** UPGRADING from P2P to TURN (peer requires TURN)');
+              connectionModeRef.current = 'turn';
+              setConnectionMode('turn');
+              persistMode(configRef.current.roomId, 'turn');
+            } else {
+              console.log('[ModeSync] Mode already locked to:', localMode, '- ignoring peer mode');
+            }
+            return;
+          }
           
           // Sync logic:
           // 1. If peer reports TURN, always update local to TURN (TURN takes priority)
           // 2. If peer reports P2P and we're pending/reconnecting, accept P2P
-          // 3. If both detected independently and agree, no change needed
+          // 3. Lock the mode after accepting from peer
           if (peerMode === 'turn') {
-            // TURN always wins - if peer is using relay, show TURN for consistency
-            if (localMode !== 'turn') {
-              console.log('[ModeSync] *** UPDATING local mode to TURN (peer is using TURN)');
-              connectionModeRef.current = 'turn';
-              setConnectionMode('turn');
-            }
+            console.log('[ModeSync] *** UPDATING local mode to TURN (peer is using TURN)');
+            connectionModeRef.current = 'turn';
+            setConnectionMode('turn');
+            modeLockedRef.current = true;
+            persistMode(configRef.current.roomId, 'turn');
           } else if (peerMode === 'p2p') {
-            // Accept P2P only if we haven't determined mode yet
             if (localMode === 'pending' || localMode === 'reconnecting') {
               console.log('[ModeSync] *** UPDATING local mode to P2P (accepting from peer)');
               connectionModeRef.current = 'p2p';
               setConnectionMode('p2p');
+              modeLockedRef.current = true;
+              persistMode(configRef.current.roomId, 'p2p');
             } else {
               console.log('[ModeSync] Not updating - local mode already set to:', localMode);
             }

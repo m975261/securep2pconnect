@@ -31,25 +31,25 @@ interface TurnConfigModalProps {
 const translations = {
   en: {
     title: "Configure TURN Server",
-    description: "Enter your TURN server details. All connections will be routed through this relay to prevent IP leakage.",
-    serverUrl: "TURN Server URL",
-    serverUrlPlaceholder: "turn:server.com:3478?transport=udp",
-    stunUrl: "STUN Server URL (Optional)",
-    stunUrlPlaceholder: "stun:stun.l.google.com:19302",
+    description: "Enter your TURN server hostname. The app will automatically construct the full URL.",
+    serverUrl: "TURN Server Hostname",
+    serverUrlPlaceholder: "turn.example.com",
+    stunUrl: "STUN Server Hostname (Optional)",
+    stunUrlPlaceholder: "stun.example.com",
     username: "Username",
     usernamePlaceholder: "turn-username",
     credential: "Credential",
     credentialPlaceholder: "turn-password",
-    addUrl: "Add Another URL",
+    addUrl: "Add Another Server",
     addThis: "Add",
     removeUrl: "Remove",
     connect: "Connect Securely",
     cancel: "Cancel",
-    invalidUrl: "Invalid TURN URL format",
-    invalidStunUrl: "Invalid STUN URL format",
-    requiredFields: "TURN server URL, username, and credential are required",
-    example: "Example: turn:relay.com:3478?transport=udp or turns:relay.com:443?transport=tcp",
-    stunExample: "Example: stun:stun.l.google.com:19302",
+    invalidUrl: "Invalid hostname format",
+    invalidStunUrl: "Invalid STUN hostname format",
+    requiredFields: "TURN server hostname, username, and credential are required",
+    example: "Just enter hostname (e.g., turn.example.com)",
+    stunExample: "Just enter hostname (e.g., stun.example.com)",
     testConnection: "Test TURN",
     testStun: "Test STUN",
     testing: "Testing...",
@@ -60,25 +60,25 @@ const translations = {
   },
   ar: {
     title: "تكوين خادم TURN",
-    description: "أدخل تفاصيل خادم TURN الخاص بك. سيتم توجيه جميع الاتصالات عبر هذا المُرحّل لمنع تسرب عنوان IP.",
-    serverUrl: "عنوان URL لخادم TURN",
-    serverUrlPlaceholder: "turn:server.com:3478?transport=udp",
-    stunUrl: "عنوان URL لخادم STUN (اختياري)",
-    stunUrlPlaceholder: "stun:stun.l.google.com:19302",
+    description: "أدخل اسم مضيف خادم TURN. سيقوم التطبيق بإنشاء العنوان الكامل تلقائياً.",
+    serverUrl: "اسم مضيف خادم TURN",
+    serverUrlPlaceholder: "turn.example.com",
+    stunUrl: "اسم مضيف خادم STUN (اختياري)",
+    stunUrlPlaceholder: "stun.example.com",
     username: "اسم المستخدم",
     usernamePlaceholder: "turn-username",
     credential: "كلمة المرور",
     credentialPlaceholder: "turn-password",
-    addUrl: "إضافة عنوان URL آخر",
+    addUrl: "إضافة خادم آخر",
     addThis: "إضافة",
     removeUrl: "إزالة",
     connect: "اتصال آمن",
     cancel: "إلغاء",
-    invalidUrl: "تنسيق URL غير صالح لـ TURN",
-    invalidStunUrl: "تنسيق URL غير صالح لـ STUN",
-    requiredFields: "عنوان URL لخادم TURN واسم المستخدم وكلمة المرور مطلوبة",
-    example: "مثال: turn:relay.com:3478?transport=udp أو turns:relay.com:443?transport=tcp",
-    stunExample: "مثال: stun:stun.l.google.com:19302",
+    invalidUrl: "تنسيق اسم المضيف غير صالح",
+    invalidStunUrl: "تنسيق اسم مضيف STUN غير صالح",
+    requiredFields: "اسم مضيف خادم TURN واسم المستخدم وكلمة المرور مطلوبة",
+    example: "أدخل اسم المضيف فقط (مثال: turn.example.com)",
+    stunExample: "أدخل اسم المضيف فقط (مثال: stun.example.com)",
     testConnection: "اختبار TURN",
     testStun: "اختبار STUN",
     testing: "جاري الاختبار...",
@@ -88,6 +88,50 @@ const translations = {
     stunTestFailed: "فشل اختبار STUN",
   }
 };
+
+// Normalize hostname to full TURN URL: turns:HOST:443?transport=tcp
+function normalizeTurnUrl(input: string): string {
+  const trimmed = input.trim();
+  // If already a full URL, return as-is
+  if (trimmed.startsWith('turn:') || trimmed.startsWith('turns:')) {
+    return trimmed;
+  }
+  // Otherwise, construct: turns:HOST:443?transport=tcp
+  return `turns:${trimmed}:443?transport=tcp`;
+}
+
+// Normalize hostname to full STUN URL: stun:stun.HOST:443
+function normalizeStunUrl(input: string): string {
+  const trimmed = input.trim();
+  // If already a full URL, return as-is
+  if (trimmed.startsWith('stun:')) {
+    return trimmed;
+  }
+  // Otherwise, construct: stun:stun.HOST:443
+  // Add 'stun.' prefix if not already present
+  const host = trimmed.startsWith('stun.') ? trimmed : `stun.${trimmed}`;
+  return `stun:${host}:443`;
+}
+
+// Validate hostname (accepts hostname/IP, or full TURN/STUN URL for backward compatibility)
+function isValidHostnameOrUrl(input: string): boolean {
+  const trimmed = input.trim();
+  if (!trimmed) return false;
+  
+  // Accept full TURN URLs (backward compatibility)
+  if (/^turns?:[^:]+:\d+(\?transport=(udp|tcp))?$/.test(trimmed)) {
+    return true;
+  }
+  
+  // Accept full STUN URLs (backward compatibility)
+  if (/^stun:[^:\s]+(:\d+)?$/.test(trimmed)) {
+    return true;
+  }
+  
+  // Accept hostname or IP address (no protocol prefix)
+  // Valid: turn.example.com, 192.168.1.1, my-server.co.uk
+  return /^[a-zA-Z0-9]([a-zA-Z0-9\-\.]*[a-zA-Z0-9])?$/.test(trimmed);
+}
 
 export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' }: TurnConfigModalProps) {
   const [urls, setUrls] = useState<string[]>([""]);
@@ -173,8 +217,10 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
     setTestResult(null);
 
     try {
+      // Normalize URLs before testing
+      const normalizedUrls = validUrls.map(normalizeTurnUrl);
       const result = await testTurnConnectivity({
-        urls: validUrls,
+        urls: normalizedUrls,
         username: username.trim(),
         credential: credential.trim(),
       });
@@ -214,9 +260,12 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
     setStunTestResult(null);
 
     try {
+      // Normalize STUN URLs before testing
+      const normalizedStunUrls = validStunUrls.map(normalizeStunUrl);
+      
       // Test STUN connectivity by creating a peer connection with just STUN servers
       const pc = new RTCPeerConnection({
-        iceServers: [{ urls: validStunUrls }],
+        iceServers: [{ urls: normalizedStunUrls }],
       });
       
       // Create a data channel to trigger ICE gathering
@@ -267,13 +316,11 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
   };
 
   const validateTurnUrl = (url: string): boolean => {
-    // TURN URLs format: turn:hostname:port or turns:hostname:port, optionally with ?transport=udp|tcp
-    return /^turns?:[^:]+:\d+(\?transport=(udp|tcp))?$/.test(url.trim());
+    return isValidHostnameOrUrl(url);
   };
 
   const validateStunUrl = (url: string): boolean => {
-    // STUN URLs format: stun:hostname or stun:hostname:port (port is optional, defaults to 3478)
-    return /^stun:[^:\s]+(:\d+)?$/.test(url.trim());
+    return isValidHostnameOrUrl(url);
   };
 
   const handleAddUrl = () => {
@@ -381,14 +428,18 @@ export function TurnConfigModal({ open, onConfigured, onCancel, language = 'en' 
       }
     }
 
+    // Normalize URLs to full format before saving
+    const normalizedUrls = validUrls.map(normalizeTurnUrl);
+    const normalizedStunUrls = validStunUrls.map(normalizeStunUrl);
+    
     const config: TurnConfig = {
-      urls: validUrls,
+      urls: normalizedUrls,
       username: username.trim(),
       credential: credential.trim(),
-      stunUrls: validStunUrls, // Always include (even if empty for consistency)
+      stunUrls: normalizedStunUrls.length > 0 ? normalizedStunUrls : undefined,
     };
 
-    // Store in localStorage for persistence
+    // Store in localStorage for persistence (normalized format)
     localStorage.setItem('turn-config', JSON.stringify(config));
     
     onConfigured(config);
