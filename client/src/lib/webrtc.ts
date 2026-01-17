@@ -171,6 +171,15 @@ export function useWebRTC(config: WebRTCConfig) {
   // Peer-left grace window (allows peer to rejoin within 3s)
   const peerLeftTimerRef = useRef<number | null>(null);
   
+  // Helper to cancel peer-left grace when connection shows signs of life
+  const cancelPeerLeftGrace = useCallback((reason: string) => {
+    if (peerLeftTimerRef.current) {
+      console.log('[WebRTC] cancel peer-left grace due to', reason);
+      clearTimeout(peerLeftTimerRef.current);
+      peerLeftTimerRef.current = null;
+    }
+  }, []);
+  
   // Config ref for callbacks
   const configRef = useRef(config);
   useEffect(() => { configRef.current = config; });
@@ -354,6 +363,9 @@ export function useWebRTC(config: WebRTCConfig) {
       }
       console.log('[Connection]', pc.connectionState);
       if (pc.connectionState === 'connected') {
+        // Cancel peer-left grace - connection is alive
+        cancelPeerLeftGrace('connection connected');
+        
         if (roleRef.current === 'controller' && !modeLockedRef.current) {
           detectAndLockModeFn();
         }
@@ -731,7 +743,11 @@ export function useWebRTC(config: WebRTCConfig) {
     pcRef.current = pc;
 
     const dataChannel = pc.createDataChannel('connection-init', { negotiated: true, id: 0 });
-    dataChannel.onopen = () => console.log('[DataChannel] opened');
+    dataChannel.onopen = () => {
+      console.log('[DataChannel] opened');
+      // Cancel peer-left grace - datachannel is alive (very reliable signal)
+      cancelPeerLeftGrace('datachannel open');
+    };
 
     // Buffer for ICE candidates before WS is open
     const pendingIceCandidates: RTCIceCandidate[] = [];
@@ -990,7 +1006,7 @@ export function useWebRTC(config: WebRTCConfig) {
         stopVoiceChat();
       }
     };
-  }, [config.roomId, config.peerId, detectAndLockMode, createRelayConnection, lockMode, rebuildPeerConnection, stopVoiceChat, attachPeerConnectionHandlers, flushPendingRemoteCandidates]);
+  }, [config.roomId, config.peerId, detectAndLockMode, createRelayConnection, lockMode, rebuildPeerConnection, stopVoiceChat, attachPeerConnectionHandlers, flushPendingRemoteCandidates, cancelPeerLeftGrace]);
 
   return {
     isConnected,
