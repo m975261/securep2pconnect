@@ -1,0 +1,151 @@
+What the Logs Mean (Precisely)
+
+Your log sequence:
+
+[ICE] checking
+[ICE] disconnected
+(no connected / completed)
+
+
+This means:
+
+ICE started correctly
+
+ICE never achieved a viable candidate pair
+
+ICE did not fail hard (failed)
+
+ICE is stuck in a transient-but-hopeless state
+
+This is extremely common with:
+
+Symmetric NATs
+
+Carrier-grade NAT (mobile 5G)
+
+Firewall + Wi-Fi combos
+
+So:
+
+❌ P2P did not establish
+
+❌ Mode detection never fires (correctly)
+
+❌ TURN fallback does not fire (by your current rule)
+
+❌ Result: connected UI but no mode label
+
+This is expected with your current logic.
+
+Question 1 — “Are you testing a newer session?”
+
+Yes — but that’s not the issue.
+
+Even in a clean session, ICE can stall in disconnected forever on some networks. Browsers will not always escalate to failed.
+
+So the behavior you’re seeing is not a stale-session issue.
+
+Question 2 — “Should iceConnectionState === 'disconnected' trigger fallback after a timeout?”
+✅ Yes — but only in a very specific, controlled way
+
+Industry practice is:
+
+Treat disconnected as recoverable — but not forever.
+
+❌ What you must NOT do
+
+Do NOT fallback immediately on disconnected
+
+Do NOT fallback based on connectionState
+
+Do NOT use short timers (e.g. 5s)
+
+✅ What you SHOULD do (Canonical)
+
+Use a grace window:
+
+If ICE enters disconnected
+
+And stays there continuously for a defined period
+
+Then fallback to TURN
+
+This handles:
+
+NAT rebinding (temporary)
+
+Mobile network churn
+
+Truly unreachable P2P paths
+
+The Correct Final Policy (Production-Grade)
+Fallback rules (controller only):
+
+Immediate fallback if:
+
+iceConnectionState === 'failed'
+
+
+Delayed fallback if:
+
+iceConnectionState === 'disconnected'
+
+
+AND remains disconnected for N seconds (recommended: 10–15s)
+
+Never fallback on:
+
+checking
+
+connecting
+
+connectionState
+
+Canonical Implementation Pattern
+let disconnectedSince: number | null = null;
+
+pc.oniceconnectionstatechange = () => {
+  const state = pc.iceConnectionState;
+  console.log('[ICE]', state);
+
+  // Success → detect mode
+  if (
+    (state === 'connected' || state === 'completed') &&
+    roleRef.current === 'controller' &&
+    !modeLockedRef.current
+  ) {
+    detectAndLockMode();
+    disconnectedSince = null;
+    return;
+  }
+
+  // Hard failure → immediate fallback
+  if (
+    state === 'failed' &&
+    roleRef.current === 'controller' &&
+    !fallbackTriggeredRef.current
+  ) {
+    createRelayConnection();
+    return;
+  }
+
+  // Soft failure → start grace timer
+  if (state === 'disconnected') {
+    if (!disconnectedSince) {
+      disconnectedSince = Date.now();
+    } else if (
+      Date.now() - disconnectedSince > 12000 && // 12s recommended
+      roleRef.current === 'controller' &&
+      !fallbackTriggeredRef.current
+    ) {
+      console.log('[ICE] disconnected too long → fallback to relay');
+      createRelayConnection();
+    }
+    return;
+  }
+
+  // Other states → do nothing
+};
+
+
+This is exactly how robust WebRTC apps behave.
