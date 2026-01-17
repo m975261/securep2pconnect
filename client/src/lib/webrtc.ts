@@ -1091,9 +1091,21 @@ export function useWebRTC(config: WebRTCConfig) {
               
               // Only attempt fallback if not already attempted
               if (!fallbackAttemptedRef.current) {
+                console.log('[TURN-FALLBACK] Starting 5-second P2P timeout timer');
                 fallbackTimeoutRef.current = setTimeout(async () => {
+                  console.log('[TURN-FALLBACK] Timer fired - checking conditions...');
                   // Check if we're still not connected AND haven't already attempted fallback
                   const pollPc = pcRef.current;
+                  const freshWs = wsRef.current; // Use fresh WebSocket reference
+                  
+                  console.log('[TURN-FALLBACK] Conditions:', {
+                    hasConnected: hasConnectedRef.current,
+                    fallbackAttempted: fallbackAttemptedRef.current,
+                    pcExists: !!pollPc,
+                    iceState: pollPc?.iceConnectionState,
+                    wsReady: freshWs?.readyState === WebSocket.OPEN
+                  });
+                  
                   if (!hasConnectedRef.current && 
                       !fallbackAttemptedRef.current &&
                       pollPc &&
@@ -1147,11 +1159,12 @@ export function useWebRTC(config: WebRTCConfig) {
                       });
                     }
                     
-                    // Setup event handlers
+                    // Setup event handlers - use wsRef.current for fresh reference
                     newPc.onicecandidate = (event) => {
-                      if (event.candidate && currentWs && currentWs.readyState === WebSocket.OPEN) {
+                      const ws = wsRef.current;
+                      if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
                         console.log('[TURN-FALLBACK] ICE candidate:', event.candidate.type);
-                        currentWs.send(JSON.stringify({ type: 'ice-candidate', data: event.candidate }));
+                        ws.send(JSON.stringify({ type: 'ice-candidate', data: event.candidate }));
                       }
                     };
                     
@@ -1179,13 +1192,16 @@ export function useWebRTC(config: WebRTCConfig) {
                       }
                     };
                     
-                    // Create and send offer
+                    // Create and send offer - use wsRef.current for fresh reference
                     try {
+                      const ws = wsRef.current;
                       const offer = await newPc.createOffer();
                       await newPc.setLocalDescription(offer);
-                      if (currentWs && currentWs.readyState === WebSocket.OPEN) {
-                        currentWs.send(JSON.stringify({ type: 'offer', data: offer }));
+                      if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 'offer', data: offer }));
                         console.log('[TURN-FALLBACK] Offer sent with relay-only policy');
+                      } else {
+                        console.error('[TURN-FALLBACK] WebSocket not open, cannot send offer');
                       }
                     } catch (err) {
                       console.error('[TURN-FALLBACK] Error creating offer:', err);
