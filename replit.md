@@ -3,14 +3,15 @@
 SECURE.LINK is a WebRTC communication application designed for secure, temporary, peer-to-peer (P2P-first) connections.
 
 ## Recent Changes (January 2026)
-- **FallbackController Architecture Refactor:**
-  - Replaced scattered mode detection logic (~500 lines) with single `FallbackController` class
-  - Clean state machine: pending → (p2p | turn) with permanent mode locking
-  - One-way upgrade path: P2P → TURN allowed (for connectivity), TURN → P2P blocked
-  - Mode detection: Single attempt from WebRTC stats after ICE connected (max 3 retries at 500ms)
-  - Only initiator (joiner) triggers TURN fallback after 5-second P2P timeout
-  - Controller methods: `init()`, `setInitiator()`, `startP2PTimeout()`, `cancelTimeout()`, `onConnected()`, `onFailed()`, `handlePeerMode()`, `reset()`, `lockToTurn()`, `upgradeToTurn()`
-- Session storage persistence per room (survives page refresh)
+- **Server-Assigned Role Architecture:**
+  - Complete rewrite of WebRTC connection logic with strict state machine
+  - Server assigns immutable roles: `controller` (first peer) or `follower` (second peer)
+  - Only controller can: detect mode, trigger TURN fallback, broadcast mode to follower
+  - Follower only receives and displays mode - never decides or triggers fallback
+  - Mode is locked immediately once determined and never re-evaluated
+  - Single-shot mode detection from getStats() - no polling
+  - 5-second fallback timer (controller-only) for TURN relay fallback
+  - Hard teardown on disconnect with clean rejoin (new role, new connection)
 - TURN/STUN hostname-only input normalization (auto-constructs full URLs)
 - Removed debug panel from room page
 
@@ -37,13 +38,14 @@ The frontend is built with React 18 and TypeScript, utilizing Wouter for routing
 - **AI Noise Cancellation:** Integrates `@sapphi-red/web-noise-suppressor` (RNNoise WASM) via an AudioWorklet pipeline for real-time microphone noise reduction.
 - Text chat with history, drag-and-drop file transfer, QR code sharing/scanning for rooms, and voice chat.
 
-**Connection Mode Detection (FallbackController):**
-- **Detection Method:** Uses `RTCPeerConnection.getStats()` to find the selected ICE candidate pair and determine connection type based on candidate types (host/srflx = P2P, relay = TURN).
-- **Detection Strategy:** Single detection attempt after ICE connected, with max 3 retries (500ms each) if stats not yet available. No continuous polling.
-- **State Machine:** `pending` → `p2p` or `turn` (locked). Mode is frozen once determined except for P2P → TURN upgrade.
-- **Fallback Logic:** Only the initiator (joiner) triggers TURN fallback after 5-second timeout. Non-initiator waits for new offer.
-- **Mode Synchronization:** Detected modes broadcast via WebSocket. TURN takes priority (peer TURN → local upgrades). P2P accepted only if pending/reconnecting.
-- **Persistence:** Mode persisted to sessionStorage per room, restored on page refresh.
+**Connection Mode Detection (Server-Assigned Roles):**
+- **Role Assignment:** Server assigns immutable roles when peers join: first peer = `controller`, second peer = `follower`.
+- **Controller Responsibilities:** Detect mode via single `getStats()` call, trigger TURN fallback if needed, broadcast final mode to follower.
+- **Follower Responsibilities:** Only receive mode from controller and display it. Never detect, decide, or trigger fallback.
+- **Detection Method:** Controller uses `RTCPeerConnection.getStats()` to find selected candidate pair. `host/srflx` = P2P, `relay` = TURN.
+- **Mode Freeze:** Mode is locked immediately once determined. No re-evaluation, no polling, no mode changes after lock.
+- **Fallback Logic:** Controller starts 5-second timer when peer joins. If ICE not connected, creates relay-only connection (iceTransportPolicy: 'relay').
+- **Hard Teardown:** On disconnect/refresh, all state is discarded. Rejoining creates fresh connection with new role assignment.
 
 ## Backend Architecture
 

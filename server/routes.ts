@@ -45,10 +45,13 @@ interface RoomPeer {
   peerId: string;
   roomId: string;
   nickname?: string;
+  role?: 'controller' | 'follower';
 }
 
 const activePeers = new Map<string, RoomPeer>();
 const roomPeers = new Map<string, Set<string>>();
+// Track which peer is controller for each room
+const roomControllers = new Map<string, string>();
 
 function generateRoomId(): string {
   // Generate a simple 5-digit room ID with pattern like 22446 or 33779
@@ -296,11 +299,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return;
           }
 
+          // Determine role: first peer in room is controller, second is follower
+          const isController = peers.size === 0 || !roomControllers.has(message.roomId);
+          const role = isController ? 'controller' : 'follower';
+          
+          if (isController) {
+            roomControllers.set(message.roomId, message.peerId);
+          }
+
           currentPeer = {
             ws,
             peerId: message.peerId,
             roomId: message.roomId,
             nickname: message.nickname,
+            role,
           };
 
           activePeers.set(message.peerId, currentPeer);
@@ -327,6 +339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             disconnectedAt: null,
           });
 
+          // Notify existing peers of new peer joining (with role info)
           peers.forEach((peerId) => {
             if (peerId !== message.peerId) {
               const peer = activePeers.get(peerId);
@@ -335,6 +348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   type: "peer-joined",
                   peerId: message.peerId,
                   nickname: message.nickname,
+                  peerRole: role, // Tell existing peer the new peer's role
                 }));
               }
             }
@@ -345,11 +359,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .map(id => ({
               peerId: id,
               nickname: activePeers.get(id)?.nickname,
+              role: activePeers.get(id)?.role,
             }));
 
+          // Send joined message with role assignment
           ws.send(JSON.stringify({
             type: "joined",
             peerId: message.peerId,
+            role, // Immutable role assignment from server
             existingPeers: existingPeersWithNicknames,
           }));
         } else if (currentPeer && (message.type === "offer" || message.type === "answer" || message.type === "ice-candidate")) {
@@ -469,6 +486,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (peers) {
           peers.delete(currentPeer.peerId);
           
+          // If controller left, promote remaining peer to controller
+          if (roomControllers.get(currentPeer.roomId) === currentPeer.peerId) {
+            roomControllers.delete(currentPeer.roomId);
+            // If there's a remaining peer, they become the new controller
+            const remainingPeerId = Array.from(peers)[0];
+            if (remainingPeerId) {
+              roomControllers.set(currentPeer.roomId, remainingPeerId);
+              const remainingPeer = activePeers.get(remainingPeerId);
+              if (remainingPeer) {
+                remainingPeer.role = 'controller';
+                // Notify the remaining peer of their new role
+                if (remainingPeer.ws.readyState === WebSocket.OPEN) {
+                  remainingPeer.ws.send(JSON.stringify({
+                    type: "role-update",
+                    role: "controller",
+                  }));
+                }
+              }
+            }
+          }
+          
           peers.forEach((peerId) => {
             const peer = activePeers.get(peerId);
             if (peer && peer.ws.readyState === WebSocket.OPEN) {
@@ -481,6 +519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           if (peers.size === 0) {
             roomPeers.delete(currentPeer.roomId);
+            roomControllers.delete(currentPeer.roomId);
           }
         }
         activePeers.delete(currentPeer.peerId);

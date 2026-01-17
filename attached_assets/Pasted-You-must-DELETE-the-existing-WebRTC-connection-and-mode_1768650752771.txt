@@ -1,0 +1,203 @@
+You must DELETE the existing WebRTC connection and mode-detection logic and re-implement it cleanly from scratch.
+Do not patch, wrap, or reuse the current logic.
+
+This is a hard reset focused exclusively on connection stability and mode correctness.
+
+Core Rules (Non-Negotiable)
+
+Exactly 2 peers per room
+
+Exactly ONE peer controls connection decisions
+
+Connection mode (P2P or TURN) is decided once
+
+Mode is frozen immediately after connection
+
+Mode must appear fast and identical on both peers
+
+No reconnect loops
+
+No dual ICE restarts
+
+No polling-based mode re-evaluation after success
+
+STEP 1 — DELETE
+
+Remove all existing logic related to:
+
+Mode polling loops
+
+Multiple ICE restarts
+
+Dual fallback timers
+
+Local mode arbitration on both peers
+
+Reuse of RTCPeerConnection after refresh
+
+Any logic that recalculates mode after it is shown
+
+STEP 2 — SERVER-ASSIGNED ROLES (MANDATORY)
+
+When the second peer joins the room, the server assigns immutable roles:
+
+controller
+
+follower
+
+Only the controller may:
+
+Start fallback timers
+
+Restart ICE
+
+Decide the connection mode
+
+Broadcast the final mode
+
+The follower must never decide, restart, or detect mode.
+
+STEP 3 — CLEAN CONTROLLER-ONLY CONNECTION FLOW
+
+Controller flow:
+
+Create RTCPeerConnection (iceTransportPolicy: "all")
+
+Attach listeners once
+
+Create and send offer
+
+Start one fallback timer (e.g. 5 seconds)
+
+Observe iceConnectionState
+
+Fallback triggers if:
+
+ICE remains checking after timeout
+
+OR ICE transitions to failed
+
+Fallback behavior:
+
+Clear timer
+
+Perform one ICE restart with relay enforced
+
+Lock fallback so it can never happen again
+
+STEP 4 — FAST, SINGLE-SHOT MODE DETECTION
+
+When ICE reaches:
+
+connected OR completed
+
+Controller must:
+
+Call getStats() once
+
+Determine mode:
+
+host/srflx → P2P
+
+relay → TURN
+
+Immediately freeze the mode
+
+Immediately broadcast the mode to the server
+
+Stop all timers and stats logic permanently
+
+Follower must:
+
+Never call getStats()
+
+Never evaluate ICE
+
+Display the received mode immediately
+
+Mode must show as soon as the connection is established, with no delay.
+
+STEP 5 — MODE FREEZE GUARANTEE
+
+Once mode is set:
+
+Never re-evaluate
+
+Never override
+
+Never disappear
+
+Never change due to refresh, network changes, or reconnect attempts
+
+Mode changes only after full teardown and fresh reconnection.
+
+STEP 6 — HARD TEARDOWN ON REFRESH / DISCONNECT
+
+On page unload or socket close:
+
+Close RTCPeerConnection
+
+Remove all listeners
+
+Clear all timers
+
+Discard all state
+
+On rejoin:
+
+Treated as a brand-new peer
+
+New role
+
+New PeerConnection
+
+No reuse of old state
+
+SCOPE LOCK (DO NOT CHANGE)
+
+Do NOT change:
+
+UI layout
+
+Mode indicator location or styling
+
+Language handling
+
+Security or encryption logic
+
+Database schema
+
+Room lifecycle
+
+Only modify:
+
+WebRTC control flow
+
+Mode authority and synchronization
+
+SUCCESS CRITERIA (ALL MUST PASS)
+
+Mode shows quickly on both peers
+
+Mode always matches on both peers
+
+Wi-Fi ↔ 5G works consistently
+
+No endless “reconnecting”
+
+No ICE stuck in checking
+
+No mode desync
+
+Refresh does not break mode visibility
+
+FINAL INSTRUCTION
+
+This must be implemented as a strict state machine, not patched async logic.
+Delete the old code and implement this flow verbatim.
+
+Confirm explicitly when done that:
+
+Old logic was removed
+
+New logic follows this control flow exactly
