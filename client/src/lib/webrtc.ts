@@ -184,6 +184,9 @@ export function useWebRTC(config: WebRTCConfig) {
     // ICE candidate handler with grace window reset
     pc.onicecandidate = (event) => {
       if (event.candidate) {
+        // Log candidate type for diagnostics
+        console.log('[ICE-CANDIDATE]', event.candidate.type, event.candidate.protocol, event.candidate.address);
+        
         // ICE activity detected - reset grace window if active
         if (disconnectedSinceRef.current) {
           console.log('[ICE] candidate received - resetting grace window');
@@ -318,6 +321,13 @@ export function useWebRTC(config: WebRTCConfig) {
       ? [{ urls: configRef.current.turnConfig.urls, username: configRef.current.turnConfig.username, credential: configRef.current.turnConfig.credential }]
       : iceServersRef.current;
     
+    // Log iceServers config for debugging
+    console.log('[ICE-CONFIG] rebuildPeerConnection', {
+      iceTransportPolicy,
+      iceServersCount: iceServers?.length || 0,
+      iceServers: iceServers?.map(s => ({ urls: s.urls, hasUsername: !!s.username, hasCredential: !!s.credential })) || []
+    });
+    
     // Create new peer connection
     const newPc = new RTCPeerConnection({
       iceServers,
@@ -438,6 +448,14 @@ export function useWebRTC(config: WebRTCConfig) {
       console.error('[WebRTC] No TURN config for fallback');
       return;
     }
+    
+    // Log full TURN config for debugging (credentials masked)
+    console.log('[RELAY] TURN config for fallback:', {
+      urls: turnConfig.urls,
+      username: turnConfig.username ? `${turnConfig.username.substring(0, 4)}...` : 'MISSING',
+      hasCredential: !!turnConfig.credential,
+      credentialLength: turnConfig.credential?.length || 0
+    });
     
     console.log('[WebRTC] Creating relay-only connection');
     // Note: Do NOT set 'reconnecting' here - relay fallback is still part of initial connection attempt
