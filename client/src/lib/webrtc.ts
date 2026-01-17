@@ -237,15 +237,20 @@ export function useWebRTC(config: WebRTCConfig) {
         return;
       }
 
-      // Hard failure → immediate fallback
+      // Hard failure → immediate fallback (only if relay not already triggered)
       if (state === 'failed') {
+        // Relay is final - no more fallback logic
+        if (fallbackTriggeredRef.current) {
+          console.log('[ICE] failed during relay - relay is final, no action');
+          return;
+        }
         console.log('[WebRTC] iceConnectionState=failed - immediate fallback');
         disconnectedSinceRef.current = null;
         if (disconnectedTimerRef.current) {
           clearInterval(disconnectedTimerRef.current);
           disconnectedTimerRef.current = null;
         }
-        if (roleRef.current === 'controller' && !modeLockedRef.current && !fallbackTriggeredRef.current) {
+        if (roleRef.current === 'controller' && !modeLockedRef.current) {
           createRelayConnectionFn();
         }
         return;
@@ -253,6 +258,12 @@ export function useWebRTC(config: WebRTCConfig) {
 
       // Soft failure → start/reset grace timer (12s of stalled ICE)
       if (state === 'disconnected') {
+        // Relay is final - no grace timers after fallback
+        if (fallbackTriggeredRef.current) {
+          disconnectedSinceRef.current = null;
+          console.log('[ICE] disconnected during relay - relay is final, ignoring');
+          return;
+        }
         if (disconnectedSinceRef.current) {
           console.log('[ICE] disconnected event received - resetting grace window (ICE still active)');
         } else {
@@ -262,6 +273,15 @@ export function useWebRTC(config: WebRTCConfig) {
         
         if (!disconnectedTimerRef.current) {
           disconnectedTimerRef.current = setInterval(() => {
+            // Double-check relay status in timer callback
+            if (fallbackTriggeredRef.current) {
+              if (disconnectedTimerRef.current) {
+                clearInterval(disconnectedTimerRef.current);
+                disconnectedTimerRef.current = null;
+              }
+              disconnectedSinceRef.current = null;
+              return;
+            }
             const since = disconnectedSinceRef.current;
             if (since && Date.now() - since > 12000) {
               console.log('[ICE] disconnected too long (12s) → fallback to relay');
@@ -270,7 +290,7 @@ export function useWebRTC(config: WebRTCConfig) {
                 disconnectedTimerRef.current = null;
               }
               disconnectedSinceRef.current = null;
-              if (roleRef.current === 'controller' && !modeLockedRef.current && !fallbackTriggeredRef.current) {
+              if (roleRef.current === 'controller' && !modeLockedRef.current) {
                 createRelayConnectionFn();
               }
             }
@@ -842,6 +862,11 @@ export function useWebRTC(config: WebRTCConfig) {
           setPeerNCEnabled(message.data?.enabled ?? false);
           configRef.current.onPeerNCStatusChange?.(message.data?.enabled ?? false);
         } else if (message.type === 'peer-left') {
+          // Suppress hard reset during relay ICE negotiation
+          if (fallbackTriggeredRef.current && !modeLockedRef.current) {
+            console.log('[WebRTC] peer-left ignored during relay ICE');
+            return;
+          }
           console.log('[WebRTC] Peer left - hard reset');
           setIsConnected(false);
           setConnectionState('disconnected');
