@@ -163,6 +163,10 @@ export function useWebRTC(config: WebRTCConfig) {
   // Pending remote ICE candidates (shared across handlers)
   const pendingRemoteIceCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
   
+  // Grace window for disconnected state (controller only)
+  const disconnectedSinceRef = useRef<number | null>(null);
+  const disconnectedTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
   // Config ref for callbacks
   const configRef = useRef(config);
   useEffect(() => { configRef.current = config; });
@@ -497,21 +501,71 @@ export function useWebRTC(config: WebRTCConfig) {
       }
     };
 
-    // Controller detects mode when connected, triggers fallback ONLY on iceConnectionState === 'failed'
+    // Controller detects mode when connected, triggers fallback on ICE failure
     pc.oniceconnectionstatechange = () => {
-      console.log('[ICE]', pc.iceConnectionState);
-      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+      const state = pc.iceConnectionState;
+      console.log('[ICE]', state);
+
+      // Success → detect mode, clear grace timer
+      if (state === 'connected' || state === 'completed') {
+        disconnectedSinceRef.current = null;
+        if (disconnectedTimerRef.current) {
+          clearInterval(disconnectedTimerRef.current);
+          disconnectedTimerRef.current = null;
+        }
         if (roleRef.current === 'controller' && !modeLockedRef.current) {
           detectAndLockMode();
         }
-      } else if (pc.iceConnectionState === 'failed') {
-        // Only trigger relay fallback on definitive ICE failure
-        console.log('[WebRTC] iceConnectionState=failed - triggering relay fallback');
+        return;
+      }
+
+      // Hard failure → immediate fallback
+      if (state === 'failed') {
+        console.log('[WebRTC] iceConnectionState=failed - immediate fallback');
+        disconnectedSinceRef.current = null;
+        if (disconnectedTimerRef.current) {
+          clearInterval(disconnectedTimerRef.current);
+          disconnectedTimerRef.current = null;
+        }
         if (roleRef.current === 'controller' && !modeLockedRef.current && !fallbackTriggeredRef.current) {
           createRelayConnection();
         }
+        return;
       }
-      // 'checking', 'disconnected' are transient - do nothing, allow ICE to recover
+
+      // Soft failure → start grace timer (12s)
+      if (state === 'disconnected') {
+        if (!disconnectedSinceRef.current) {
+          disconnectedSinceRef.current = Date.now();
+          console.log('[ICE] disconnected - starting 12s grace window');
+          
+          // Poll every 2s to check if grace period expired
+          if (!disconnectedTimerRef.current) {
+            disconnectedTimerRef.current = setInterval(() => {
+              const since = disconnectedSinceRef.current;
+              if (since && Date.now() - since > 12000) {
+                console.log('[ICE] disconnected too long (12s) → fallback to relay');
+                if (disconnectedTimerRef.current) {
+                  clearInterval(disconnectedTimerRef.current);
+                  disconnectedTimerRef.current = null;
+                }
+                disconnectedSinceRef.current = null;
+                if (roleRef.current === 'controller' && !modeLockedRef.current && !fallbackTriggeredRef.current) {
+                  createRelayConnection();
+                }
+              }
+            }, 2000);
+          }
+        }
+        return;
+      }
+
+      // Other states (checking, new, closed) → clear grace timer, do nothing
+      disconnectedSinceRef.current = null;
+      if (disconnectedTimerRef.current) {
+        clearInterval(disconnectedTimerRef.current);
+        disconnectedTimerRef.current = null;
+      }
     };
 
     // connectionState is for logging/display only - never triggers fallback
@@ -700,6 +754,11 @@ export function useWebRTC(config: WebRTCConfig) {
           modeLockedRef.current = false;
           fallbackTriggeredRef.current = false;
           pendingModeRef.current = null;
+          disconnectedSinceRef.current = null;
+          if (disconnectedTimerRef.current) {
+            clearInterval(disconnectedTimerRef.current);
+            disconnectedTimerRef.current = null;
+          }
           setConnectionMode('pending');
           setConnectionDetails({ mode: 'pending' });
           
@@ -722,6 +781,12 @@ export function useWebRTC(config: WebRTCConfig) {
     // Cleanup on unmount
     return () => {
       console.log('[WebRTC] Cleanup');
+      
+      // Clear grace window timer
+      if (disconnectedTimerRef.current) {
+        clearInterval(disconnectedTimerRef.current);
+        disconnectedTimerRef.current = null;
+      }
       
       if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
         ws.close();
