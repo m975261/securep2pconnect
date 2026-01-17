@@ -327,8 +327,8 @@ export function useWebRTC(config: WebRTCConfig) {
     }
     
     console.log('[WebRTC] Creating relay-only connection');
-    console.log('[UI] reconnecting triggered', { reason: 'createRelayConnection', iceState: pc?.iceConnectionState, connectionState: pc?.connectionState });
-    setConnectionMode('reconnecting');
+    // Note: Do NOT set 'reconnecting' here - relay fallback is still part of initial connection attempt
+    // UI stays in 'pending' (connecting) state until mode is detected
     
     // Notify follower to prepare for relay restart
     const ws = wsRef.current;
@@ -527,11 +527,26 @@ export function useWebRTC(config: WebRTCConfig) {
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
+        // ICE activity detected - reset grace window if active
+        if (disconnectedSinceRef.current) {
+          console.log('[ICE] candidate received - resetting grace window');
+          disconnectedSinceRef.current = Date.now();
+        }
+        
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: 'ice-candidate', data: event.candidate }));
         } else {
           pendingIceCandidates.push(event.candidate);
         }
+      }
+    };
+    
+    // ICE gathering state changes also reset grace window (ICE is still working)
+    pc.onicegatheringstatechange = () => {
+      console.log('[ICE-Gathering]', pc.iceGatheringState);
+      if (disconnectedSinceRef.current && pc.iceGatheringState !== 'complete') {
+        console.log('[ICE] gathering state changed - resetting grace window');
+        disconnectedSinceRef.current = Date.now();
       }
     };
 
@@ -574,29 +589,33 @@ export function useWebRTC(config: WebRTCConfig) {
         return;
       }
 
-      // Soft failure → start grace timer (12s)
+      // Soft failure → start/reset grace timer (12s of stalled ICE)
       if (state === 'disconnected') {
-        if (!disconnectedSinceRef.current) {
-          disconnectedSinceRef.current = Date.now();
+        // Any state change event = ICE is still active, reset the grace window
+        // This ensures fallback only triggers after 12s of truly STALLED ICE
+        if (disconnectedSinceRef.current) {
+          console.log('[ICE] disconnected event received - resetting grace window (ICE still active)');
+        } else {
           console.log('[ICE] disconnected - starting 12s grace window');
-          
-          // Poll every 2s to check if grace period expired
-          if (!disconnectedTimerRef.current) {
-            disconnectedTimerRef.current = setInterval(() => {
-              const since = disconnectedSinceRef.current;
-              if (since && Date.now() - since > 12000) {
-                console.log('[ICE] disconnected too long (12s) → fallback to relay');
-                if (disconnectedTimerRef.current) {
-                  clearInterval(disconnectedTimerRef.current);
-                  disconnectedTimerRef.current = null;
-                }
-                disconnectedSinceRef.current = null;
-                if (roleRef.current === 'controller' && !modeLockedRef.current && !fallbackTriggeredRef.current) {
-                  createRelayConnection();
-                }
+        }
+        disconnectedSinceRef.current = Date.now();
+        
+        // Start polling timer if not already running
+        if (!disconnectedTimerRef.current) {
+          disconnectedTimerRef.current = setInterval(() => {
+            const since = disconnectedSinceRef.current;
+            if (since && Date.now() - since > 12000) {
+              console.log('[ICE] disconnected too long (12s) → fallback to relay');
+              if (disconnectedTimerRef.current) {
+                clearInterval(disconnectedTimerRef.current);
+                disconnectedTimerRef.current = null;
               }
-            }, 2000);
-          }
+              disconnectedSinceRef.current = null;
+              if (roleRef.current === 'controller' && !modeLockedRef.current && !fallbackTriggeredRef.current) {
+                createRelayConnection();
+              }
+            }
+          }, 2000);
         }
         return;
       }
@@ -737,8 +756,8 @@ export function useWebRTC(config: WebRTCConfig) {
           // Controller is restarting with relay - follower prepares for new offer
           console.log('[Follower] Relay restart from controller');
           if (roleRef.current === 'follower') {
-            console.log('[UI] reconnecting triggered', { reason: 'relay-restart from controller', role: roleRef.current });
-            setConnectionMode('reconnecting');
+            // Note: Do NOT set 'reconnecting' - relay fallback is still part of initial connection
+            // UI stays in 'pending' until mode is detected from controller
             pendingRemoteIceCandidatesRef.current = [];
             // Rebuild PC to accept fresh offer from controller
             rebuildPeerConnection('all');
