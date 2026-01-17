@@ -350,26 +350,22 @@ export function useWebRTC(config: WebRTCConfig) {
     return newPc;
   }, []);
 
-  // Flush buffered remote ICE candidates into current PC (call after remote description is set)
-  const flushPendingRemoteCandidates = useCallback(async () => {
+  // Flush buffered remote ICE candidates into current PC
+  // This is the ONLY place that clears the buffer
+  const flushPendingRemoteCandidates = useCallback(() => {
     const pc = pcRef.current;
-    if (!pc || !pc.remoteDescription) {
-      console.log('[ICE-REMOTE] flush skipped - no PC or no remote description');
-      return;
-    }
-    
     const candidates = pendingRemoteIceCandidatesRef.current;
-    if (candidates.length === 0) {
-      console.log('[ICE-REMOTE] flush - no pending candidates');
-      return;
-    }
     
-    console.log('[ICE-REMOTE] flushing', candidates.length, 'buffered candidates');
+    if (!pc || candidates.length === 0) return;
+    
+    console.log('[ICE-REMOTE] flushing', candidates.length, 'candidates');
     for (const c of candidates) {
       const candidate = new RTCIceCandidate(c);
-      console.log('[ICE-REMOTE] flushing buffered candidate (PC ready)', candidate.type, candidate.protocol);
-      await pc.addIceCandidate(candidate).catch(() => {});
+      console.log('[ICE-REMOTE] addIceCandidate (flush)', candidate.type, candidate.protocol);
+      pc.addIceCandidate(candidate).catch(console.error);
     }
+    
+    // Clear buffer ONLY here, after candidates are applied
     pendingRemoteIceCandidatesRef.current = [];
   }, []);
 
@@ -497,6 +493,7 @@ export function useWebRTC(config: WebRTCConfig) {
     // Attach FULL handlers to relay PC (same as initial PC)
     // Note: We pass a no-op for createRelayConnection since fallback is already triggered
     attachPeerConnectionHandlers(newPc, () => {}, detectAndLockMode);
+    flushPendingRemoteCandidates();
     console.log('[RELAY] handlers attached to relay PeerConnection');
     
     // Create and send offer
@@ -675,10 +672,12 @@ export function useWebRTC(config: WebRTCConfig) {
 
     // Buffer for ICE candidates before WS is open
     const pendingIceCandidates: RTCIceCandidate[] = [];
-    pendingRemoteIceCandidatesRef.current = [];
 
     // Attach unified handlers (single source of truth for ICE state machine)
     attachPeerConnectionHandlers(pc, createRelayConnection, detectAndLockMode, pendingIceCandidates);
+    
+    // Flush any pending remote candidates (from previous session or early arrivals)
+    flushPendingRemoteCandidates();
 
     ws.onopen = () => {
       console.log('[WS] Connected, joining room');
@@ -754,9 +753,6 @@ export function useWebRTC(config: WebRTCConfig) {
           console.log('[WebRTC] Received offer');
           await currentPc.setRemoteDescription(new RTCSessionDescription(message.data));
           
-          // Flush buffered ICE candidates (post-rebuild candidates are now applied)
-          await flushPendingRemoteCandidates();
-          
           const answer = await currentPc.createAnswer();
           await currentPc.setLocalDescription(answer);
           ws.send(JSON.stringify({ type: 'answer', data: answer }));
@@ -771,9 +767,6 @@ export function useWebRTC(config: WebRTCConfig) {
             await currentPc.setRemoteDescription(new RTCSessionDescription(message.data));
             negotiatingRef.current = false;
             
-            // Flush buffered ICE candidates (post-rebuild candidates are now applied)
-            await flushPendingRemoteCandidates();
-            
             if (pendingStopRef.current) {
               pendingStopRef.current = false;
               setTimeout(() => stopVoiceChat(), 100);
@@ -784,13 +777,13 @@ export function useWebRTC(config: WebRTCConfig) {
         } else if (message.type === 'ice-candidate') {
           if (message.data) {
             const currentPc = pcRef.current;
-            // Buffer if no PC exists (during rebuild) or no remote description yet
-            if (!currentPc || !currentPc.remoteDescription) {
-              pendingRemoteIceCandidatesRef.current.push(message.data);
-            } else {
+            // Always add if PC exists, else buffer
+            if (currentPc) {
               const candidate = new RTCIceCandidate(message.data);
               console.log('[ICE-REMOTE] addIceCandidate', candidate.type, candidate.protocol);
-              await currentPc.addIceCandidate(candidate).catch(() => {});
+              currentPc.addIceCandidate(candidate).catch(console.error);
+            } else {
+              pendingRemoteIceCandidatesRef.current.push(message.data);
             }
           }
         } else if (message.type === 'relay-restart') {
@@ -799,11 +792,12 @@ export function useWebRTC(config: WebRTCConfig) {
           if (roleRef.current === 'follower') {
             // Note: Do NOT set 'reconnecting' - relay fallback is still part of initial connection
             // UI stays in 'pending' until mode is detected from controller
-            // NOTE: Do NOT clear pendingRemoteIceCandidatesRef here - candidates will be flushed after new offer
+            // NOTE: Do NOT clear buffer - flush happens after PC creation
             // Rebuild PC with relay policy to match controller
             const newPc = rebuildPeerConnection('relay');
             attachPeerConnectionHandlers(newPc, () => {}, detectAndLockMode);
-            console.log('[Follower] Rebuilt relay PC, handlers attached');
+            flushPendingRemoteCandidates();
+            console.log('[Follower] Rebuilt relay PC, handlers attached, candidates flushed');
           }
         } else if (message.type === 'connection-mode') {
           // Follower receives mode from controller
