@@ -168,18 +168,6 @@ export function useWebRTC(config: WebRTCConfig) {
   const disconnectedSinceRef = useRef<number | null>(null);
   const disconnectedTimerRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Peer-left grace window (allows peer to rejoin within 3s)
-  const peerLeftTimerRef = useRef<number | null>(null);
-  
-  // Helper to cancel peer-left grace when connection shows signs of life
-  const cancelPeerLeftGrace = useCallback((reason: string) => {
-    if (peerLeftTimerRef.current) {
-      console.log('[WebRTC] cancel peer-left grace due to', reason);
-      clearTimeout(peerLeftTimerRef.current);
-      peerLeftTimerRef.current = null;
-    }
-  }, []);
-  
   // Config ref for callbacks
   const configRef = useRef(config);
   useEffect(() => { configRef.current = config; });
@@ -370,9 +358,6 @@ export function useWebRTC(config: WebRTCConfig) {
       }
       console.log('[Connection]', pc.connectionState);
       if (pc.connectionState === 'connected') {
-        // Cancel peer-left grace - connection is alive
-        cancelPeerLeftGrace('connection connected');
-        
         if (roleRef.current === 'controller' && !modeLockedRef.current) {
           detectAndLockModeFn();
         }
@@ -752,8 +737,6 @@ export function useWebRTC(config: WebRTCConfig) {
     const dataChannel = pc.createDataChannel('connection-init', { negotiated: true, id: 0 });
     dataChannel.onopen = () => {
       console.log('[DataChannel] opened');
-      // Cancel peer-left grace - datachannel is alive (very reliable signal)
-      cancelPeerLeftGrace('datachannel open');
     };
 
     // Buffer for ICE candidates before WS is open
@@ -825,19 +808,9 @@ export function useWebRTC(config: WebRTCConfig) {
           }
         } else if (message.type === 'peer-joined') {
           console.log('[WebRTC] Peer joined:', message.nickname);
-          
-          // Cancel peer-left grace window if peer rejoins
-          if (peerLeftTimerRef.current) {
-            console.log('[WebRTC] peer rejoined during grace → cancel reset');
-            clearTimeout(peerLeftTimerRef.current);
-            peerLeftTimerRef.current = null;
-          }
-          
           setIsConnected(true);
           setConnectionState('connected');
           configRef.current.onPeerConnected?.({ nickname: message.nickname });
-          // No timer-based fallback - rely only on ICE failure events
-          // Fallback is triggered by onconnectionstatechange when state === 'failed'
         } else if (message.type === 'offer') {
           const currentPc = pcRef.current;
           if (!currentPc) {
@@ -936,46 +909,33 @@ export function useWebRTC(config: WebRTCConfig) {
           setPeerNCEnabled(message.data?.enabled ?? false);
           configRef.current.onPeerNCStatusChange?.(message.data?.enabled ?? false);
         } else if (message.type === 'peer-left') {
-          // Suppress hard reset during relay ICE negotiation
-          if (fallbackTriggeredRef.current && !connectionEstablishedRef.current) {
-            console.log('[WebRTC] peer-left ignored during relay ICE');
-            return;
+          // Treat peer-left as terminal event - immediate hard reset
+          // Refresh = new peer joining new session state
+          console.log('[WebRTC] peer-left → hard reset');
+          
+          setIsConnected(false);
+          setConnectionState('disconnected');
+          setRemoteStream(null);
+          setPeerNCEnabled(false);
+          
+          // Hard reset all mode and connection state
+          modeLockedRef.current = false;
+          fallbackTriggeredRef.current = false;
+          connectionEstablishedRef.current = false;
+          pendingModeRef.current = null;
+          disconnectedSinceRef.current = null;
+          if (disconnectedTimerRef.current) {
+            clearInterval(disconnectedTimerRef.current);
+            disconnectedTimerRef.current = null;
           }
+          setConnectionMode('pending');
+          setConnectionDetails({ mode: 'pending' });
           
-          console.log('[WebRTC] peer-left received');
+          // Rebuild peer connection from clean state
+          rebuildPeerConnection('all');
           
-          // If already waiting, do nothing
-          if (peerLeftTimerRef.current) return;
-          
-          // Start 3s grace window - allow peer to rejoin
-          peerLeftTimerRef.current = window.setTimeout(() => {
-            console.log('[WebRTC] peer-left grace expired → hard reset');
-            peerLeftTimerRef.current = null;
-            
-            setIsConnected(false);
-            setConnectionState('disconnected');
-            setRemoteStream(null);
-            setPeerNCEnabled(false);
-            
-            // Hard reset all mode and connection state (once per rebuild)
-            modeLockedRef.current = false;
-            fallbackTriggeredRef.current = false;
-            connectionEstablishedRef.current = false;
-            pendingModeRef.current = null;
-            disconnectedSinceRef.current = null;
-            if (disconnectedTimerRef.current) {
-              clearInterval(disconnectedTimerRef.current);
-              disconnectedTimerRef.current = null;
-            }
-            setConnectionMode('pending');
-            setConnectionDetails({ mode: 'pending' });
-            
-            // Use centralized rebuild helper
-            rebuildPeerConnection('all');
-            
-            configRef.current.onRemoteStream?.(null);
-            configRef.current.onPeerDisconnected?.();
-          }, 3000);
+          configRef.current.onRemoteStream?.(null);
+          configRef.current.onPeerDisconnected?.();
         }
       } catch (error) {
         console.error('[WS] Message error:', error);
@@ -991,14 +951,10 @@ export function useWebRTC(config: WebRTCConfig) {
     return () => {
       console.log('[WebRTC] Cleanup');
       
-      // Clear grace window timers
+      // Clear grace window timer
       if (disconnectedTimerRef.current) {
         clearInterval(disconnectedTimerRef.current);
         disconnectedTimerRef.current = null;
-      }
-      if (peerLeftTimerRef.current) {
-        clearTimeout(peerLeftTimerRef.current);
-        peerLeftTimerRef.current = null;
       }
       
       if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
@@ -1013,7 +969,7 @@ export function useWebRTC(config: WebRTCConfig) {
         stopVoiceChat();
       }
     };
-  }, [config.roomId, config.peerId, detectAndLockMode, createRelayConnection, lockMode, rebuildPeerConnection, stopVoiceChat, attachPeerConnectionHandlers, flushPendingRemoteCandidates, cancelPeerLeftGrace]);
+  }, [config.roomId, config.peerId, detectAndLockMode, createRelayConnection, lockMode, rebuildPeerConnection, stopVoiceChat, attachPeerConnectionHandlers, flushPendingRemoteCandidates]);
 
   return {
     isConnected,
