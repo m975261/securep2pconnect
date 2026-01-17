@@ -144,6 +144,7 @@ export function useWebRTC(config: WebRTCConfig) {
   const roleRef = useRef<PeerRole>(null);
   const modeLockedRef = useRef(false);
   const fallbackTriggeredRef = useRef(false);
+  const connectionEstablishedRef = useRef(false);
   
   // File transfer state
   const fileMetadataRef = useRef<any>(null);
@@ -224,8 +225,9 @@ export function useWebRTC(config: WebRTCConfig) {
         disconnectedSince: disconnectedSince ? Date.now() - disconnectedSince : null
       });
 
-      // Success → detect mode, clear grace timer
+      // Success → detect mode, clear grace timer, mark connection established
       if (state === 'connected' || state === 'completed') {
+        connectionEstablishedRef.current = true;
         disconnectedSinceRef.current = null;
         if (disconnectedTimerRef.current) {
           clearInterval(disconnectedTimerRef.current);
@@ -863,7 +865,7 @@ export function useWebRTC(config: WebRTCConfig) {
           configRef.current.onPeerNCStatusChange?.(message.data?.enabled ?? false);
         } else if (message.type === 'peer-left') {
           // Suppress hard reset during relay ICE negotiation
-          if (fallbackTriggeredRef.current && !modeLockedRef.current) {
+          if (fallbackTriggeredRef.current && !connectionEstablishedRef.current) {
             console.log('[WebRTC] peer-left ignored during relay ICE');
             return;
           }
@@ -876,6 +878,7 @@ export function useWebRTC(config: WebRTCConfig) {
           // Hard reset all mode and connection state
           modeLockedRef.current = false;
           fallbackTriggeredRef.current = false;
+          connectionEstablishedRef.current = false;
           pendingModeRef.current = null;
           disconnectedSinceRef.current = null;
           if (disconnectedTimerRef.current) {
