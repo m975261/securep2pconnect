@@ -514,7 +514,8 @@ export function useWebRTC(config: WebRTCConfig) {
           detectAndLockMode();
         }
       } else if (pc.connectionState === 'failed') {
-        // Only controller triggers fallback
+        // Only controller triggers fallback on explicit failure
+        console.log('[WebRTC] connectionState=failed - triggering relay fallback');
         if (roleRef.current === 'controller' && !modeLockedRef.current && !fallbackTriggeredRef.current) {
           createRelayConnection();
         }
