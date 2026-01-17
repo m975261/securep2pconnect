@@ -168,6 +168,9 @@ export function useWebRTC(config: WebRTCConfig) {
   const disconnectedSinceRef = useRef<number | null>(null);
   const disconnectedTimerRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Peer-left grace window (allows peer to rejoin within 3s)
+  const peerLeftTimerRef = useRef<number | null>(null);
+  
   // Config ref for callbacks
   const configRef = useRef(config);
   useEffect(() => { configRef.current = config; });
@@ -799,6 +802,14 @@ export function useWebRTC(config: WebRTCConfig) {
           }
         } else if (message.type === 'peer-joined') {
           console.log('[WebRTC] Peer joined:', message.nickname);
+          
+          // Cancel peer-left grace window if peer rejoins
+          if (peerLeftTimerRef.current) {
+            console.log('[WebRTC] peer rejoined during grace → cancel reset');
+            clearTimeout(peerLeftTimerRef.current);
+            peerLeftTimerRef.current = null;
+          }
+          
           setIsConnected(true);
           setConnectionState('connected');
           configRef.current.onPeerConnected?.({ nickname: message.nickname });
@@ -907,30 +918,41 @@ export function useWebRTC(config: WebRTCConfig) {
             console.log('[WebRTC] peer-left ignored during relay ICE');
             return;
           }
-          console.log('[WebRTC] Peer left - hard reset');
-          setIsConnected(false);
-          setConnectionState('disconnected');
-          setRemoteStream(null);
-          setPeerNCEnabled(false);
           
-          // Hard reset all mode and connection state
-          modeLockedRef.current = false;
-          fallbackTriggeredRef.current = false;
-          connectionEstablishedRef.current = false;
-          pendingModeRef.current = null;
-          disconnectedSinceRef.current = null;
-          if (disconnectedTimerRef.current) {
-            clearInterval(disconnectedTimerRef.current);
-            disconnectedTimerRef.current = null;
-          }
-          setConnectionMode('pending');
-          setConnectionDetails({ mode: 'pending' });
+          console.log('[WebRTC] peer-left received');
           
-          // Use centralized rebuild helper
-          rebuildPeerConnection('all');
+          // If already waiting, do nothing
+          if (peerLeftTimerRef.current) return;
           
-          configRef.current.onRemoteStream?.(null);
-          configRef.current.onPeerDisconnected?.();
+          // Start 3s grace window - allow peer to rejoin
+          peerLeftTimerRef.current = window.setTimeout(() => {
+            console.log('[WebRTC] peer-left grace expired → hard reset');
+            peerLeftTimerRef.current = null;
+            
+            setIsConnected(false);
+            setConnectionState('disconnected');
+            setRemoteStream(null);
+            setPeerNCEnabled(false);
+            
+            // Hard reset all mode and connection state (once per rebuild)
+            modeLockedRef.current = false;
+            fallbackTriggeredRef.current = false;
+            connectionEstablishedRef.current = false;
+            pendingModeRef.current = null;
+            disconnectedSinceRef.current = null;
+            if (disconnectedTimerRef.current) {
+              clearInterval(disconnectedTimerRef.current);
+              disconnectedTimerRef.current = null;
+            }
+            setConnectionMode('pending');
+            setConnectionDetails({ mode: 'pending' });
+            
+            // Use centralized rebuild helper
+            rebuildPeerConnection('all');
+            
+            configRef.current.onRemoteStream?.(null);
+            configRef.current.onPeerDisconnected?.();
+          }, 3000);
         }
       } catch (error) {
         console.error('[WS] Message error:', error);
@@ -946,10 +968,14 @@ export function useWebRTC(config: WebRTCConfig) {
     return () => {
       console.log('[WebRTC] Cleanup');
       
-      // Clear grace window timer
+      // Clear grace window timers
       if (disconnectedTimerRef.current) {
         clearInterval(disconnectedTimerRef.current);
         disconnectedTimerRef.current = null;
+      }
+      if (peerLeftTimerRef.current) {
+        clearTimeout(peerLeftTimerRef.current);
+        peerLeftTimerRef.current = null;
       }
       
       if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
