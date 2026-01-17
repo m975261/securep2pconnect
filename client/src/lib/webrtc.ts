@@ -785,10 +785,11 @@ export function useWebRTC(config: WebRTCConfig) {
           
           if (modeDetectRetryCountRef.current >= MAX_MODE_DETECT_RETRIES) {
             console.log('[ModeDetect] Max retries reached, stopping detection attempts');
-          } else if (!isConnected) {
-            console.log('[ModeDetect] ICE not connected (state:', iceState, '), stopping detection');
+            // Don't give up completely - oniceconnectionstatechange will re-trigger if connection recovers
           } else {
-            console.log('[ModeDetect] No selected pair yet, retrying... (attempt:', modeDetectRetryCountRef.current, '/', MAX_MODE_DETECT_RETRIES, 'mode:', connectionModeRef.current, ')');
+            // Continue retrying even if disconnected - connection may recover via ICE restart
+            // oniceconnectionstatechange will also trigger fresh detection on recovery
+            console.log('[ModeDetect] No selected pair yet, retrying... (attempt:', modeDetectRetryCountRef.current, '/', MAX_MODE_DETECT_RETRIES, 'mode:', connectionModeRef.current, 'ice:', iceState, ')');
             // Store timeout reference for cancellation on reset
             modeDetectTimeoutRef.current = setTimeout(detectModeFromStats, 500);
           }
@@ -808,6 +809,10 @@ export function useWebRTC(config: WebRTCConfig) {
           fallbackTimeoutRef.current = null;
         }
         hasConnectedRef.current = true;
+        
+        // Reset retry counter for fresh detection after connection recovery
+        modeDetectRetryCountRef.current = 0;
+        console.log('[ICE-Connected] Connection established, triggering mode detection');
         
         // Detect connection mode using getStats
         detectModeFromStats();
@@ -853,6 +858,9 @@ export function useWebRTC(config: WebRTCConfig) {
           clearTimeout(fallbackTimeoutRef.current);
           fallbackTimeoutRef.current = null;
         }
+        // Reset retry counter for fresh detection after connection recovery
+        modeDetectRetryCountRef.current = 0;
+        console.log('[WebRTC-Connected] Connection established, triggering mode detection');
         // Detect connection mode
         detectModeFromStats();
       }
