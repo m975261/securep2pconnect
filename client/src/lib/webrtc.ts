@@ -171,6 +171,138 @@ export function useWebRTC(config: WebRTCConfig) {
   const configRef = useRef(config);
   useEffect(() => { configRef.current = config; });
 
+  // Helper: attach ALL event handlers to a PeerConnection (unified for initial and relay PC)
+  // pendingCandidates: optional array for buffering candidates before WS is open (initial PC only)
+  const attachPeerConnectionHandlers = useCallback((
+    pc: RTCPeerConnection, 
+    createRelayConnectionFn: () => void, 
+    detectAndLockModeFn: () => void,
+    pendingCandidates?: RTCIceCandidate[]
+  ) => {
+    console.log('[WebRTC] attachPeerConnectionHandlers called');
+    
+    // ICE candidate handler with grace window reset
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        // ICE activity detected - reset grace window if active
+        if (disconnectedSinceRef.current) {
+          console.log('[ICE] candidate received - resetting grace window');
+          disconnectedSinceRef.current = Date.now();
+        }
+        
+        const ws = wsRef.current;
+        if (ws?.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'ice-candidate', data: event.candidate }));
+        } else if (pendingCandidates) {
+          // Buffer for later (initial PC only, before WS is open)
+          pendingCandidates.push(event.candidate);
+        }
+      }
+    };
+    
+    // ICE gathering state changes reset grace window
+    pc.onicegatheringstatechange = () => {
+      console.log('[ICE-Gathering]', pc.iceGatheringState);
+      if (disconnectedSinceRef.current && pc.iceGatheringState !== 'complete') {
+        console.log('[ICE] gathering state changed - resetting grace window');
+        disconnectedSinceRef.current = Date.now();
+      }
+    };
+    
+    // Full ICE connection state machine
+    pc.oniceconnectionstatechange = () => {
+      const state = pc.iceConnectionState;
+      const disconnectedSince = disconnectedSinceRef.current;
+      console.log('[ICE-TRACE]', {
+        state,
+        role: roleRef.current,
+        modeLocked: modeLockedRef.current,
+        fallbackTriggered: fallbackTriggeredRef.current,
+        disconnectedSince: disconnectedSince ? Date.now() - disconnectedSince : null
+      });
+
+      // Success → detect mode, clear grace timer
+      if (state === 'connected' || state === 'completed') {
+        disconnectedSinceRef.current = null;
+        if (disconnectedTimerRef.current) {
+          clearInterval(disconnectedTimerRef.current);
+          disconnectedTimerRef.current = null;
+        }
+        if (roleRef.current === 'controller' && !modeLockedRef.current) {
+          detectAndLockModeFn();
+        }
+        return;
+      }
+
+      // Hard failure → immediate fallback
+      if (state === 'failed') {
+        console.log('[WebRTC] iceConnectionState=failed - immediate fallback');
+        disconnectedSinceRef.current = null;
+        if (disconnectedTimerRef.current) {
+          clearInterval(disconnectedTimerRef.current);
+          disconnectedTimerRef.current = null;
+        }
+        if (roleRef.current === 'controller' && !modeLockedRef.current && !fallbackTriggeredRef.current) {
+          createRelayConnectionFn();
+        }
+        return;
+      }
+
+      // Soft failure → start/reset grace timer (12s of stalled ICE)
+      if (state === 'disconnected') {
+        if (disconnectedSinceRef.current) {
+          console.log('[ICE] disconnected event received - resetting grace window (ICE still active)');
+        } else {
+          console.log('[ICE] disconnected - starting 12s grace window');
+        }
+        disconnectedSinceRef.current = Date.now();
+        
+        if (!disconnectedTimerRef.current) {
+          disconnectedTimerRef.current = setInterval(() => {
+            const since = disconnectedSinceRef.current;
+            if (since && Date.now() - since > 12000) {
+              console.log('[ICE] disconnected too long (12s) → fallback to relay');
+              if (disconnectedTimerRef.current) {
+                clearInterval(disconnectedTimerRef.current);
+                disconnectedTimerRef.current = null;
+              }
+              disconnectedSinceRef.current = null;
+              if (roleRef.current === 'controller' && !modeLockedRef.current && !fallbackTriggeredRef.current) {
+                createRelayConnectionFn();
+              }
+            }
+          }, 2000);
+        }
+        return;
+      }
+
+      // Other states (checking, new, closed) → clear grace timer
+      disconnectedSinceRef.current = null;
+      if (disconnectedTimerRef.current) {
+        clearInterval(disconnectedTimerRef.current);
+        disconnectedTimerRef.current = null;
+      }
+    };
+
+    // connectionState for logging/backup mode detection only
+    pc.onconnectionstatechange = () => {
+      console.log('[Connection]', pc.connectionState);
+      if (pc.connectionState === 'connected') {
+        if (roleRef.current === 'controller' && !modeLockedRef.current) {
+          detectAndLockModeFn();
+        }
+      }
+    };
+    
+    // Track handler
+    pc.ontrack = (event) => {
+      if (event.streams?.[0]) {
+        setRemoteStream(event.streams[0]);
+        configRef.current.onRemoteStream?.(event.streams[0]);
+      }
+    };
+  }, []);
+
   // Helper: rebuild RTCPeerConnection with clean state
   const rebuildPeerConnection = useCallback((iceTransportPolicy: 'all' | 'relay' = 'all') => {
     // Close existing connection (removes all listeners)
@@ -202,26 +334,7 @@ export function useWebRTC(config: WebRTCConfig) {
       localStreamRef.current.getTracks().forEach(track => newPc.addTrack(track, localStreamRef.current!));
     }
     
-    // Setup ICE candidate handler
-    newPc.onicecandidate = (event) => {
-      if (event.candidate) {
-        const ws = wsRef.current;
-        if (ws?.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'ice-candidate', data: event.candidate }));
-        }
-      }
-    };
-    
-    // Setup track handler
-    newPc.ontrack = (event) => {
-      if (event.streams?.[0]) {
-        setRemoteStream(event.streams[0]);
-        configRef.current.onRemoteStream?.(event.streams[0]);
-      }
-    };
-    
-    // Note: ICE/connection state handlers are set by the caller if needed
-    // (e.g., createRelayConnection sets them for mode detection)
+    // Note: Caller must attach handlers via attachPeerConnectionHandlers()
     
     return newPc;
   }, []);
@@ -339,13 +452,10 @@ export function useWebRTC(config: WebRTCConfig) {
     // Rebuild PC with relay-only policy
     const newPc = rebuildPeerConnection('relay');
     
-    // Add ICE connection handlers for relay
-    newPc.oniceconnectionstatechange = () => {
-      console.log('[Relay] ICE:', newPc.iceConnectionState);
-      if (newPc.iceConnectionState === 'connected' || newPc.iceConnectionState === 'completed') {
-        lockMode('turn', { mode: 'turn', turnServerIP: extractTurnServerHost(turnConfig.urls) });
-      }
-    };
+    // Attach FULL handlers to relay PC (same as initial PC)
+    // Note: We pass a no-op for createRelayConnection since fallback is already triggered
+    attachPeerConnectionHandlers(newPc, () => {}, detectAndLockMode);
+    console.log('[RELAY] handlers attached to relay PeerConnection');
     
     // Create and send offer
     if (ws?.readyState === WebSocket.OPEN) {
@@ -355,7 +465,7 @@ export function useWebRTC(config: WebRTCConfig) {
           console.log('[Relay] Offer sent');
         }).catch(err => console.error('[Relay] Error:', err));
     }
-  }, [lockMode, rebuildPeerConnection]);
+  }, [lockMode, rebuildPeerConnection, attachPeerConnectionHandlers, detectAndLockMode]);
 
   const sendMessage = useCallback((message: any) => {
     const ws = wsRef.current;
@@ -521,131 +631,12 @@ export function useWebRTC(config: WebRTCConfig) {
     const dataChannel = pc.createDataChannel('connection-init', { negotiated: true, id: 0 });
     dataChannel.onopen = () => console.log('[DataChannel] opened');
 
-    // ICE candidate handling - use local array for outgoing, ref for incoming
+    // Buffer for ICE candidates before WS is open
     const pendingIceCandidates: RTCIceCandidate[] = [];
     pendingRemoteIceCandidatesRef.current = [];
 
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        // ICE activity detected - reset grace window if active
-        if (disconnectedSinceRef.current) {
-          console.log('[ICE] candidate received - resetting grace window');
-          disconnectedSinceRef.current = Date.now();
-        }
-        
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'ice-candidate', data: event.candidate }));
-        } else {
-          pendingIceCandidates.push(event.candidate);
-        }
-      }
-    };
-    
-    // ICE gathering state changes also reset grace window (ICE is still working)
-    pc.onicegatheringstatechange = () => {
-      console.log('[ICE-Gathering]', pc.iceGatheringState);
-      if (disconnectedSinceRef.current && pc.iceGatheringState !== 'complete') {
-        console.log('[ICE] gathering state changed - resetting grace window');
-        disconnectedSinceRef.current = Date.now();
-      }
-    };
-
-    // Controller detects mode when connected, triggers fallback on ICE failure
-    pc.oniceconnectionstatechange = () => {
-      const state = pc.iceConnectionState;
-      const disconnectedSince = disconnectedSinceRef.current;
-      console.log('[ICE-TRACE]', {
-        state,
-        role: roleRef.current,
-        modeLocked: modeLockedRef.current,
-        fallbackTriggered: fallbackTriggeredRef.current,
-        disconnectedSince: disconnectedSince ? Date.now() - disconnectedSince : null
-      });
-
-      // Success → detect mode, clear grace timer
-      if (state === 'connected' || state === 'completed') {
-        disconnectedSinceRef.current = null;
-        if (disconnectedTimerRef.current) {
-          clearInterval(disconnectedTimerRef.current);
-          disconnectedTimerRef.current = null;
-        }
-        if (roleRef.current === 'controller' && !modeLockedRef.current) {
-          detectAndLockMode();
-        }
-        return;
-      }
-
-      // Hard failure → immediate fallback
-      if (state === 'failed') {
-        console.log('[WebRTC] iceConnectionState=failed - immediate fallback');
-        disconnectedSinceRef.current = null;
-        if (disconnectedTimerRef.current) {
-          clearInterval(disconnectedTimerRef.current);
-          disconnectedTimerRef.current = null;
-        }
-        if (roleRef.current === 'controller' && !modeLockedRef.current && !fallbackTriggeredRef.current) {
-          createRelayConnection();
-        }
-        return;
-      }
-
-      // Soft failure → start/reset grace timer (12s of stalled ICE)
-      if (state === 'disconnected') {
-        // Any state change event = ICE is still active, reset the grace window
-        // This ensures fallback only triggers after 12s of truly STALLED ICE
-        if (disconnectedSinceRef.current) {
-          console.log('[ICE] disconnected event received - resetting grace window (ICE still active)');
-        } else {
-          console.log('[ICE] disconnected - starting 12s grace window');
-        }
-        disconnectedSinceRef.current = Date.now();
-        
-        // Start polling timer if not already running
-        if (!disconnectedTimerRef.current) {
-          disconnectedTimerRef.current = setInterval(() => {
-            const since = disconnectedSinceRef.current;
-            if (since && Date.now() - since > 12000) {
-              console.log('[ICE] disconnected too long (12s) → fallback to relay');
-              if (disconnectedTimerRef.current) {
-                clearInterval(disconnectedTimerRef.current);
-                disconnectedTimerRef.current = null;
-              }
-              disconnectedSinceRef.current = null;
-              if (roleRef.current === 'controller' && !modeLockedRef.current && !fallbackTriggeredRef.current) {
-                createRelayConnection();
-              }
-            }
-          }, 2000);
-        }
-        return;
-      }
-
-      // Other states (checking, new, closed) → clear grace timer, do nothing
-      disconnectedSinceRef.current = null;
-      if (disconnectedTimerRef.current) {
-        clearInterval(disconnectedTimerRef.current);
-        disconnectedTimerRef.current = null;
-      }
-    };
-
-    // connectionState is for logging/display only - never triggers fallback
-    pc.onconnectionstatechange = () => {
-      console.log('[Connection]', pc.connectionState);
-      // Mode detection backup (some browsers fire this before iceConnectionState)
-      if (pc.connectionState === 'connected') {
-        if (roleRef.current === 'controller' && !modeLockedRef.current) {
-          detectAndLockMode();
-        }
-      }
-      // Note: 'failed' here does NOT trigger fallback - only iceConnectionState === 'failed' does
-    };
-
-    pc.ontrack = (event) => {
-      if (event.streams?.[0]) {
-        setRemoteStream(event.streams[0]);
-        configRef.current.onRemoteStream?.(event.streams[0]);
-      }
-    };
+    // Attach unified handlers (single source of truth for ICE state machine)
+    attachPeerConnectionHandlers(pc, createRelayConnection, detectAndLockMode, pendingIceCandidates);
 
     ws.onopen = () => {
       console.log('[WS] Connected, joining room');
@@ -861,7 +852,7 @@ export function useWebRTC(config: WebRTCConfig) {
         stopVoiceChat();
       }
     };
-  }, [config.roomId, config.peerId, detectAndLockMode, createRelayConnection, lockMode, rebuildPeerConnection, stopVoiceChat]);
+  }, [config.roomId, config.peerId, detectAndLockMode, createRelayConnection, lockMode, rebuildPeerConnection, stopVoiceChat, attachPeerConnectionHandlers]);
 
   return {
     isConnected,
