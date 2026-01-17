@@ -608,10 +608,42 @@ export function useWebRTC(config: WebRTCConfig) {
       }
     };
 
-    // Function to detect connection mode from stats
+    // Function to detect connection mode from stats (with retry limit)
+    // Track pending detection timeouts to allow cancellation on reset
+    const modeDetectRetryCountRef = { current: 0 };
+    const modeDetectTimeoutRef = { current: null as ReturnType<typeof setTimeout> | null };
+    const MAX_MODE_DETECT_RETRIES = 30; // Maximum 15 seconds of retrying (30 * 500ms)
+    
+    const resetModeDetection = () => {
+      console.log('[ModeReset] Resetting all mode detection state');
+      
+      // Cancel any pending detection timeout
+      if (modeDetectTimeoutRef.current) {
+        clearTimeout(modeDetectTimeoutRef.current);
+        modeDetectTimeoutRef.current = null;
+      }
+      
+      // Reset all state
+      modeDetectRetryCountRef.current = 0;
+      connectionModeRef.current = 'pending';
+      modeLockedRef.current = false;
+      fallbackAttemptedRef.current = false;
+      hasConnectedRef.current = false;
+      detectedCandidateTypeRef.current = null;
+      clearPersistedMode(configRef.current.roomId);
+      setConnectionMode('pending');
+      setConnectionDetails({ mode: 'pending' });
+    };
+    
     const detectModeFromStats = () => {
       const currentPc = pcRef.current;
       if (!currentPc || currentPc.connectionState === 'closed') return;
+      
+      // Don't retry if mode is already locked
+      if (modeLockedRef.current) {
+        console.log('[ModeDetect] Mode already locked, skipping detection');
+        return;
+      }
       
       currentPc.getStats().then(stats => {
         let selectedCandidateType: string | null = null;
@@ -745,8 +777,21 @@ export function useWebRTC(config: WebRTCConfig) {
           console.log('Connection details:', details);
         } else if (connectionModeRef.current === 'pending' || connectionModeRef.current === 'reconnecting') {
           // Retry after a short delay if we couldn't detect yet (including after reconnection)
-          console.log('[ModeDetect] No selected pair yet, retrying... (current mode:', connectionModeRef.current, ')');
-          setTimeout(detectModeFromStats, 500);
+          modeDetectRetryCountRef.current++;
+          
+          // Check if peer connection is still in a valid state for detection
+          const iceState = currentPc.iceConnectionState;
+          const isConnected = iceState === 'connected' || iceState === 'completed' || iceState === 'checking';
+          
+          if (modeDetectRetryCountRef.current >= MAX_MODE_DETECT_RETRIES) {
+            console.log('[ModeDetect] Max retries reached, stopping detection attempts');
+          } else if (!isConnected) {
+            console.log('[ModeDetect] ICE not connected (state:', iceState, '), stopping detection');
+          } else {
+            console.log('[ModeDetect] No selected pair yet, retrying... (attempt:', modeDetectRetryCountRef.current, '/', MAX_MODE_DETECT_RETRIES, 'mode:', connectionModeRef.current, ')');
+            // Store timeout reference for cancellation on reset
+            modeDetectTimeoutRef.current = setTimeout(detectModeFromStats, 500);
+          }
         }
       }).catch(err => {
         console.warn('Could not get connection stats:', err);
@@ -991,6 +1036,20 @@ export function useWebRTC(config: WebRTCConfig) {
           console.log('Peer joined:', message.peerId, message.nickname);
           setIsConnected(true);
           setConnectionState('connected');
+          
+          // Always reset mode detection state for fresh detection with new peer
+          // This handles: previous peer left, stale locked mode, or any inconsistent state
+          console.log('[PeerJoined] Resetting mode detection for new peer connection');
+          resetModeDetection();
+          
+          // Trigger mode detection after connection is established (will be called by ICE state change)
+          // But also schedule one check in case ICE is already connected
+          const currentPc = pcRef.current;
+          if (currentPc && (currentPc.iceConnectionState === 'connected' || currentPc.iceConnectionState === 'completed')) {
+            console.log('[PeerJoined] ICE already connected, triggering mode detection');
+            detectModeFromStats();
+          }
+          
           configRef.current.onPeerConnected?.({ nickname: message.nickname });
         } else if (message.type === 'offer') {
           if (currentPc && currentWs && currentWs.readyState === WebSocket.OPEN) {
@@ -1333,13 +1392,8 @@ export function useWebRTC(config: WebRTCConfig) {
           setConnectionState('disconnected');
           setRemoteStream(null);
           setPeerNCEnabled(false);
-          // Reset connection mode to pending when peer leaves (waiting for reconnection)
-          connectionModeRef.current = 'pending';
-          modeLockedRef.current = false;
-          fallbackAttemptedRef.current = false;
-          clearPersistedMode(configRef.current.roomId);
-          setConnectionMode('pending');
-          setConnectionDetails({ mode: 'pending' });
+          // Reset connection mode and detection state when peer leaves
+          resetModeDetection();
           configRef.current.onRemoteStream?.(null);
           configRef.current.onPeerDisconnected?.();
         } else if (message.type === 'nc-status') {
