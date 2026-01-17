@@ -865,39 +865,115 @@ export function useWebRTC(config: WebRTCConfig) {
         detectModeFromStats();
       }
       
-      // Handle connection failures by triggering ICE restart - SINGLE ATTEMPT ONLY
+      // Handle connection failures by forcing TURN-only mode
       if (pc.connectionState === 'failed') {
-        // Only attempt restart if fallback hasn't been attempted
+        // Only attempt fallback if not already attempted
         if (fallbackAttemptedRef.current) {
-          console.log('WebRTC connection failed, but fallback already attempted - not retrying');
+          console.log('WebRTC connection failed, but TURN fallback already attempted - not retrying');
           return;
         }
         
-        console.log('WebRTC connection failed, attempting ONE controlled ICE restart');
+        console.log('[TURN-FALLBACK] P2P connection failed, recreating with TURN-only (relay) policy');
         fallbackAttemptedRef.current = true; // Mark as attempted
         
-        // Show reconnecting state but don't unlock mode
-        if (!modeLockedRef.current) {
-          connectionModeRef.current = 'reconnecting';
-          setConnectionMode('reconnecting');
-        }
-        detectedCandidateTypeRef.current = null; // Clear detected type for fresh detection
+        // Show reconnecting state
+        connectionModeRef.current = 'reconnecting';
+        setConnectionMode('reconnecting');
+        setConnectionDetails({ mode: 'reconnecting' });
+        detectedCandidateTypeRef.current = null;
+        modeDetectRetryCountRef.current = 0;
         
-        // Only restart if in stable signaling state to avoid "Called in wrong state" error
-        if (pc.signalingState === 'stable' && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          pc.createOffer({ iceRestart: true }).then(offer => {
-            return pc.setLocalDescription(offer);
-          }).then(() => {
-            wsRef.current!.send(JSON.stringify({
-              type: 'offer',
-              data: pc.localDescription,
-            }));
-            console.log('[ICE-RESTART] Offer sent after connection failure');
-          }).catch(err => {
-            console.error('Error restarting ICE:', err);
+        // Get current TURN config
+        const turnConfig = configRef.current.turnConfig;
+        if (!turnConfig) {
+          console.error('[TURN-FALLBACK] No TURN config available, cannot fallback');
+          return;
+        }
+        
+        // Close old connection
+        pc.close();
+        
+        // Create new peer connection with relay-only policy (forces TURN)
+        const relayOnlyIceServers: RTCIceServer[] = [{
+          urls: turnConfig.urls,
+          username: turnConfig.username,
+          credential: turnConfig.credential,
+        }];
+        
+        const newPc = new RTCPeerConnection({
+          iceServers: relayOnlyIceServers,
+          iceTransportPolicy: 'relay', // Force TURN relay only
+          iceCandidatePoolSize: 10,
+        });
+        pcRef.current = newPc;
+        
+        console.log('[TURN-FALLBACK] Created new PeerConnection with relay-only policy');
+        
+        // Create data channel
+        const dataChannel = newPc.createDataChannel('connection-init', { negotiated: true, id: 0 });
+        dataChannel.onopen = () => console.log('[DataChannel] Connection channel opened');
+        dataChannel.onclose = () => console.log('[DataChannel] Connection channel closed');
+        
+        // Re-add local stream if exists
+        if (localStreamRef.current) {
+          localStreamRef.current.getTracks().forEach(track => {
+            newPc.addTrack(track, localStreamRef.current!);
           });
-        } else {
-          console.log('ICE restart deferred: signaling state is', pc.signalingState);
+        }
+        
+        // Setup event handlers on new PC
+        const currentWs = wsRef.current;
+        
+        newPc.onicecandidate = (event) => {
+          if (event.candidate && currentWs && currentWs.readyState === WebSocket.OPEN) {
+            console.log('[TURN-FALLBACK] ICE candidate:', event.candidate.type, event.candidate.protocol);
+            currentWs.send(JSON.stringify({ type: 'ice-candidate', data: event.candidate }));
+          }
+        };
+        
+        newPc.oniceconnectionstatechange = () => {
+          console.log('[TURN-FALLBACK] ICE connection state:', newPc.iceConnectionState);
+          if (newPc.iceConnectionState === 'connected' || newPc.iceConnectionState === 'completed') {
+            hasConnectedRef.current = true;
+            modeDetectRetryCountRef.current = 0;
+            // Force set to TURN since we're using relay-only policy
+            connectionModeRef.current = 'turn';
+            modeLockedRef.current = true;
+            persistMode(configRef.current.roomId, 'turn');
+            setConnectionMode('turn');
+            console.log('[TURN-FALLBACK] Connected via TURN relay');
+            detectModeFromStats();
+          }
+        };
+        
+        newPc.onconnectionstatechange = () => {
+          console.log('[TURN-FALLBACK] WebRTC connection state:', newPc.connectionState);
+          if (newPc.connectionState === 'connected') {
+            hasConnectedRef.current = true;
+          }
+        };
+        
+        newPc.ontrack = (event) => {
+          console.log('[TURN-FALLBACK] Received remote audio track');
+          if (event.streams && event.streams[0]) {
+            setRemoteStream(event.streams[0]);
+            configRef.current.onRemoteStream?.(event.streams[0]);
+          }
+        };
+        
+        // Create and send offer with relay-only connection
+        if (currentWs && currentWs.readyState === WebSocket.OPEN) {
+          newPc.createOffer().then(offer => {
+            return newPc.setLocalDescription(offer);
+          }).then(() => {
+            currentWs.send(JSON.stringify({
+              type: 'offer',
+              data: newPc.localDescription,
+            }));
+            console.log('[TURN-FALLBACK] Offer sent with relay-only policy');
+          }).catch(err => {
+            console.error('[TURN-FALLBACK] Error creating offer:', err);
+          });
         }
       }
     };
@@ -995,45 +1071,111 @@ export function useWebRTC(config: WebRTCConfig) {
                 }
               }, 500);
               
-              // Start TURN fallback timer (5 seconds) - SINGLE ATTEMPT ONLY
+              // Start TURN fallback timer (5 seconds) - recreates connection with relay-only policy
               if (fallbackTimeoutRef.current) {
                 clearTimeout(fallbackTimeoutRef.current);
               }
               
               // Only attempt fallback if not already attempted
               if (!fallbackAttemptedRef.current) {
-                fallbackTimeoutRef.current = setTimeout(() => {
+                fallbackTimeoutRef.current = setTimeout(async () => {
                   // Check if we're still not connected AND haven't already attempted fallback
+                  const pollPc = pcRef.current;
                   if (!hasConnectedRef.current && 
                       !fallbackAttemptedRef.current &&
-                      currentPc.iceConnectionState !== 'connected' && 
-                      currentPc.iceConnectionState !== 'completed') {
+                      pollPc &&
+                      pollPc.iceConnectionState !== 'connected' && 
+                      pollPc.iceConnectionState !== 'completed') {
                     
-                    console.log('[FALLBACK] P2P connection timeout, performing ONE controlled ICE restart');
-                    fallbackAttemptedRef.current = true; // Mark as attempted - prevents future retries
+                    console.log('[TURN-FALLBACK] P2P timeout after 5s, recreating with TURN-only policy');
+                    fallbackAttemptedRef.current = true;
                     
-                    // Perform controlled ICE restart to force TURN relay
-                    if (currentPc.signalingState !== 'closed') {
-                      currentPc.restartIce();
-                      
-                      // Create a new offer with iceRestart to force re-negotiation
-                      currentPc.createOffer({ iceRestart: true }).then(newOffer => {
-                        return currentPc.setLocalDescription(newOffer);
-                      }).then(() => {
-                        if (currentWs && currentWs.readyState === WebSocket.OPEN) {
-                          currentWs.send(JSON.stringify({
-                            type: 'offer',
-                            data: currentPc.localDescription,
-                          }));
-                          console.log('[FALLBACK] ICE restart offer sent - TURN fallback initiated');
-                          
-                          // Don't immediately set mode to TURN - let detectModeFromStats determine actual mode
-                          // This prevents premature mode setting before connection is established
-                          detectedCandidateTypeRef.current = 'relay'; // Hint for detection
-                        }
-                      }).catch(err => {
-                        console.error('[FALLBACK] Error during ICE restart:', err);
+                    // Show reconnecting state
+                    connectionModeRef.current = 'reconnecting';
+                    setConnectionMode('reconnecting');
+                    setConnectionDetails({ mode: 'reconnecting' });
+                    modeDetectRetryCountRef.current = 0;
+                    
+                    // Get TURN config
+                    const turnConfig = configRef.current.turnConfig;
+                    if (!turnConfig) {
+                      console.error('[TURN-FALLBACK] No TURN config available');
+                      return;
+                    }
+                    
+                    // Close old connection
+                    pollPc.close();
+                    
+                    // Create new peer connection with relay-only policy
+                    const relayOnlyIceServers: RTCIceServer[] = [{
+                      urls: turnConfig.urls,
+                      username: turnConfig.username,
+                      credential: turnConfig.credential,
+                    }];
+                    
+                    const newPc = new RTCPeerConnection({
+                      iceServers: relayOnlyIceServers,
+                      iceTransportPolicy: 'relay',
+                      iceCandidatePoolSize: 10,
+                    });
+                    pcRef.current = newPc;
+                    
+                    console.log('[TURN-FALLBACK] Created new PeerConnection with relay-only policy');
+                    
+                    // Create data channel
+                    const dc = newPc.createDataChannel('connection-init', { negotiated: true, id: 0 });
+                    dc.onopen = () => console.log('[DataChannel] Connection channel opened');
+                    dc.onclose = () => console.log('[DataChannel] Connection channel closed');
+                    
+                    // Re-add local stream if exists
+                    if (localStreamRef.current) {
+                      localStreamRef.current.getTracks().forEach(track => {
+                        newPc.addTrack(track, localStreamRef.current!);
                       });
+                    }
+                    
+                    // Setup event handlers
+                    newPc.onicecandidate = (event) => {
+                      if (event.candidate && currentWs && currentWs.readyState === WebSocket.OPEN) {
+                        console.log('[TURN-FALLBACK] ICE candidate:', event.candidate.type);
+                        currentWs.send(JSON.stringify({ type: 'ice-candidate', data: event.candidate }));
+                      }
+                    };
+                    
+                    newPc.oniceconnectionstatechange = () => {
+                      console.log('[TURN-FALLBACK] ICE state:', newPc.iceConnectionState);
+                      if (newPc.iceConnectionState === 'connected' || newPc.iceConnectionState === 'completed') {
+                        hasConnectedRef.current = true;
+                        connectionModeRef.current = 'turn';
+                        modeLockedRef.current = true;
+                        persistMode(configRef.current.roomId, 'turn');
+                        setConnectionMode('turn');
+                        console.log('[TURN-FALLBACK] Connected via TURN relay');
+                        detectModeFromStats();
+                      }
+                    };
+                    
+                    newPc.onconnectionstatechange = () => {
+                      console.log('[TURN-FALLBACK] WebRTC state:', newPc.connectionState);
+                    };
+                    
+                    newPc.ontrack = (event) => {
+                      if (event.streams && event.streams[0]) {
+                        setRemoteStream(event.streams[0]);
+                        configRef.current.onRemoteStream?.(event.streams[0]);
+                      }
+                    };
+                    
+                    // Create and send offer
+                    try {
+                      const offer = await newPc.createOffer();
+                      await newPc.setLocalDescription(offer);
+                      if (currentWs && currentWs.readyState === WebSocket.OPEN) {
+                        currentWs.send(JSON.stringify({ type: 'offer', data: offer }));
+                        console.log('[TURN-FALLBACK] Offer sent with relay-only policy');
+                      }
+                    } catch (err) {
+                      console.error('[TURN-FALLBACK] Error creating offer:', err);
                     }
                   }
                 }, 5000);
