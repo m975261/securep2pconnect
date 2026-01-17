@@ -311,10 +311,10 @@ export function useWebRTC(config: WebRTCConfig) {
     // Close existing connection (removes all listeners)
     pcRef.current?.close();
     
-    // Reset all negotiation state
+    // Reset negotiation state (but NOT pending ICE candidates - they'll be flushed after remote description)
     negotiatingRef.current = false;
     pendingNegotiationRef.current = false;
-    pendingRemoteIceCandidatesRef.current = [];
+    // NOTE: Do NOT clear pendingRemoteIceCandidatesRef - candidates must survive rebuild
     
     // Build ICE servers
     const iceServers = iceTransportPolicy === 'relay' && configRef.current.turnConfig
@@ -345,8 +345,32 @@ export function useWebRTC(config: WebRTCConfig) {
     }
     
     // Note: Caller must attach handlers via attachPeerConnectionHandlers()
+    // Note: Caller should call flushPendingRemoteCandidates() after remote description is set
     
     return newPc;
+  }, []);
+
+  // Flush buffered remote ICE candidates into current PC (call after remote description is set)
+  const flushPendingRemoteCandidates = useCallback(async () => {
+    const pc = pcRef.current;
+    if (!pc || !pc.remoteDescription) {
+      console.log('[ICE-REMOTE] flush skipped - no PC or no remote description');
+      return;
+    }
+    
+    const candidates = pendingRemoteIceCandidatesRef.current;
+    if (candidates.length === 0) {
+      console.log('[ICE-REMOTE] flush - no pending candidates');
+      return;
+    }
+    
+    console.log('[ICE-REMOTE] flushing', candidates.length, 'buffered candidates');
+    for (const c of candidates) {
+      const candidate = new RTCIceCandidate(c);
+      console.log('[ICE-REMOTE] flushing buffered candidate (PC ready)', candidate.type, candidate.protocol);
+      await pc.addIceCandidate(candidate).catch(() => {});
+    }
+    pendingRemoteIceCandidatesRef.current = [];
   }, []);
 
   // Lock mode permanently (called only by controller or when receiving from controller)
@@ -722,29 +746,33 @@ export function useWebRTC(config: WebRTCConfig) {
           // No timer-based fallback - rely only on ICE failure events
           // Fallback is triggered by onconnectionstatechange when state === 'failed'
         } else if (message.type === 'offer') {
-          console.log('[WebRTC] Received offer');
-          await pc.setRemoteDescription(new RTCSessionDescription(message.data));
-          
-          // Flush buffered ICE candidates
-          for (const c of pendingRemoteIceCandidatesRef.current) {
-            await pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => {});
+          const currentPc = pcRef.current;
+          if (!currentPc) {
+            console.warn('[WebRTC] Received offer but no PC exists');
+            return;
           }
-          pendingRemoteIceCandidatesRef.current = [];
+          console.log('[WebRTC] Received offer');
+          await currentPc.setRemoteDescription(new RTCSessionDescription(message.data));
           
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
+          // Flush buffered ICE candidates (post-rebuild candidates are now applied)
+          await flushPendingRemoteCandidates();
+          
+          const answer = await currentPc.createAnswer();
+          await currentPc.setLocalDescription(answer);
           ws.send(JSON.stringify({ type: 'answer', data: answer }));
           console.log('[WebRTC] Answer sent');
         } else if (message.type === 'answer') {
-          if (pc.signalingState === 'have-local-offer') {
-            await pc.setRemoteDescription(new RTCSessionDescription(message.data));
+          const currentPc = pcRef.current;
+          if (!currentPc) {
+            console.warn('[WebRTC] Received answer but no PC exists');
+            return;
+          }
+          if (currentPc.signalingState === 'have-local-offer') {
+            await currentPc.setRemoteDescription(new RTCSessionDescription(message.data));
             negotiatingRef.current = false;
             
-            // Flush buffered ICE candidates
-            for (const c of pendingRemoteIceCandidatesRef.current) {
-              await pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => {});
-            }
-            pendingRemoteIceCandidatesRef.current = [];
+            // Flush buffered ICE candidates (post-rebuild candidates are now applied)
+            await flushPendingRemoteCandidates();
             
             if (pendingStopRef.current) {
               pendingStopRef.current = false;
@@ -755,10 +783,14 @@ export function useWebRTC(config: WebRTCConfig) {
           }
         } else if (message.type === 'ice-candidate') {
           if (message.data) {
-            if (!pc.remoteDescription) {
+            const currentPc = pcRef.current;
+            // Buffer if no PC exists (during rebuild) or no remote description yet
+            if (!currentPc || !currentPc.remoteDescription) {
               pendingRemoteIceCandidatesRef.current.push(message.data);
             } else {
-              await pc.addIceCandidate(new RTCIceCandidate(message.data)).catch(() => {});
+              const candidate = new RTCIceCandidate(message.data);
+              console.log('[ICE-REMOTE] addIceCandidate', candidate.type, candidate.protocol);
+              await currentPc.addIceCandidate(candidate).catch(() => {});
             }
           }
         } else if (message.type === 'relay-restart') {
@@ -767,9 +799,11 @@ export function useWebRTC(config: WebRTCConfig) {
           if (roleRef.current === 'follower') {
             // Note: Do NOT set 'reconnecting' - relay fallback is still part of initial connection
             // UI stays in 'pending' until mode is detected from controller
-            pendingRemoteIceCandidatesRef.current = [];
-            // Rebuild PC to accept fresh offer from controller
-            rebuildPeerConnection('all');
+            // NOTE: Do NOT clear pendingRemoteIceCandidatesRef here - candidates will be flushed after new offer
+            // Rebuild PC with relay policy to match controller
+            const newPc = rebuildPeerConnection('relay');
+            attachPeerConnectionHandlers(newPc, () => {}, detectAndLockMode);
+            console.log('[Follower] Rebuilt relay PC, handlers attached');
           }
         } else if (message.type === 'connection-mode') {
           // Follower receives mode from controller
@@ -870,7 +904,7 @@ export function useWebRTC(config: WebRTCConfig) {
         stopVoiceChat();
       }
     };
-  }, [config.roomId, config.peerId, detectAndLockMode, createRelayConnection, lockMode, rebuildPeerConnection, stopVoiceChat, attachPeerConnectionHandlers]);
+  }, [config.roomId, config.peerId, detectAndLockMode, createRelayConnection, lockMode, rebuildPeerConnection, stopVoiceChat, attachPeerConnectionHandlers, flushPendingRemoteCandidates]);
 
   return {
     isConnected,
