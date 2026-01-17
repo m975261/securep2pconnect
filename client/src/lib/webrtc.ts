@@ -247,13 +247,29 @@ export function useWebRTC(config: WebRTCConfig) {
 
   // Controller-only: detect mode from stats (single shot)
   const detectAndLockMode = useCallback(() => {
-    if (roleRef.current !== 'controller' || modeLockedRef.current) return;
+    console.log('[MODE] detectAndLockMode CALLED', { role: roleRef.current, modeLocked: modeLockedRef.current });
+    
+    if (roleRef.current !== 'controller') {
+      console.log('[MODE] not controller — exiting');
+      return;
+    }
+    if (modeLockedRef.current) {
+      console.log('[MODE] already locked — exiting');
+      return;
+    }
     
     const pc = pcRef.current;
-    if (!pc || pc.connectionState === 'closed') return;
+    if (!pc || pc.connectionState === 'closed') {
+      console.log('[MODE] no PC or closed — exiting');
+      return;
+    }
     
+    console.log('[MODE] calling getStats');
     pc.getStats().then(stats => {
-      if (modeLockedRef.current) return;
+      if (modeLockedRef.current) {
+        console.log('[MODE] mode locked during getStats — exiting');
+        return;
+      }
       
       const statsArray = Array.from(stats.values());
       const candidatePairs = statsArray.filter((r: any) => r.type === 'candidate-pair');
@@ -263,7 +279,7 @@ export function useWebRTC(config: WebRTCConfig) {
                            candidatePairs.find((r: any) => r.state === 'succeeded');
       
       if (!selectedPair) {
-        console.log('[WebRTC] No selected pair yet, will detect on next event');
+        console.log('[MODE] no selected pair yet — will retry on next event');
         return;
       }
       
@@ -273,18 +289,35 @@ export function useWebRTC(config: WebRTCConfig) {
       const isRelay = localCandidate?.candidateType === 'relay' || remoteCandidate?.candidateType === 'relay';
       const detectedMode: ConnectionMode = isRelay ? 'turn' : 'p2p';
       
+      console.log('[MODE] detected mode =', detectedMode, { localType: localCandidate?.candidateType, remoteType: remoteCandidate?.candidateType });
+      console.log('[MODE] broadcasting and locking mode');
+      
       lockMode(detectedMode, {
         mode: detectedMode,
         remoteIP: remoteCandidate?.address,
         protocol: localCandidate?.protocol,
         turnServerIP: isRelay ? extractTurnServerHost(configRef.current.turnConfig?.urls || []) : undefined
       });
+      
+      console.log('[MODE] mode locked');
     }).catch(err => console.warn('[WebRTC] Stats error:', err));
   }, [lockMode]);
 
   // Controller-only: create relay-only connection for TURN fallback
   const createRelayConnection = useCallback(() => {
-    if (roleRef.current !== 'controller' || modeLockedRef.current || fallbackTriggeredRef.current) return;
+    const pc = pcRef.current;
+    console.log('[RELAY] createRelayConnection CALLED', {
+      role: roleRef.current,
+      modeLocked: modeLockedRef.current,
+      fallbackTriggered: fallbackTriggeredRef.current,
+      iceState: pc?.iceConnectionState,
+      connectionState: pc?.connectionState
+    });
+    
+    if (roleRef.current !== 'controller' || modeLockedRef.current || fallbackTriggeredRef.current) {
+      console.log('[RELAY] guard failed — exiting');
+      return;
+    }
     
     fallbackTriggeredRef.current = true;
     const turnConfig = configRef.current.turnConfig;
@@ -294,6 +327,7 @@ export function useWebRTC(config: WebRTCConfig) {
     }
     
     console.log('[WebRTC] Creating relay-only connection');
+    console.log('[UI] reconnecting triggered', { reason: 'createRelayConnection', iceState: pc?.iceConnectionState, connectionState: pc?.connectionState });
     setConnectionMode('reconnecting');
     
     // Notify follower to prepare for relay restart
@@ -504,7 +538,14 @@ export function useWebRTC(config: WebRTCConfig) {
     // Controller detects mode when connected, triggers fallback on ICE failure
     pc.oniceconnectionstatechange = () => {
       const state = pc.iceConnectionState;
-      console.log('[ICE]', state);
+      const disconnectedSince = disconnectedSinceRef.current;
+      console.log('[ICE-TRACE]', {
+        state,
+        role: roleRef.current,
+        modeLocked: modeLockedRef.current,
+        fallbackTriggered: fallbackTriggeredRef.current,
+        disconnectedSince: disconnectedSince ? Date.now() - disconnectedSince : null
+      });
 
       // Success → detect mode, clear grace timer
       if (state === 'connected' || state === 'completed') {
@@ -696,6 +737,7 @@ export function useWebRTC(config: WebRTCConfig) {
           // Controller is restarting with relay - follower prepares for new offer
           console.log('[Follower] Relay restart from controller');
           if (roleRef.current === 'follower') {
+            console.log('[UI] reconnecting triggered', { reason: 'relay-restart from controller', role: roleRef.current });
             setConnectionMode('reconnecting');
             pendingRemoteIceCandidatesRef.current = [];
             // Rebuild PC to accept fresh offer from controller
