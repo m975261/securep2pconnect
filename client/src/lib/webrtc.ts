@@ -248,14 +248,8 @@ export function useWebRTC(config: WebRTCConfig) {
     };
     
     // Full ICE connection state machine
+    // No post-lock ignore - refresh = new session
     pc.oniceconnectionstatechange = () => {
-      // Once mode is locked, ICE fluctuations are irrelevant
-      // Temporary disconnects (refresh, Wi-Fi ↔ 5G, browser rebinding) are normal
-      if (modeLockedRef.current) {
-        console.log('[WebRTC] ICE state ignored after mode lock:', pc.iceConnectionState);
-        return;
-      }
-      
       const state = pc.iceConnectionState;
       const disconnectedSince = disconnectedSinceRef.current;
       console.log('[ICE-TRACE]', {
@@ -283,27 +277,37 @@ export function useWebRTC(config: WebRTCConfig) {
         return;
       }
 
-      // Hard failure → immediate fallback (only if relay not already triggered)
+      // Hard failure → immediate fallback (ONLY during initial connection, pre-lock)
       if (state === 'failed') {
+        // After mode lock: no recovery, session ends via peer-left
+        if (modeLockedRef.current || connectionEstablishedRef.current) {
+          console.log('[ICE] failed post-lock - no recovery, session will end');
+          return;
+        }
         // Relay is final - no more fallback logic
         if (fallbackTriggeredRef.current) {
           console.log('[ICE] failed during relay - relay is final, no action');
           return;
         }
-        console.log('[WebRTC] iceConnectionState=failed - immediate fallback');
+        console.log('[WebRTC] iceConnectionState=failed - immediate fallback (initial connection)');
         disconnectedSinceRef.current = null;
         if (disconnectedTimerRef.current) {
           clearInterval(disconnectedTimerRef.current);
           disconnectedTimerRef.current = null;
         }
-        if (roleRef.current === 'controller' && !modeLockedRef.current) {
+        if (roleRef.current === 'controller') {
           createRelayConnectionFn();
         }
         return;
       }
 
-      // Soft failure → start/reset grace timer (12s of stalled ICE)
+      // Soft failure → grace timer (ONLY during initial connection, pre-lock)
       if (state === 'disconnected') {
+        // After mode lock: no recovery, session ends via peer-left
+        if (modeLockedRef.current || connectionEstablishedRef.current) {
+          console.log('[ICE] disconnected post-lock - no recovery, session will end');
+          return;
+        }
         // Relay is final - no grace timers after fallback
         if (fallbackTriggeredRef.current) {
           disconnectedSinceRef.current = null;
@@ -311,14 +315,23 @@ export function useWebRTC(config: WebRTCConfig) {
           return;
         }
         if (disconnectedSinceRef.current) {
-          console.log('[ICE] disconnected event received - resetting grace window (ICE still active)');
+          console.log('[ICE] disconnected event received - resetting grace window (initial connection)');
         } else {
-          console.log('[ICE] disconnected - starting 12s grace window');
+          console.log('[ICE] disconnected - starting 12s grace window (initial connection)');
         }
         disconnectedSinceRef.current = Date.now();
         
         if (!disconnectedTimerRef.current) {
           disconnectedTimerRef.current = setInterval(() => {
+            // After mode lock: no recovery
+            if (modeLockedRef.current || connectionEstablishedRef.current) {
+              if (disconnectedTimerRef.current) {
+                clearInterval(disconnectedTimerRef.current);
+                disconnectedTimerRef.current = null;
+              }
+              disconnectedSinceRef.current = null;
+              return;
+            }
             // Double-check relay status in timer callback
             if (fallbackTriggeredRef.current) {
               if (disconnectedTimerRef.current) {
@@ -330,13 +343,13 @@ export function useWebRTC(config: WebRTCConfig) {
             }
             const since = disconnectedSinceRef.current;
             if (since && Date.now() - since > 12000) {
-              console.log('[ICE] disconnected too long (12s) → fallback to relay');
+              console.log('[ICE] disconnected too long (12s) → fallback to relay (initial connection)');
               if (disconnectedTimerRef.current) {
                 clearInterval(disconnectedTimerRef.current);
                 disconnectedTimerRef.current = null;
               }
               disconnectedSinceRef.current = null;
-              if (roleRef.current === 'controller' && !modeLockedRef.current) {
+              if (roleRef.current === 'controller') {
                 createRelayConnectionFn();
               }
             }
@@ -362,14 +375,6 @@ export function useWebRTC(config: WebRTCConfig) {
       }
       console.log('[Connection]', pc.connectionState);
       
-      // After mode lock: connectionState changes are IGNORED
-      // Session can only end via explicit session-end signal
-      // This handles refresh, network changes, and transient failures correctly
-      if (modeLockedRef.current && (pc.connectionState === 'failed' || pc.connectionState === 'disconnected')) {
-        console.log('[WebRTC] post-lock connectionState ignored:', pc.connectionState);
-        return;
-      }
-      
       if (pc.connectionState === 'connected') {
         if (roleRef.current === 'controller' && !modeLockedRef.current) {
           detectAndLockModeFn();
@@ -394,7 +399,8 @@ export function useWebRTC(config: WebRTCConfig) {
     // Reset negotiation state (but NOT pending ICE candidates - they'll be flushed after remote description)
     negotiatingRef.current = false;
     pendingNegotiationRef.current = false;
-    // NOTE: Do NOT clear pendingRemoteIceCandidatesRef - candidates must survive rebuild
+    // Clear pending ICE candidates - refresh = new session, no state preservation
+    pendingRemoteIceCandidatesRef.current = [];
     
     // Build ICE servers
     const iceServers = iceTransportPolicy === 'relay' && configRef.current.turnConfig
@@ -736,10 +742,28 @@ export function useWebRTC(config: WebRTCConfig) {
   useEffect(() => {
     if (!config.roomId || !config.peerId) return;
 
-    // Reset all state for clean connection
+    // HARD RESET: Clear ALL state for completely fresh session
+    // Refresh = new session, always
     roleRef.current = null;
     modeLockedRef.current = false;
     fallbackTriggeredRef.current = false;
+    connectionEstablishedRef.current = false;
+    pendingModeRef.current = null;
+    disconnectedSinceRef.current = null;
+    
+    // Clear any stale timers
+    if (modeDetectionRetryRef.current) {
+      clearTimeout(modeDetectionRetryRef.current);
+      modeDetectionRetryRef.current = null;
+    }
+    if (disconnectedTimerRef.current) {
+      clearInterval(disconnectedTimerRef.current);
+      disconnectedTimerRef.current = null;
+    }
+    
+    // Clear pending ICE candidates (fresh session, no state preservation)
+    pendingRemoteIceCandidatesRef.current = [];
+    
     setConnectionMode('pending');
     setConnectionDetails({ mode: 'pending' });
 
@@ -944,16 +968,36 @@ export function useWebRTC(config: WebRTCConfig) {
           setPeerNCEnabled(message.data?.enabled ?? false);
           configRef.current.onPeerNCStatusChange?.(message.data?.enabled ?? false);
         } else if (message.type === 'peer-left') {
-          // peer-left = peer presence update ONLY
-          // Session state (modeLockedRef, fallbackTriggeredRef, etc.) is PRESERVED
-          // Rejoin will reuse existing session state
-          console.log('[WebRTC] peer-left → presence update only (session state preserved)');
+          // peer-left = HARD RESET
+          // Refresh/network change = new session
+          // Both peers must start fresh
+          console.log('[WebRTC] peer-left → hard reset (new session)');
           
-          // Update presence only - do NOT touch session state
+          // Clear all timers
+          if (modeDetectionRetryRef.current) {
+            clearTimeout(modeDetectionRetryRef.current);
+            modeDetectionRetryRef.current = null;
+          }
+          if (disconnectedTimerRef.current) {
+            clearInterval(disconnectedTimerRef.current);
+            disconnectedTimerRef.current = null;
+          }
+          
+          // Full state reset
           setIsConnected(false);
           setConnectionState('disconnected');
           setRemoteStream(null);
           setPeerNCEnabled(false);
+          modeLockedRef.current = false;
+          fallbackTriggeredRef.current = false;
+          connectionEstablishedRef.current = false;
+          pendingModeRef.current = null;
+          disconnectedSinceRef.current = null;
+          setConnectionMode('pending');
+          setConnectionDetails({ mode: 'pending' });
+          
+          // New PC for new session
+          rebuildPeerConnection('all');
           
           configRef.current.onRemoteStream?.(null);
           configRef.current.onPeerDisconnected?.();

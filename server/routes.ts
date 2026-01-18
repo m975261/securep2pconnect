@@ -159,24 +159,28 @@ function findReplaceablePeer(
     
     const isDeadSocket = peer.ws.readyState === WebSocket.CLOSING || peer.ws.readyState === WebSocket.CLOSED;
     
-    // SAFETY: Only consider dead sockets for replacement
-    if (!isDeadSocket) continue;
-    
-    // Priority 1: Same peerId (strongest identity) + dead socket
+    // Check for same peerId - ALWAYS replace (refresh = new session)
     if (joiningPeerId && peerId === joiningPeerId) {
       peerIdMatch = peerId;
+      continue;
     }
     
-    // Priority 2: Same createdBy (room owner) + dead socket
+    // Priority 2: Same createdBy (room owner) - ALWAYS replace (refresh = new session)
     // If joining user is room creator and existing peer was also room creator
-    if (joiningCreatedBy && roomCreatedBy && joiningCreatedBy === roomCreatedBy) {
+    if (joiningCreatedBy && roomCreatedBy && joiningCreatedBy === roomCreatedBy && peer.roomId === roomId) {
       createdByMatch = peerId;
+      continue;
     }
     
-    // Priority 3: Same IP + dead socket (last resort)
-    if (peer.ipAddress === joiningIP) {
+    // Priority 3: Same IP - ALWAYS replace for 1:1 rooms (refresh = new session)
+    // This handles the case where peerId changes on refresh
+    if (peer.ipAddress === joiningIP && peer.roomId === roomId) {
       ipMatch = peerId;
+      continue;
     }
+    
+    // For non-identity matches, only consider dead sockets
+    if (!isDeadSocket) continue;
   }
   
   // Return in priority order
@@ -203,8 +207,13 @@ function removePeerFromRoom(roomId: string, peerId: string): void {
     }
   }
   
+  // Always remove from activePeers (refresh = new session, force removal)
   const peer = activePeers.get(peerId);
-  if (peer && (peer.ws.readyState === WebSocket.CLOSING || peer.ws.readyState === WebSocket.CLOSED)) {
+  if (peer) {
+    // Close old socket if still open
+    if (peer.ws.readyState === WebSocket.OPEN) {
+      peer.ws.close();
+    }
     activePeers.delete(peerId);
   }
   
