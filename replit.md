@@ -3,15 +3,18 @@
 SECURE.LINK is a WebRTC communication application designed for secure, temporary, peer-to-peer (P2P-first) connections.
 
 ## Recent Changes (January 2026)
+- **Refresh = New Session Lifecycle:**
+  - Any refresh, disconnect, or network change creates a brand-new session
+  - No state preservation across sessions - all state cleared on page load
+  - Post-lock failures (ICE failed/disconnected) trigger session end, not recovery
+  - Fallback/grace timers only run during initial connection (pre-lock)
+  - Server forcibly evicts prior peers by peerId, createdBy, or IP regardless of socket state
 - **Server-Assigned Role Architecture:**
-  - Complete rewrite of WebRTC connection logic with strict state machine
   - Server assigns immutable roles: `controller` (first peer) or `follower` (second peer)
   - Only controller can: detect mode, trigger TURN fallback, broadcast mode to follower
   - Follower only receives and displays mode - never decides or triggers fallback
   - Mode is locked immediately once determined and never re-evaluated
   - Single-shot mode detection from getStats() - no polling
-  - 5-second fallback timer (controller-only) for TURN relay fallback
-  - Hard teardown on disconnect with clean rejoin (new role, new connection)
 - TURN/STUN hostname-only input normalization (auto-constructs full URLs)
 - Removed debug panel from room page
 
@@ -44,8 +47,8 @@ The frontend is built with React 18 and TypeScript, utilizing Wouter for routing
 - **Follower Responsibilities:** Only receive mode from controller and display it. Never detect, decide, or trigger fallback.
 - **Detection Method:** Controller uses `RTCPeerConnection.getStats()` to find selected candidate pair. `host/srflx` = P2P, `relay` = TURN.
 - **Mode Freeze:** Mode is locked immediately once determined. No re-evaluation, no polling, no mode changes after lock.
-- **Fallback Logic:** Controller starts 5-second timer when peer joins. If ICE not connected, creates relay-only connection (iceTransportPolicy: 'relay').
-- **Hard Teardown:** On disconnect/refresh, all state is discarded. Rejoining creates fresh connection with new role assignment.
+- **Fallback Logic:** Grace timer and relay fallback ONLY run during initial connection (pre-lock). Post-lock failures end session.
+- **Hard Teardown:** On refresh/disconnect, all state is discarded. Server evicts prior peers by peerId/createdBy/IP regardless of socket state.
 
 ## Backend Architecture
 
