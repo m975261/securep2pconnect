@@ -196,6 +196,7 @@ export default function Room() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             createdBy: peerId,
+            peerId: peerId,
           }),
         });
 
@@ -253,6 +254,7 @@ export default function Room() {
           password: passwordRequired ? password : undefined,
           nickname: nickname.trim(),
           createdBy: peerId,
+          peerId: peerId,
         }),
       });
 

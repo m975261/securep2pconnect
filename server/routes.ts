@@ -24,6 +24,7 @@ const joinRoomSchema = z.object({
   password: z.string().optional(),
   nickname: z.string().optional(),
   createdBy: z.string().optional(),
+  peerId: z.string().optional(),
 });
 
 const updateRoomPasswordSchema = z.object({
@@ -333,8 +334,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       pruneRoomStalePeers(id);
       
       // Step 2: Check for replaceable peer (identity-based)
-      // HTTP join doesn't have peerId (generated client-side), but has createdBy
-      const replaceable = findReplaceablePeer(id, undefined, body.createdBy, room.createdBy ?? undefined, ipAddress);
+      // HTTP join now includes peerId from client for immediate replacement on refresh
+      const replaceable = findReplaceablePeer(id, body.peerId, body.createdBy, room.createdBy ?? undefined, ipAddress);
       if (replaceable) {
         console.log(`[ROOM] replacing peer ${replaceable.peerId} (reason: ${replaceable.reason})`);
         removePeerFromRoom(id, replaceable.peerId);
