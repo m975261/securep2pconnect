@@ -957,6 +957,24 @@ export function useWebRTC(config: WebRTCConfig) {
           }
         } else if (message.type === 'peer-joined') {
           console.log('[WebRTC] Peer joined:', message.nickname);
+          
+          // Check if this is a NEW peer (different sessionId than before)
+          // If so, we need to rebuild the PeerConnection to accept their offer
+          const prevRemoteSessionId = remotePeerSessionIdRef.current;
+          if (message.sessionId && prevRemoteSessionId && message.sessionId !== prevRemoteSessionId) {
+            console.log('[WebRTC] New peer session detected - rebuilding PC');
+            // Reset mode detection state for new connection
+            modeLockedRef.current = false;
+            fallbackTriggeredRef.current = false;
+            connectionEstablishedRef.current = false;
+            pendingModeRef.current = null;
+            disconnectedSinceRef.current = null;
+            setConnectionMode('pending');
+            setConnectionDetails({ mode: 'pending' });
+            // Rebuild PC with fresh handlers
+            rebuildPeerConnection('all', createRelayConnection, detectAndLockMode);
+          }
+          
           // Store remote peer's sessionId for future validation
           if (message.sessionId) {
             remotePeerSessionIdRef.current = message.sessionId;
