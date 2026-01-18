@@ -964,38 +964,30 @@ export function useWebRTC(config: WebRTCConfig) {
           setPeerNCEnabled(message.data?.enabled ?? false);
           configRef.current.onPeerNCStatusChange?.(message.data?.enabled ?? false);
         } else if (message.type === 'peer-left') {
-          // Only hard reset after mode is locked
-          // During negotiation (modeLocked === false), ignore peer-left to let negotiation finish
-          if (!modeLockedRef.current) {
-            console.log('[WebRTC] peer-left during negotiation — ignoring (mode not locked)');
-            return;
-          }
+          // ALWAYS hard reset on peer-left - no conditions
+          // Refresh = new peer, new session, new mode detection
+          console.log('[WebRTC] peer-left → hard reset (always)');
           
-          // Treat peer-left as terminal event - immediate hard reset
-          // Refresh = new peer joining new session state
-          console.log('[WebRTC] peer-left → hard reset');
-          
-          // Clear mode detection retry timer
+          // Clear all timers
           if (modeDetectionRetryRef.current) {
             clearTimeout(modeDetectionRetryRef.current);
             modeDetectionRetryRef.current = null;
           }
+          if (disconnectedTimerRef.current) {
+            clearInterval(disconnectedTimerRef.current);
+            disconnectedTimerRef.current = null;
+          }
           
+          // Reset all state
           setIsConnected(false);
           setConnectionState('disconnected');
           setRemoteStream(null);
           setPeerNCEnabled(false);
-          
-          // Hard reset all mode and connection state
           modeLockedRef.current = false;
           fallbackTriggeredRef.current = false;
           connectionEstablishedRef.current = false;
           pendingModeRef.current = null;
           disconnectedSinceRef.current = null;
-          if (disconnectedTimerRef.current) {
-            clearInterval(disconnectedTimerRef.current);
-            disconnectedTimerRef.current = null;
-          }
           setConnectionMode('pending');
           setConnectionDetails({ mode: 'pending' });
           
