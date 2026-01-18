@@ -819,6 +819,10 @@ export function useWebRTC(config: WebRTCConfig) {
     // Flush any pending remote candidates (from previous session or early arrivals)
     flushPendingRemoteCandidates();
 
+    // Heartbeat interval reference - cleared on cleanup
+    let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+    const heartbeatSessionId = sessionIdRef.current; // Capture session for closure
+    
     ws.onopen = () => {
       console.log('[WS] Connected, joining room');
       ws.send(JSON.stringify({
@@ -832,6 +836,22 @@ export function useWebRTC(config: WebRTCConfig) {
       // Flush pending ICE candidates
       pendingIceCandidates.forEach(c => ws.send(JSON.stringify({ type: 'ice-candidate', data: c, sessionId: sessionIdRef.current })));
       pendingIceCandidates.length = 0;
+      
+      // Start heartbeat - sends ping every 20 seconds to keep connection alive
+      // Stops if: WS closes, session changes, or cleanup runs
+      heartbeatInterval = setInterval(() => {
+        // Stop if session changed (refresh = new session)
+        if (sessionIdRef.current !== heartbeatSessionId) {
+          if (heartbeatInterval) clearInterval(heartbeatInterval);
+          return;
+        }
+        // Only send if WS is open
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'ping' }));
+        } else {
+          if (heartbeatInterval) clearInterval(heartbeatInterval);
+        }
+      }, 20000);
     };
 
     ws.onmessage = async (event) => {
@@ -1085,12 +1105,23 @@ export function useWebRTC(config: WebRTCConfig) {
 
     ws.onclose = () => {
       console.log('[WS] Closed');
+      // Clear heartbeat on WS close
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
       setConnectionState('disconnected');
     };
 
     // Cleanup on unmount
     return () => {
       console.log('[WebRTC] Cleanup');
+      
+      // Clear heartbeat interval
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
       
       // Clear grace window timer
       if (disconnectedTimerRef.current) {

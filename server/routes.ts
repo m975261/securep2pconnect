@@ -32,7 +32,7 @@ const updateRoomPasswordSchema = z.object({
 });
 
 interface WebRTCMessage {
-  type: "offer" | "answer" | "ice-candidate" | "join" | "leave" | "peer-joined" | "peer-left" | "chat" | "file-metadata" | "file-chunk" | "file-eof" | "nc-status" | "connection-mode" | "session-end" | "end-session";
+  type: "offer" | "answer" | "ice-candidate" | "join" | "leave" | "peer-joined" | "peer-left" | "chat" | "file-metadata" | "file-chunk" | "file-eof" | "nc-status" | "connection-mode" | "session-end" | "end-session" | "ping";
   roomId?: string;
   data?: any;
   peerId?: string;
@@ -417,6 +417,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on("message", async (data: Buffer) => {
       try {
         const message: WebRTCMessage = JSON.parse(data.toString());
+
+        // Heartbeat: respond to ping with pong - no state changes, no side effects
+        if (message.type === "ping") {
+          ws.send(JSON.stringify({ type: "pong" }));
+          return;
+        }
 
         if (message.type === "join" && message.roomId && message.peerId) {
           const room = await storage.getRoom(message.roomId);
