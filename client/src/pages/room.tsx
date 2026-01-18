@@ -27,10 +27,13 @@ export default function Room() {
   const searchParams = new URLSearchParams(window.location.search);
   const nicknameFromUrl = searchParams.get('nickname') || '';
   const [peerId] = useState(() => {
-    const stored = localStorage.getItem(`creator_${roomId}`);
+    // Use sessionStorage so peerId persists across refresh but is unique per tab
+    // This allows the server to recognize and replace old connection on refresh
+    const storageKey = `peerId_${roomId}`;
+    const stored = sessionStorage.getItem(storageKey);
     if (stored) return stored;
     const newId = Math.random().toString(36).substring(7);
-    localStorage.setItem(`creator_${roomId}`, newId);
+    sessionStorage.setItem(storageKey, newId);
     return newId;
   });
   const [nickname, setNickname] = useState(nicknameFromUrl);
