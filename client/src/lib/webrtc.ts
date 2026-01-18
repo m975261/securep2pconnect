@@ -171,6 +171,9 @@ export function useWebRTC(config: WebRTCConfig) {
   // Mode detection retry timer (cleared on hard reset)
   const modeDetectionRetryRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Post-lock failure debounce timer (allows recovery window before clean leave)
+  const postLockFailureTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
   // Config ref for callbacks
   const configRef = useRef(config);
   useEffect(() => { configRef.current = config; });
@@ -361,41 +364,60 @@ export function useWebRTC(config: WebRTCConfig) {
       }
       console.log('[Connection]', pc.connectionState);
       
-      // Post-lock connection failed = terminal event, not recoverable
-      // Send explicit leave to server and hard reset locally
+      // Post-lock connection failed: debounce before clean leave
+      // Allows recovery window for transient failures (refresh, network switch)
       if (modeLockedRef.current && pc.connectionState === 'failed') {
-        console.log('[WebRTC] post-lock connection failed → clean leave');
-        const ws = wsRef.current;
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'leave' }));
+        if (!postLockFailureTimerRef.current) {
+          console.log('[WebRTC] post-lock failed — waiting for recovery (2s)');
+          postLockFailureTimerRef.current = setTimeout(() => {
+            postLockFailureTimerRef.current = null;
+            // Check if still failed after debounce
+            const currentPc = pcRef.current;
+            if (!currentPc || currentPc.connectionState !== 'failed') {
+              console.log('[WebRTC] post-lock failure resolved — cancel clean leave');
+              return;
+            }
+            
+            console.log('[WebRTC] post-lock failure persisted → clean leave');
+            const ws = wsRef.current;
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: 'leave' }));
+            }
+            
+            // Hard reset locally
+            if (modeDetectionRetryRef.current) {
+              clearTimeout(modeDetectionRetryRef.current);
+              modeDetectionRetryRef.current = null;
+            }
+            
+            setIsConnected(false);
+            setConnectionState('disconnected');
+            setRemoteStream(null);
+            setPeerNCEnabled(false);
+            modeLockedRef.current = false;
+            fallbackTriggeredRef.current = false;
+            connectionEstablishedRef.current = false;
+            pendingModeRef.current = null;
+            disconnectedSinceRef.current = null;
+            if (disconnectedTimerRef.current) {
+              clearInterval(disconnectedTimerRef.current);
+              disconnectedTimerRef.current = null;
+            }
+            setConnectionMode('pending');
+            setConnectionDetails({ mode: 'pending' });
+            rebuildPeerConnection('all');
+            configRef.current.onRemoteStream?.(null);
+            configRef.current.onPeerDisconnected?.();
+          }, 2000);
         }
-        
-        // Hard reset locally (don't rely on server response)
-        // Clear mode detection retry timer
-        if (modeDetectionRetryRef.current) {
-          clearTimeout(modeDetectionRetryRef.current);
-          modeDetectionRetryRef.current = null;
-        }
-        
-        setIsConnected(false);
-        setConnectionState('disconnected');
-        setRemoteStream(null);
-        setPeerNCEnabled(false);
-        modeLockedRef.current = false;
-        fallbackTriggeredRef.current = false;
-        connectionEstablishedRef.current = false;
-        pendingModeRef.current = null;
-        disconnectedSinceRef.current = null;
-        if (disconnectedTimerRef.current) {
-          clearInterval(disconnectedTimerRef.current);
-          disconnectedTimerRef.current = null;
-        }
-        setConnectionMode('pending');
-        setConnectionDetails({ mode: 'pending' });
-        rebuildPeerConnection('all');
-        configRef.current.onRemoteStream?.(null);
-        configRef.current.onPeerDisconnected?.();
         return;
+      }
+      
+      // Post-lock recovery: cancel pending clean leave
+      if (modeLockedRef.current && pc.connectionState === 'connected' && postLockFailureTimerRef.current) {
+        console.log('[WebRTC] post-lock recovered — cancel clean leave');
+        clearTimeout(postLockFailureTimerRef.current);
+        postLockFailureTimerRef.current = null;
       }
       
       if (pc.connectionState === 'connected') {
@@ -976,6 +998,10 @@ export function useWebRTC(config: WebRTCConfig) {
           if (disconnectedTimerRef.current) {
             clearInterval(disconnectedTimerRef.current);
             disconnectedTimerRef.current = null;
+          }
+          if (postLockFailureTimerRef.current) {
+            clearTimeout(postLockFailureTimerRef.current);
+            postLockFailureTimerRef.current = null;
           }
           
           // Reset all state
