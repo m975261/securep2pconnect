@@ -314,15 +314,9 @@ export function useWebRTC(config: WebRTCConfig) {
 
       // Soft failure → grace timer (ONLY during initial connection, pre-lock)
       if (state === 'disconnected') {
-        // After mode lock: no recovery, close WS so server can prune peer
+        // After mode lock: just log, ICE may recover. Only 'failed' is permanent.
         if (modeLockedRef.current || connectionEstablishedRef.current) {
-          console.log('[ICE] disconnected post-lock - closing WS for cleanup');
-          const ws = wsRef.current;
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.close(1000, 'ICE disconnected post-lock');
-          }
-          setConnectionMode('pending');
-          configRef.current.onPeerDisconnected?.();
+          console.log('[ICE] disconnected post-lock - waiting for recovery or failure');
           return;
         }
         // Relay is final - no grace timers after fallback
