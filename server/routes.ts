@@ -167,22 +167,20 @@ function findReplaceablePeer(
       continue;
     }
     
-    // Priority 2: Same createdBy (room owner) - ALWAYS replace (refresh = new session)
+    // Priority 2: Same createdBy (room owner) with dead socket only
     // If joining user is room creator and existing peer was also room creator
-    if (joiningCreatedBy && roomCreatedBy && joiningCreatedBy === roomCreatedBy && peer.roomId === roomId) {
+    if (isDeadSocket && joiningCreatedBy && roomCreatedBy && joiningCreatedBy === roomCreatedBy && peer.roomId === roomId) {
       createdByMatch = peerId;
       continue;
     }
     
-    // Priority 3: Same IP - ALWAYS replace for 1:1 rooms (refresh = new session)
-    // This handles the case where peerId changes on refresh
-    if (peer.ipAddress === joiningIP && peer.roomId === roomId) {
+    // Priority 3: Same IP with dead socket only
+    // This handles the case where peerId changes on refresh but old connection is stale
+    // NEVER replace active connections from same IP (allows testing from same machine)
+    if (isDeadSocket && peer.ipAddress === joiningIP && peer.roomId === roomId) {
       ipMatch = peerId;
       continue;
     }
-    
-    // For non-identity matches, only consider dead sockets
-    if (!isDeadSocket) continue;
   }
   
   // Return in priority order
