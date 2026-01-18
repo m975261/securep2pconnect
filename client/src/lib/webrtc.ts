@@ -168,6 +168,9 @@ export function useWebRTC(config: WebRTCConfig) {
   const disconnectedSinceRef = useRef<number | null>(null);
   const disconnectedTimerRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Mode detection retry timer (cleared on hard reset)
+  const modeDetectionRetryRef = useRef<NodeJS.Timeout | null>(null);
+  
   // Config ref for callbacks
   const configRef = useRef(config);
   useEffect(() => { configRef.current = config; });
@@ -368,6 +371,12 @@ export function useWebRTC(config: WebRTCConfig) {
         }
         
         // Hard reset locally (don't rely on server response)
+        // Clear mode detection retry timer
+        if (modeDetectionRetryRef.current) {
+          clearTimeout(modeDetectionRetryRef.current);
+          modeDetectionRetryRef.current = null;
+        }
+        
         setIsConnected(false);
         setConnectionState('disconnected');
         setRemoteStream(null);
@@ -521,7 +530,21 @@ export function useWebRTC(config: WebRTCConfig) {
                            candidatePairs.find((r: any) => r.state === 'succeeded');
       
       if (!selectedPair) {
-        console.log('[MODE] no selected pair yet — will retry on next event');
+        console.log('[MODE] no selected pair yet — scheduling retry');
+        // Schedule bounded retry (300ms) - cleared on hard reset
+        // Capture current PC to guard against stale timer firing after reset
+        const currentPc = pcRef.current;
+        if (!modeDetectionRetryRef.current) {
+          modeDetectionRetryRef.current = setTimeout(() => {
+            modeDetectionRetryRef.current = null;
+            // Guard: only retry if PC is still the same (no reset occurred)
+            if (pcRef.current !== currentPc || pcRef.current?.connectionState === 'closed') {
+              console.log('[MODE] stale retry — PC changed, skipping');
+              return;
+            }
+            detectAndLockMode();
+          }, 300);
+        }
         return;
       }
       
@@ -941,9 +964,22 @@ export function useWebRTC(config: WebRTCConfig) {
           setPeerNCEnabled(message.data?.enabled ?? false);
           configRef.current.onPeerNCStatusChange?.(message.data?.enabled ?? false);
         } else if (message.type === 'peer-left') {
+          // Only hard reset after mode is locked
+          // During negotiation (modeLocked === false), ignore peer-left to let negotiation finish
+          if (!modeLockedRef.current) {
+            console.log('[WebRTC] peer-left during negotiation — ignoring (mode not locked)');
+            return;
+          }
+          
           // Treat peer-left as terminal event - immediate hard reset
           // Refresh = new peer joining new session state
           console.log('[WebRTC] peer-left → hard reset');
+          
+          // Clear mode detection retry timer
+          if (modeDetectionRetryRef.current) {
+            clearTimeout(modeDetectionRetryRef.current);
+            modeDetectionRetryRef.current = null;
+          }
           
           setIsConnected(false);
           setConnectionState('disconnected');
