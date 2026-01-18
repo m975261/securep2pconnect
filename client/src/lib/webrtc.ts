@@ -377,7 +377,7 @@ export function useWebRTC(config: WebRTCConfig) {
       }
     };
 
-    // connectionState for logging/backup mode detection only
+    // connectionState for logging/backup mode detection and failure cleanup
     pc.onconnectionstatechange = () => {
       // Relay is final - completely ignore connectionState during relay
       if (fallbackTriggeredRef.current) {
@@ -389,6 +389,19 @@ export function useWebRTC(config: WebRTCConfig) {
       if (pc.connectionState === 'connected') {
         if (roleRef.current === 'controller' && !modeLockedRef.current) {
           detectAndLockModeFn();
+        }
+      }
+      
+      // Handle permanent connection failure post-lock
+      if (pc.connectionState === 'failed') {
+        if (modeLockedRef.current || connectionEstablishedRef.current) {
+          console.log('[Connection] failed post-lock - closing WS for cleanup');
+          const ws = wsRef.current;
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.close(1000, 'Connection failed post-lock');
+          }
+          setConnectionMode('pending');
+          configRef.current.onPeerDisconnected?.();
         }
       }
     };
