@@ -284,9 +284,15 @@ export function useWebRTC(config: WebRTCConfig) {
 
       // Hard failure → immediate fallback (ONLY during initial connection, pre-lock)
       if (state === 'failed') {
-        // After mode lock: no recovery, session ends via peer-left
+        // After mode lock: no recovery, close WS so server can prune peer
         if (modeLockedRef.current || connectionEstablishedRef.current) {
-          console.log('[ICE] failed post-lock - no recovery, session will end');
+          console.log('[ICE] failed post-lock - closing WS for cleanup');
+          const ws = wsRef.current;
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.close(1000, 'ICE failed post-lock');
+          }
+          setConnectionMode('pending');
+          configRef.current.onPeerDisconnected?.();
           return;
         }
         // Relay is final - no more fallback logic
@@ -308,9 +314,15 @@ export function useWebRTC(config: WebRTCConfig) {
 
       // Soft failure → grace timer (ONLY during initial connection, pre-lock)
       if (state === 'disconnected') {
-        // After mode lock: no recovery, session ends via peer-left
+        // After mode lock: no recovery, close WS so server can prune peer
         if (modeLockedRef.current || connectionEstablishedRef.current) {
-          console.log('[ICE] disconnected post-lock - no recovery, session will end');
+          console.log('[ICE] disconnected post-lock - closing WS for cleanup');
+          const ws = wsRef.current;
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.close(1000, 'ICE disconnected post-lock');
+          }
+          setConnectionMode('pending');
+          configRef.current.onPeerDisconnected?.();
           return;
         }
         // Relay is final - no grace timers after fallback
