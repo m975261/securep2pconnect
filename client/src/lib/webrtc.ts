@@ -944,23 +944,16 @@ export function useWebRTC(config: WebRTCConfig) {
           setPeerNCEnabled(message.data?.enabled ?? false);
           configRef.current.onPeerNCStatusChange?.(message.data?.enabled ?? false);
         } else if (message.type === 'peer-left') {
-          // peer-left = peer presence update, NOT session end
-          // Allow rejoin - just update presence state
-          console.log('[WebRTC] peer-left → updating presence (awaiting rejoin)');
+          // peer-left = peer presence update ONLY
+          // Session state (modeLockedRef, fallbackTriggeredRef, etc.) is PRESERVED
+          // Rejoin will reuse existing session state
+          console.log('[WebRTC] peer-left → presence update only (session state preserved)');
           
-          // Update presence but keep session alive
+          // Update presence only - do NOT touch session state
           setIsConnected(false);
           setConnectionState('disconnected');
           setRemoteStream(null);
           setPeerNCEnabled(false);
-          
-          // Reset mode and negotiation state for clean rejoin
-          modeLockedRef.current = false;
-          fallbackTriggeredRef.current = false;
-          connectionEstablishedRef.current = false;
-          pendingModeRef.current = null;
-          setConnectionMode('pending');
-          setConnectionDetails({ mode: 'pending' });
           
           configRef.current.onRemoteStream?.(null);
           configRef.current.onPeerDisconnected?.();
