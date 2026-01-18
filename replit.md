@@ -3,6 +3,11 @@
 SECURE.LINK is a WebRTC communication application designed for secure, temporary, peer-to-peer (P2P-first) connections.
 
 ## Recent Changes (January 2026)
+- **Session Scoping with sessionId:**
+  - Each page load generates a fresh UUID sessionId
+  - All signaling messages include sessionId
+  - Stale events from old sessions are ignored (prevents random kicks after refresh)
+  - Client tracks remote peer's sessionId to filter stale remote events
 - **Refresh = New Session Lifecycle:**
   - Any refresh, disconnect, or network change creates a brand-new session
   - No state preservation across sessions - all state cleared on page load

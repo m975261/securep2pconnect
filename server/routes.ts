@@ -38,6 +38,7 @@ interface WebRTCMessage {
   peerId?: string;
   nickname?: string;
   mode?: string;
+  sessionId?: string;
 }
 
 interface RoomPeer {
@@ -47,6 +48,7 @@ interface RoomPeer {
   nickname?: string;
   role?: 'controller' | 'follower';
   ipAddress?: string;
+  sessionId?: string;
 }
 
 const activePeers = new Map<string, RoomPeer>();
@@ -461,6 +463,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             nickname: message.nickname,
             role,
             ipAddress,
+            sessionId: message.sessionId,
           };
 
           activePeers.set(message.peerId, currentPeer);
@@ -492,11 +495,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (peerId !== message.peerId) {
               const peer = activePeers.get(peerId);
               if (peer && peer.ws.readyState === WebSocket.OPEN) {
+                // Include joining peer's sessionId so receiver can scope events
                 peer.ws.send(JSON.stringify({
                   type: "peer-joined",
                   peerId: message.peerId,
                   nickname: message.nickname,
                   peerRole: role, // Tell existing peer the new peer's role
+                  sessionId: message.sessionId,
                 }));
               }
             }
@@ -508,14 +513,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               peerId: id,
               nickname: activePeers.get(id)?.nickname,
               role: activePeers.get(id)?.role,
+              sessionId: activePeers.get(id)?.sessionId,
             }));
 
-          // Send joined message with role assignment
+          // Send joined message with role assignment - include sessionId for session scoping
           ws.send(JSON.stringify({
             type: "joined",
             peerId: message.peerId,
             role, // Immutable role assignment from server
             existingPeers: existingPeersWithNicknames,
+            sessionId: message.sessionId,
           }));
         } else if (currentPeer && (message.type === "offer" || message.type === "answer" || message.type === "ice-candidate")) {
           const peers = roomPeers.get(currentPeer.roomId);
@@ -531,10 +538,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   if (message.type === "ice-candidate") {
                     console.log(`[WebSocket] Relaying ICE candidate to ${peerId}`);
                   }
+                  // Echo sender's sessionId so receiver can filter stale events
                   peer.ws.send(JSON.stringify({
                     type: message.type,
                     data: message.data,
                     from: currentPeer!.peerId,
+                    sessionId: message.sessionId,
                   }));
                   relayedTo++;
                 }
@@ -555,6 +564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     type: "chat",
                     data: message.data,
                     from: currentPeer!.peerId,
+                    sessionId: message.sessionId,
                   }));
                 }
               }
@@ -576,6 +586,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     type: message.type,
                     data: enrichedData,
                     from: currentPeer!.peerId,
+                    sessionId: message.sessionId,
                   }));
                 }
               }
@@ -593,6 +604,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     type: "nc-status",
                     data: message.data,
                     from: currentPeer!.peerId,
+                    sessionId: message.sessionId,
                   }));
                 }
               }
@@ -616,7 +628,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 if (remainingPeer) {
                   remainingPeer.role = 'controller';
                   if (remainingPeer.ws.readyState === WebSocket.OPEN) {
-                    remainingPeer.ws.send(JSON.stringify({ type: "role-update", role: "controller" }));
+                    // Include leaving peer's sessionId so receiver can scope events
+                    remainingPeer.ws.send(JSON.stringify({ type: "role-update", role: "controller", sessionId: currentPeer!.sessionId }));
                   }
                 }
               }
@@ -626,7 +639,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             peers.forEach((peerId) => {
               const peer = activePeers.get(peerId);
               if (peer && peer.ws.readyState === WebSocket.OPEN) {
-                peer.ws.send(JSON.stringify({ type: "peer-left", peerId: currentPeer!.peerId }));
+                // Include sessionId so receiver can filter stale peer-left events
+                peer.ws.send(JSON.stringify({ type: "peer-left", peerId: currentPeer!.peerId, sessionId: currentPeer!.sessionId }));
               }
             });
             
@@ -658,6 +672,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     type: "connection-mode",
                     mode: message.mode,
                     from: currentPeer!.peerId,
+                    sessionId: message.sessionId,
                   }));
                   relayedCount++;
                 }
@@ -722,9 +737,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 remainingPeer.role = 'controller';
                 // Notify the remaining peer of their new role
                 if (remainingPeer.ws.readyState === WebSocket.OPEN) {
+                  // Include leaving peer's sessionId so receiver can scope events
                   remainingPeer.ws.send(JSON.stringify({
                     type: "role-update",
                     role: "controller",
+                    sessionId: currentPeer!.sessionId,
                   }));
                 }
               }
@@ -734,9 +751,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           peers.forEach((peerId) => {
             const peer = activePeers.get(peerId);
             if (peer && peer.ws.readyState === WebSocket.OPEN) {
+              // Include sessionId so receiver can filter stale peer-left events
               peer.ws.send(JSON.stringify({
                 type: "peer-left",
                 peerId: currentPeer!.peerId,
+                sessionId: currentPeer!.sessionId,
               }));
             }
           });

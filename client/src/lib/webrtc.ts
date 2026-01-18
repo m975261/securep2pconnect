@@ -140,6 +140,11 @@ export function useWebRTC(config: WebRTCConfig) {
   const rawStreamRef = useRef<MediaStream | null>(null);
   const noiseSuppressedPipelineRef = useRef<NoiseSuppressedStream | null>(null);
   
+  // Session ID - generated fresh on every page load, used to filter stale events
+  const sessionIdRef = useRef<string>(crypto.randomUUID());
+  // Remote peer's sessionId - stored when they join, used to validate their messages
+  const remotePeerSessionIdRef = useRef<string | null>(null);
+  
   // Role and mode state (immutable once set)
   const roleRef = useRef<PeerRole>(null);
   const modeLockedRef = useRef(false);
@@ -230,7 +235,7 @@ export function useWebRTC(config: WebRTCConfig) {
         
         const ws = wsRef.current;
         if (ws?.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'ice-candidate', data: event.candidate }));
+          ws.send(JSON.stringify({ type: 'ice-candidate', data: event.candidate, sessionId: sessionIdRef.current }));
         } else if (pendingCandidates) {
           // Buffer for later (initial PC only, before WS is open)
           pendingCandidates.push(event.candidate);
@@ -468,7 +473,7 @@ export function useWebRTC(config: WebRTCConfig) {
     if (roleRef.current === 'controller') {
       const ws = wsRef.current;
       if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'connection-mode', mode }));
+        ws.send(JSON.stringify({ type: 'connection-mode', mode, sessionId: sessionIdRef.current }));
         console.log('[WebRTC] Controller broadcasted mode:', mode);
       }
     }
@@ -600,7 +605,7 @@ export function useWebRTC(config: WebRTCConfig) {
     if (ws?.readyState === WebSocket.OPEN) {
       newPc.createOffer().then(offer => newPc.setLocalDescription(offer))
         .then(() => {
-          ws.send(JSON.stringify({ type: 'offer', data: newPc.localDescription }));
+          ws.send(JSON.stringify({ type: 'offer', data: newPc.localDescription, sessionId: sessionIdRef.current }));
           console.log('[Relay] Offer sent');
         }).catch(err => console.error('[Relay] Error:', err));
     }
@@ -612,6 +617,7 @@ export function useWebRTC(config: WebRTCConfig) {
       ws.send(JSON.stringify({
         type: 'chat',
         data: { ...message, from: configRef.current.peerId, fromNickname: configRef.current.nickname },
+        sessionId: sessionIdRef.current,
       }));
     }
   }, []);
@@ -639,6 +645,7 @@ export function useWebRTC(config: WebRTCConfig) {
         ws.send(JSON.stringify({
           type: 'file-metadata',
           data: { name: file.name, size: file.size, type: file.type, from: configRef.current.peerId, fromNickname: configRef.current.nickname },
+          sessionId: sessionIdRef.current,
         }));
         
         const chunkSize = 16384;
@@ -655,14 +662,14 @@ export function useWebRTC(config: WebRTCConfig) {
           const bytes = new Uint8Array(chunk);
           let binary = '';
           for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-          ws.send(JSON.stringify({ type: 'file-chunk', data: btoa(binary) }));
+          ws.send(JSON.stringify({ type: 'file-chunk', data: btoa(binary), sessionId: sessionIdRef.current }));
           
           chunksSent++;
           options?.onProgress?.(Math.round((chunksSent / totalChunks) * 100));
           await new Promise(r => setTimeout(r, 0));
         }
         
-        ws.send(JSON.stringify({ type: 'file-eof', data: null }));
+        ws.send(JSON.stringify({ type: 'file-eof', data: null, sessionId: sessionIdRef.current }));
         resolve();
       };
       reader.onerror = reject;
@@ -673,7 +680,7 @@ export function useWebRTC(config: WebRTCConfig) {
   const sendNCStatus = useCallback((enabled: boolean) => {
     const ws = wsRef.current;
     if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'nc-status', data: { enabled } }));
+      ws.send(JSON.stringify({ type: 'nc-status', data: { enabled }, sessionId: sessionIdRef.current }));
     }
   }, []);
 
@@ -710,7 +717,7 @@ export function useWebRTC(config: WebRTCConfig) {
           negotiatingRef.current = true;
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
-          wsRef.current?.send(JSON.stringify({ type: 'offer', data: offer }));
+          wsRef.current?.send(JSON.stringify({ type: 'offer', data: offer, sessionId: sessionIdRef.current }));
         }
       }
     } catch (error) {
@@ -744,6 +751,11 @@ export function useWebRTC(config: WebRTCConfig) {
 
     // HARD RESET: Clear ALL state for completely fresh session
     // Refresh = new session, always
+    // Generate new sessionId for this session
+    sessionIdRef.current = crypto.randomUUID();
+    remotePeerSessionIdRef.current = null;
+    console.log('[WebRTC] New session started:', sessionIdRef.current.slice(0, 8));
+    
     roleRef.current = null;
     modeLockedRef.current = false;
     fallbackTriggeredRef.current = false;
@@ -814,16 +826,36 @@ export function useWebRTC(config: WebRTCConfig) {
         roomId: config.roomId,
         peerId: config.peerId,
         nickname: config.nickname,
+        sessionId: sessionIdRef.current,
       }));
 
       // Flush pending ICE candidates
-      pendingIceCandidates.forEach(c => ws.send(JSON.stringify({ type: 'ice-candidate', data: c })));
+      pendingIceCandidates.forEach(c => ws.send(JSON.stringify({ type: 'ice-candidate', data: c, sessionId: sessionIdRef.current })));
       pendingIceCandidates.length = 0;
     };
 
     ws.onmessage = async (event) => {
       try {
         const message = JSON.parse(event.data);
+        const myPeerId = config.peerId;
+        
+        // === SESSION SCOPING ===
+        // 1. Stale SELF events: ignore peer-left/joined about MY peerId with OLD sessionId
+        //    (handles refresh: old session's peer-left arrives at new session)
+        const isSelfEvent = message.peerId === myPeerId;
+        if (isSelfEvent && message.sessionId && message.sessionId !== sessionIdRef.current) {
+          console.log('[WebRTC] Ignoring stale self-event:', message.type, message.sessionId?.slice(0, 8));
+          return;
+        }
+        
+        // 2. Stale REMOTE events: ignore events from remote peer with OLD sessionId
+        //    (handles remote refresh: old session's signaling arrives after they rejoin)
+        const isRemoteEvent = message.from && message.from !== myPeerId;
+        if (isRemoteEvent && remotePeerSessionIdRef.current && message.sessionId && 
+            message.sessionId !== remotePeerSessionIdRef.current) {
+          console.log('[WebRTC] Ignoring stale remote event:', message.type, message.sessionId?.slice(0, 8));
+          return;
+        }
 
         if (message.type === 'joined') {
           // SERVER ASSIGNED ROLE - immutable
@@ -842,7 +874,14 @@ export function useWebRTC(config: WebRTCConfig) {
           
           // If there's already a peer (we're the second to join)
           if (message.existingPeers?.length > 0) {
-            configRef.current.onPeerConnected?.({ nickname: message.existingPeers[0]?.nickname });
+            const existingPeer = message.existingPeers[0];
+            configRef.current.onPeerConnected?.({ nickname: existingPeer?.nickname });
+            
+            // Store existing peer's sessionId if available (for session scoping)
+            if (existingPeer?.sessionId) {
+              remotePeerSessionIdRef.current = existingPeer.sessionId;
+              console.log('[WebRTC] Stored existing peer sessionId:', existingPeer.sessionId.slice(0, 8));
+            }
             
             // Controller (first peer, room creator) waits for follower's offer
             // Follower (joiner) creates and sends offer
@@ -850,7 +889,7 @@ export function useWebRTC(config: WebRTCConfig) {
               console.log('[Follower] Creating initial offer');
               const offer = await pc.createOffer();
               await pc.setLocalDescription(offer);
-              ws.send(JSON.stringify({ type: 'offer', data: offer }));
+              ws.send(JSON.stringify({ type: 'offer', data: offer, sessionId: sessionIdRef.current }));
             }
           }
         } else if (message.type === 'role-update') {
@@ -867,6 +906,11 @@ export function useWebRTC(config: WebRTCConfig) {
           }
         } else if (message.type === 'peer-joined') {
           console.log('[WebRTC] Peer joined:', message.nickname);
+          // Store remote peer's sessionId for future validation
+          if (message.sessionId) {
+            remotePeerSessionIdRef.current = message.sessionId;
+            console.log('[WebRTC] Stored remote peer sessionId:', message.sessionId.slice(0, 8));
+          }
           setIsConnected(true);
           setConnectionState('connected');
           configRef.current.onPeerConnected?.({ nickname: message.nickname });
@@ -881,7 +925,7 @@ export function useWebRTC(config: WebRTCConfig) {
           
           const answer = await currentPc.createAnswer();
           await currentPc.setLocalDescription(answer);
-          ws.send(JSON.stringify({ type: 'answer', data: answer }));
+          ws.send(JSON.stringify({ type: 'answer', data: answer, sessionId: sessionIdRef.current }));
           console.log('[WebRTC] Answer sent');
         } else if (message.type === 'answer') {
           const currentPc = pcRef.current;
@@ -992,6 +1036,7 @@ export function useWebRTC(config: WebRTCConfig) {
           fallbackTriggeredRef.current = false;
           connectionEstablishedRef.current = false;
           pendingModeRef.current = null;
+          remotePeerSessionIdRef.current = null; // Clear for next peer
           disconnectedSinceRef.current = null;
           setConnectionMode('pending');
           setConnectionDetails({ mode: 'pending' });
