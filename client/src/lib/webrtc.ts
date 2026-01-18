@@ -397,7 +397,13 @@ export function useWebRTC(config: WebRTCConfig) {
   }, []);
 
   // Helper: rebuild RTCPeerConnection with clean state
-  const rebuildPeerConnection = useCallback((iceTransportPolicy: 'all' | 'relay' = 'all') => {
+  // INVARIANT: Every RTCPeerConnection must have handlers attached exactly once
+  // This function ALWAYS attaches handlers internally - callers should NOT call attachPeerConnectionHandlers separately
+  const rebuildPeerConnection = useCallback((
+    iceTransportPolicy: 'all' | 'relay' = 'all',
+    createRelayConnectionFn?: () => void,
+    detectAndLockModeFn?: () => void
+  ) => {
     // Close existing connection (removes all listeners)
     pcRef.current?.close();
     
@@ -428,18 +434,26 @@ export function useWebRTC(config: WebRTCConfig) {
     pcRef.current = newPc;
     
     // Setup data channel
-    newPc.createDataChannel('connection-init', { negotiated: true, id: 0 });
+    const dataChannel = newPc.createDataChannel('connection-init', { negotiated: true, id: 0 });
+    dataChannel.onopen = () => {
+      console.log('[DataChannel] opened');
+    };
     
     // Re-add local stream tracks
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => newPc.addTrack(track, localStreamRef.current!));
     }
     
-    // Note: Caller must attach handlers via attachPeerConnectionHandlers()
-    // Note: Caller should call flushPendingRemoteCandidates() after remote description is set
+    // ALWAYS attach handlers - this is the invariant
+    // Use no-op functions if not provided (e.g., during hard reset waiting for new peer)
+    attachPeerConnectionHandlers(
+      newPc,
+      createRelayConnectionFn || (() => {}),
+      detectAndLockModeFn || (() => {})
+    );
     
     return newPc;
-  }, []);
+  }, [attachPeerConnectionHandlers]);
 
   // Flush buffered remote ICE candidates into current PC
   // This is the ONLY place that clears the buffer
@@ -592,24 +606,22 @@ export function useWebRTC(config: WebRTCConfig) {
       ws.send(JSON.stringify({ type: 'relay-restart' }));
     }
     
-    // Rebuild PC with relay-only policy
-    const newPc = rebuildPeerConnection('relay');
-    
-    // Attach FULL handlers to relay PC (same as initial PC)
-    // Note: We pass a no-op for createRelayConnection since fallback is already triggered
-    attachPeerConnectionHandlers(newPc, () => {}, detectAndLockMode);
+    // Rebuild PC with relay-only policy (handlers attached internally)
+    // Pass no-op for createRelayConnection since fallback is already triggered
+    rebuildPeerConnection('relay', () => {}, detectAndLockMode);
     flushPendingRemoteCandidates();
     console.log('[RELAY] handlers attached to relay PeerConnection');
     
-    // Create and send offer
-    if (ws?.readyState === WebSocket.OPEN) {
-      newPc.createOffer().then(offer => newPc.setLocalDescription(offer))
+    // Create and send offer using the rebuilt PC
+    const relayPc = pcRef.current;
+    if (ws?.readyState === WebSocket.OPEN && relayPc) {
+      relayPc.createOffer().then((offer: RTCSessionDescriptionInit) => relayPc.setLocalDescription(offer))
         .then(() => {
-          ws.send(JSON.stringify({ type: 'offer', data: newPc.localDescription, sessionId: sessionIdRef.current }));
+          ws.send(JSON.stringify({ type: 'offer', data: relayPc.localDescription, sessionId: sessionIdRef.current }));
           console.log('[Relay] Offer sent');
-        }).catch(err => console.error('[Relay] Error:', err));
+        }).catch((err: Error) => console.error('[Relay] Error:', err));
     }
-  }, [lockMode, rebuildPeerConnection, attachPeerConnectionHandlers, detectAndLockMode]);
+  }, [lockMode, rebuildPeerConnection, detectAndLockMode, flushPendingRemoteCandidates]);
 
   const sendMessage = useCallback((message: any) => {
     const ws = wsRef.current;
@@ -983,9 +995,8 @@ export function useWebRTC(config: WebRTCConfig) {
             // Note: Do NOT set 'reconnecting' - relay fallback is still part of initial connection
             // UI stays in 'pending' until mode is detected from controller
             // NOTE: Do NOT clear buffer - flush happens after PC creation
-            // Rebuild PC with relay policy to match controller
-            const newPc = rebuildPeerConnection('relay');
-            attachPeerConnectionHandlers(newPc, () => {}, detectAndLockMode);
+            // Rebuild PC with relay policy to match controller (handlers attached internally)
+            rebuildPeerConnection('relay', () => {}, detectAndLockMode);
             flushPendingRemoteCandidates();
             console.log('[Follower] Rebuilt relay PC, handlers attached, candidates flushed');
           }
@@ -1061,8 +1072,8 @@ export function useWebRTC(config: WebRTCConfig) {
           setConnectionMode('pending');
           setConnectionDetails({ mode: 'pending' });
           
-          // New PC for new session
-          rebuildPeerConnection('all');
+          // New PC for new session (handlers attached internally)
+          rebuildPeerConnection('all', createRelayConnection, detectAndLockMode);
           
           configRef.current.onRemoteStream?.(null);
           configRef.current.onPeerDisconnected?.();
@@ -1093,7 +1104,8 @@ export function useWebRTC(config: WebRTCConfig) {
           setConnectionMode('pending');
           setConnectionDetails({ mode: 'pending' });
           
-          rebuildPeerConnection('all');
+          // New PC for new session (handlers attached internally)
+          rebuildPeerConnection('all', createRelayConnection, detectAndLockMode);
           
           configRef.current.onRemoteStream?.(null);
           configRef.current.onPeerDisconnected?.();

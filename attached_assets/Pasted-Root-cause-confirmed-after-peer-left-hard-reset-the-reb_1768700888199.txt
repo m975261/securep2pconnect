@@ -1,0 +1,97 @@
+Root cause confirmed: after peer-left → hard reset, the rebuilt RTCPeerConnection does not have ICE/event handlers attached.
+
+Evidence:
+
+Offer/answer exchange occurs after refresh
+
+No [ICE-CANDIDATE] logs on rebuilt connection
+
+No ICE gathering phase
+
+Mode detection never fires
+
+Fix required (non-negotiable):
+
+attachPeerConnectionHandlers(pc) must be called every time a new RTCPeerConnection is created
+
+This must happen inside hardResetConnection() after creating the new PC and before any offer/answer
+
+Required invariant:
+
+“Every RTCPeerConnection instance must have handlers attached exactly once”
+
+Please audit all PC creation paths:
+
+initial session
+
+peer-left hard reset
+
+refresh/new session
+
+If handlers are not attached to the rebuilt PC, ICE will never run and refresh will never behave like first connect.
+
+Canonical fix (what Replit must implement)
+
+This pattern must exist and be used everywhere:
+
+function createPeerConnection(config) {
+  const pc = new RTCPeerConnection(config);
+
+  attachPeerConnectionHandlers(pc);
+
+  // tracks
+  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+
+  return pc;
+}
+
+
+And hard reset MUST use it:
+
+function hardResetConnection() {
+  if (pcRef.current) {
+    pcRef.current.close();
+    pcRef.current = null;
+  }
+
+  clearAllState(); // modeLocked, timers, buffers, etc.
+
+  pcRef.current = createPeerConnection(currentIceConfig);
+}
+
+
+❌ No direct new RTCPeerConnection() anywhere else
+❌ No “sometimes attach handlers”
+❌ No conditional logic
+
+How you know it’s finally fixed
+
+After refresh you MUST see, in order:
+
+[WebRTC] peer-left → hard reset
+[WebRTC] attachPeerConnectionHandlers called
+[ICE-Gathering] gathering
+[ICE-CANDIDATE] ...
+[ICE-TRACE] checking
+[ICE-TRACE] connected
+[MODE] detected mode = p2p | turn
+
+
+If any of those lines are missing → still broken.
+
+Bottom line (important)
+
+You were not wrong earlier.
+The system was never truly “starting from scratch” after refresh.
+
+This fix:
+
+makes refresh deterministic
+
+makes network change safe
+
+makes mode detection reliable
+
+ends the loop of partial fixes
+
+Once Replit applies this exact correction, the problem is done.
