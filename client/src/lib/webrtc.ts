@@ -660,6 +660,14 @@ export function useWebRTC(config: WebRTCConfig) {
     }
   }, []);
 
+  // Explicitly end session (broadcasts session-end to all peers)
+  const endSession = useCallback(() => {
+    const ws = wsRef.current;
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'end-session' }));
+    }
+  }, []);
+
   const sendFile = useCallback((file: File, options?: SendFileOptions) => {
     return new Promise<void>((resolve, reject) => {
       const ws = wsRef.current;
@@ -986,9 +994,35 @@ export function useWebRTC(config: WebRTCConfig) {
           setPeerNCEnabled(message.data?.enabled ?? false);
           configRef.current.onPeerNCStatusChange?.(message.data?.enabled ?? false);
         } else if (message.type === 'peer-left') {
-          // ALWAYS hard reset on peer-left - no conditions
-          // Refresh = new peer, new session, new mode detection
-          console.log('[WebRTC] peer-left → hard reset (always)');
+          // peer-left = peer presence update, NOT session end
+          // Allow rejoin - just update presence state
+          console.log('[WebRTC] peer-left → updating presence (awaiting rejoin)');
+          
+          // Update presence but keep session alive
+          setIsConnected(false);
+          setConnectionState('disconnected');
+          setRemoteStream(null);
+          setPeerNCEnabled(false);
+          
+          // Reset mode and negotiation state for clean rejoin
+          modeLockedRef.current = false;
+          fallbackTriggeredRef.current = false;
+          connectionEstablishedRef.current = false;
+          pendingModeRef.current = null;
+          setConnectionMode('pending');
+          setConnectionDetails({ mode: 'pending' });
+          
+          // Cancel pending post-lock failure timer (no longer relevant)
+          if (postLockFailureTimerRef.current) {
+            clearTimeout(postLockFailureTimerRef.current);
+            postLockFailureTimerRef.current = null;
+          }
+          
+          configRef.current.onRemoteStream?.(null);
+          configRef.current.onPeerDisconnected?.();
+        } else if (message.type === 'session-end') {
+          // session-end = explicit room close, HARD RESET
+          console.log('[WebRTC] session-end → hard reset');
           
           // Clear all timers
           if (modeDetectionRetryRef.current) {
@@ -1004,7 +1038,7 @@ export function useWebRTC(config: WebRTCConfig) {
             postLockFailureTimerRef.current = null;
           }
           
-          // Reset all state
+          // Full reset
           setIsConnected(false);
           setConnectionState('disconnected');
           setRemoteStream(null);
@@ -1017,7 +1051,6 @@ export function useWebRTC(config: WebRTCConfig) {
           setConnectionMode('pending');
           setConnectionDetails({ mode: 'pending' });
           
-          // Rebuild peer connection from clean state
           rebuildPeerConnection('all');
           
           configRef.current.onRemoteStream?.(null);
@@ -1069,5 +1102,6 @@ export function useWebRTC(config: WebRTCConfig) {
     stopVoiceChat,
     isNCEnabled,
     peerNCEnabled,
+    endSession,
   };
 }

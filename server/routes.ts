@@ -32,7 +32,7 @@ const updateRoomPasswordSchema = z.object({
 });
 
 interface WebRTCMessage {
-  type: "offer" | "answer" | "ice-candidate" | "join" | "leave" | "peer-joined" | "peer-left" | "chat" | "file-metadata" | "file-chunk" | "file-eof" | "nc-status" | "connection-mode";
+  type: "offer" | "answer" | "ice-candidate" | "join" | "leave" | "peer-joined" | "peer-left" | "chat" | "file-metadata" | "file-chunk" | "file-eof" | "nc-status" | "connection-mode" | "session-end" | "end-session";
   roomId?: string;
   data?: any;
   peerId?: string;
@@ -658,6 +658,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.log(`[WebSocket] No peers to relay connection mode to in room ${currentPeer.roomId}`);
             }
           }
+        } else if (currentPeer && message.type === "end-session") {
+          // Only controller can end session
+          if (currentPeer.role !== 'controller') {
+            console.log(`[WebSocket] End session rejected - ${currentPeer.peerId} is not controller`);
+            return;
+          }
+          
+          // Controller explicitly ends session - broadcast session-end to all peers
+          console.log(`[WebSocket] End session from controller ${currentPeer.peerId} in room ${currentPeer.roomId}`);
+          const peers = roomPeers.get(currentPeer.roomId);
+          if (peers) {
+            peers.forEach((peerId) => {
+              const peer = activePeers.get(peerId);
+              if (peer && peer.ws.readyState === WebSocket.OPEN) {
+                peer.ws.send(JSON.stringify({ type: "session-end" }));
+              }
+            });
+          }
+          
+          // Clean up room
+          if (peers) {
+            peers.forEach((peerId) => {
+              activePeers.delete(peerId);
+            });
+            roomPeers.delete(currentPeer.roomId);
+          }
+          roomControllers.delete(currentPeer.roomId);
+          
+          // Delete room from storage
+          await storage.deleteRoom(currentPeer.roomId);
+          console.log(`[WebSocket] Room ${currentPeer.roomId} ended by user`);
         }
       } catch (error) {
         console.error("WebSocket message error:", error);
