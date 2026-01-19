@@ -3,6 +3,14 @@
 SECURE.LINK is a WebRTC communication application designed for secure, temporary, peer-to-peer (P2P-first) connections.
 
 ## Recent Changes (January 2026)
+- **Unified Chat & File Transfer (January 19, 2026):**
+  - Merged separate Chat and File Transfer tabs into single chronological timeline
+  - UnifiedChat component displays text and file messages together, sorted by timestamp
+  - File upload via paperclip button next to message input
+  - File messages show as clickable cards with type-specific icons and direct download
+  - Input field at TOP of chat area (always visible on mobile)
+  - Textarea supports Shift+Enter for newlines, Enter sends message
+  - Auto-focus on input field when entering room
 - **Session Scoping with sessionId:**
   - Each page load generates a fresh UUID sessionId
   - All signaling messages include sessionId
