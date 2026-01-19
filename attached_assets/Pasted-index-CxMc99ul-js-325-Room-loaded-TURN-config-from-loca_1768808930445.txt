@@ -1,0 +1,46 @@
+index-CxMc99ul.js:325 Room loaded TURN config from localStorage: true Array(1)
+index-CxMc99ul.js:324 [WebRTC] New session started: 5f10746f
+index-CxMc99ul.js:324 [WebRTC] attachPeerConnectionHandlers called
+index-CxMc99ul.js:324 [WS] Connected, joining room
+index-CxMc99ul.js:324 [WebRTC] Role assigned by server: controller
+index-CxMc99ul.js:325 User interacted with page - enabling audio
+index-CxMc99ul.js:324 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-CxMc99ul.js:324
+index-CxMc99ul.js:324 [WebRTC] Peer joined: 2
+index-CxMc99ul.js:324 [WebRTC] Stored remote peer sessionId: 4d3cee10
+index-CxMc99ul.js:324 [WebRTC] Received offer
+index-CxMc99ul.js:324 [WebRTC] Answer sent
+index-CxMc99ul.js:324 [ICE-Gathering] gathering
+index-CxMc99ul.js:324 [ICE-CANDIDATE] host udp b659d265-8003-4300-892b-004be718a61c.local
+index-CxMc99ul.js:324 [ICE-CANDIDATE] host udp a8fa5760-4789-403a-9a55-0281191be5e6.local
+index-CxMc99ul.js:324 [ICE-REMOTE] addIceCandidate host udp
+index-CxMc99ul.js:324 [ICE-TRACE] Object
+index-CxMc99ul.js:324 [Connection] connecting
+index-CxMc99ul.js:324 [ICE-CANDIDATE] relay udp 92.96.56.244
+index-CxMc99ul.js:324 [ICE-REMOTE] addIceCandidate relay udp
+index-CxMc99ul.js:324 [ICE-CANDIDATE] relay udp 92.96.56.244
+index-CxMc99ul.js:324 [ICE-Gathering] complete
+index-CxMc99ul.js:324 [ICE-TRACE] Object
+index-CxMc99ul.js:324 [ICE] disconnected - starting 12s grace window (initial connection)
+index-CxMc99ul.js:324 [Connection] failed
+index-CxMc99ul.js:324 [ICE] disconnected too long (12s) → fallback to relay (initial connection)
+index-CxMc99ul.js:324 [RELAY] createRelayConnection CALLED Object
+index-CxMc99ul.js:324 [RELAY] TURN config for fallback: Object
+index-CxMc99ul.js:324 [WebRTC] Creating relay-only connection
+index-CxMc99ul.js:324 [ICE-CONFIG] rebuildPeerConnection Object
+index-CxMc99ul.js:324 [WebRTC] attachPeerConnectionHandlers called
+index-CxMc99ul.js:324 [RELAY] handlers attached to relay PeerConnection
+index-CxMc99ul.js:324 [Relay] Offer sent
+index-CxMc99ul.js:324 [ICE-Gathering] gathering
+index-CxMc99ul.js:324 [ICE-CANDIDATE] relay udp 92.96.56.244
+index-CxMc99ul.js:324 [ICE-CANDIDATE] relay udp 92.96.56.244
+index-CxMc99ul.js:324 [ICE-Gathering] complete
+index-CxMc99ul.js:324 [ICE-REMOTE] addIceCandidate host udp
+index-CxMc99ul.js:324 [ICE-REMOTE] addIceCandidate relay udp
+index-CxMc99ul.js:324 [ICE-TRACE] Object
+index-CxMc99ul.js:324 [Connection] connecting
+index-CxMc99ul.js:324 [WebRTC] connectionState ignored during relay: connecting
+index-CxMc99ul.js:324 [ICE-TRACE] Object
+index-CxMc99ul.js:324 [ICE] disconnected during relay - relay is final, ignoring
+index-CxMc99ul.js:324 [Connection] failed
+index-CxMc99ul.js:324 [WebRTC] connectionState ignored during relay: failed

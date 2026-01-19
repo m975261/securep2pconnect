@@ -1,0 +1,103 @@
+m975261@securelink:/opt/securelink$ sudo journalctl -u secure-webrtc-app -n 100 --no-pager
+[sudo] password for m975261:
+Jan 19 07:56:30 securelink securelink[1634]: [WebSocket] Connection mode from wsfz4t: p2p
+Jan 19 07:56:30 securelink securelink[1634]: [WebSocket] Relaying connection mode p2p to iiilv8h
+Jan 19 07:57:16 securelink securelink[1634]: [ROOM] join allowed after prune/replacement for room 88888
+Jan 19 07:57:16 securelink securelink[1634]: [Join] Room 88888 - TURN config: urls=1, stunUrls=1, hasCredentials=true
+Jan 19 07:57:16 securelink securelink[1634]: 7:57:16 AM [express] POST /api/rooms/88888/join 200 in 13ms :: {"success":true,"hasPassword":false,"…
+Jan 19 07:57:16 securelink securelink[1634]: [ROOM] join allowed after prune/replacement for room 88888
+Jan 19 07:57:16 securelink securelink[1634]: [Join] Room 88888 - TURN config: urls=1, stunUrls=1, hasCredentials=true
+Jan 19 07:57:16 securelink securelink[1634]: 7:57:16 AM [express] POST /api/rooms/88888/join 200 in 3ms :: {"success":true,"hasPassword":false,"i…
+Jan 19 07:57:18 securelink securelink[1634]: [ROOM] WS join allowed for peer mq29e4 in room 88888
+Jan 19 07:57:19 securelink securelink[1634]: [WebSocket] ICE candidate from mq29e4 in room 88888
+Jan 19 07:57:19 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to wsfz4t
+Jan 19 07:57:19 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 07:57:19 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to mq29e4
+Jan 19 07:57:19 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 07:57:19 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to mq29e4
+Jan 19 07:57:19 securelink securelink[1634]: [WebSocket] ICE candidate from mq29e4 in room 88888
+Jan 19 07:57:19 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to wsfz4t
+Jan 19 07:57:19 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 07:57:19 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to mq29e4
+Jan 19 07:57:20 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 07:57:20 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to mq29e4
+Jan 19 07:57:49 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 07:57:49 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to mq29e4
+Jan 19 07:57:49 securelink securelink[1634]: [WebSocket] ICE candidate from mq29e4 in room 88888
+Jan 19 07:57:49 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to wsfz4t
+Jan 19 07:57:49 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 07:57:49 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to mq29e4
+Jan 19 07:57:49 securelink securelink[1634]: [WebSocket] ICE candidate from mq29e4 in room 88888
+Jan 19 07:57:49 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to wsfz4t
+Jan 19 07:58:17 securelink securelink[1634]: [ROOM] WS join allowed for peer k2gtr in room 99554
+Jan 19 07:59:22 securelink securelink[1634]: [ROOM] join allowed after prune/replacement for room 88888
+Jan 19 07:59:22 securelink securelink[1634]: [Join] Room 88888 - TURN config: urls=1, stunUrls=1, hasCredentials=true
+Jan 19 07:59:22 securelink securelink[1634]: 7:59:22 AM [express] POST /api/rooms/88888/join 200 in 5ms :: {"success":true,"hasPassword":false,"t…
+Jan 19 07:59:22 securelink securelink[1634]: [ROOM] join allowed after prune/replacement for room 88888
+Jan 19 07:59:22 securelink securelink[1634]: [Join] Room 88888 - TURN config: urls=1, stunUrls=1, hasCredentials=true
+Jan 19 07:59:22 securelink securelink[1634]: 7:59:22 AM [express] POST /api/rooms/88888/join 200 in 4ms :: {"success":true,"hasPassword":false,"i…
+Jan 19 07:59:24 securelink securelink[1634]: [ROOM] WS join allowed for peer zybnns in room 88888
+Jan 19 07:59:24 securelink securelink[1634]: [WebSocket] ICE candidate from zybnns in room 88888
+Jan 19 07:59:24 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to wsfz4t
+Jan 19 07:59:25 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 07:59:25 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to zybnns
+Jan 19 07:59:25 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 07:59:25 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to zybnns
+Jan 19 07:59:25 securelink securelink[1634]: [WebSocket] ICE candidate from zybnns in room 88888
+Jan 19 07:59:25 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to wsfz4t
+Jan 19 07:59:25 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 07:59:25 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to zybnns
+Jan 19 07:59:25 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 07:59:25 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to zybnns
+Jan 19 07:59:54 securelink securelink[1634]: [WebSocket] ICE candidate from zybnns in room 88888
+Jan 19 07:59:54 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to wsfz4t
+Jan 19 07:59:55 securelink securelink[1634]: [WebSocket] ICE candidate from zybnns in room 88888
+Jan 19 07:59:55 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to wsfz4t
+Jan 19 07:59:55 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 07:59:55 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to zybnns
+Jan 19 07:59:55 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 07:59:55 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to zybnns
+Jan 19 08:00:25 securelink securelink[1634]: [ROOM] WS join allowed for peer k2gtr in room 99554
+Jan 19 08:02:33 securelink securelink[1634]: [ROOM] WS join allowed for peer k2gtr in room 99554
+Jan 19 08:03:34 securelink securelink[1634]: [ROOM] join allowed after prune/replacement for room 88888
+Jan 19 08:03:34 securelink securelink[1634]: [Join] Room 88888 - TURN config: urls=1, stunUrls=1, hasCredentials=true
+Jan 19 08:03:34 securelink securelink[1634]: 8:03:34 AM [express] POST /api/rooms/88888/join 200 in 13ms :: {"success":true,"hasPassword":false,"…
+Jan 19 08:03:36 securelink securelink[1634]: [ROOM] WS join allowed for peer zybnns in room 88888
+Jan 19 08:03:37 securelink securelink[1634]: [WebSocket] ICE candidate from zybnns in room 88888
+Jan 19 08:03:37 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to wsfz4t
+Jan 19 08:03:37 securelink securelink[1634]: [WebSocket] ICE candidate from zybnns in room 88888
+Jan 19 08:03:37 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to wsfz4t
+Jan 19 08:03:37 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 08:03:37 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to zybnns
+Jan 19 08:03:37 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 08:03:37 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to zybnns
+Jan 19 08:03:38 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 08:03:38 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to zybnns
+Jan 19 08:03:38 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 08:03:38 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to zybnns
+Jan 19 08:03:52 securelink securelink[1634]: [ROOM] join allowed after prune/replacement for room 88888
+Jan 19 08:03:52 securelink securelink[1634]: [Join] Room 88888 - TURN config: urls=1, stunUrls=1, hasCredentials=true
+Jan 19 08:03:52 securelink securelink[1634]: 8:03:52 AM [express] POST /api/rooms/88888/join 200 in 3ms :: {"success":true,"hasPassword":false,"i…
+Jan 19 08:03:53 securelink securelink[1634]: [ROOM] WS join allowed for peer zybnns in room 88888
+Jan 19 08:03:54 securelink securelink[1634]: [WebSocket] ICE candidate from zybnns in room 88888
+Jan 19 08:03:54 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to wsfz4t
+Jan 19 08:03:54 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 08:03:54 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to zybnns
+Jan 19 08:03:54 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 08:03:54 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to zybnns
+Jan 19 08:03:54 securelink securelink[1634]: [WebSocket] ICE candidate from zybnns in room 88888
+Jan 19 08:03:54 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to wsfz4t
+Jan 19 08:03:54 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 08:03:54 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to zybnns
+Jan 19 08:03:54 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 08:03:54 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to zybnns
+Jan 19 08:04:22 securelink securelink[1634]: [WebSocket] ICE candidate from zybnns in room 88888
+Jan 19 08:04:22 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to wsfz4t
+Jan 19 08:04:22 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 08:04:22 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to zybnns
+Jan 19 08:04:23 securelink securelink[1634]: [WebSocket] ICE candidate from wsfz4t in room 88888
+Jan 19 08:04:23 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to zybnns
+Jan 19 08:04:23 securelink securelink[1634]: [WebSocket] ICE candidate from zybnns in room 88888
+Jan 19 08:04:23 securelink securelink[1634]: [WebSocket] Relaying ICE candidate to wsfz4t
+Jan 19 08:04:43 securelink securelink[1634]: [ROOM] WS join allowed for peer k2gtr in room 99554
+m975261@securelink:/opt/securelink$
