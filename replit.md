@@ -8,12 +8,14 @@ SECURE.LINK is a WebRTC communication application designed for secure, temporary
   - All signaling messages include sessionId
   - Stale events from old sessions are ignored (prevents random kicks after refresh)
   - Client tracks remote peer's sessionId to filter stale remote events
-- **Refresh = New Session Lifecycle:**
+- **Refresh = New Session Lifecycle (BASELINE - January 19, 2026):**
   - Any refresh, disconnect, or network change creates a brand-new session
   - No state preservation across sessions - all state cleared on page load
   - Post-lock failures (ICE failed/disconnected) trigger session end, not recovery
   - Fallback/grace timers only run during initial connection (pre-lock)
   - Server forcibly evicts prior peers by peerId, createdBy, or IP regardless of socket state
+  - **New peer detection:** When controller receives `peer-joined` with different sessionId, it rebuilds PeerConnection with fresh handlers (resets modeLockedRef, fallbackTriggeredRef, connectionEstablishedRef, disconnectedSinceRef) and re-enables mode detection
+  - **peerId in HTTP join:** Client sends peerId in join request for immediate peer slot replacement regardless of WebSocket state
 - **Server-Assigned Role Architecture:**
   - Server assigns immutable roles: `controller` (first peer) or `follower` (second peer)
   - Only controller can: detect mode, trigger TURN fallback, broadcast mode to follower
