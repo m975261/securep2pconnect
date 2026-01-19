@@ -1,15 +1,14 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Mic, MicOff, PhoneOff, 
-  Share2, MessageSquare, FileText, Copy, Check, Lock, Volume2, VolumeX, Download, Languages
+  Share2, Copy, Check, Lock, Volume2, VolumeX, Languages, Download
 } from "lucide-react";
 import { useLocation, useRoute } from "wouter";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import QRCode from "react-qr-code";
-import { ChatInterface } from "@/components/chat-interface";
-import { FileTransfer } from "@/components/file-transfer";
+import { UnifiedChat, type UnifiedMessage } from "@/components/unified-chat";
 import { useWebRTC, type TurnConfig, type ConnectionMode, type ConnectionDetails } from "@/lib/webrtc";
 import { toast } from "sonner";
 import {
@@ -39,11 +38,8 @@ export default function Room() {
   const [nickname, setNickname] = useState(nicknameFromUrl);
   const [peerNickname, setPeerNickname] = useState<string>("");
   const [isMicOn, setIsMicOn] = useState(false);
-  const [activeTab, setActiveTab] = useState<'chat' | 'files'>('chat');
-  const [unreadFileCount, setUnreadFileCount] = useState(0);
   const [copied, setCopied] = useState(false);
-  const [messages, setMessages] = useState<Array<{id: string; text: string; sender: 'me' | 'peer'; timestamp: Date; senderName?: string}>>([]);
-  const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
+  const [unifiedMessages, setUnifiedMessages] = useState<UnifiedMessage[]>([]);
   const [passwordRequired, setPasswordRequired] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordVerified, setPasswordVerified] = useState(false);
@@ -55,14 +51,6 @@ export default function Room() {
   const [needsNickname, setNeedsNickname] = useState(!nicknameFromUrl);
   const [shareLink, setShareLink] = useState('');
   const [showConnectionDetails, setShowConnectionDetails] = useState(false);
-  const [transferredFiles, setTransferredFiles] = useState<Array<{
-    name: string;
-    size: number;
-    url: string;
-    type: 'sent' | 'received';
-    timestamp: Date;
-    senderName?: string;
-  }>>([]);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const [remoteAudioMuted, setRemoteAudioMuted] = useState(true);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
@@ -292,8 +280,9 @@ export default function Room() {
   };
 
   const onMessage = useCallback((message: any) => {
-    setMessages(prev => [...prev, {
-      id: Date.now().toString(),
+    setUnifiedMessages(prev => [...prev, {
+      id: `text-${Date.now()}-${Math.random()}`,
+      type: 'text',
       text: message.text,
       sender: 'peer',
       timestamp: new Date(),
@@ -306,22 +295,19 @@ export default function Room() {
     toast.success(`Received file from ${senderName}: ${file.name}`);
     const blob = new Blob([file.data], { type: file.type || 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
-    setTransferredFiles(prev => [...prev, {
-      name: file.name,
-      size: file.size || file.data.byteLength,
-      url,
-      type: 'received' as const,
+    setUnifiedMessages(prev => [...prev, {
+      id: `file-${Date.now()}-${Math.random()}`,
+      type: 'file',
+      sender: 'peer',
       timestamp: new Date(),
       senderName,
+      file: {
+        name: file.name,
+        size: file.size || file.data.byteLength,
+        url,
+        mimeType: file.type,
+      },
     }]);
-    
-    // Increment unread count if user is on chat tab
-    setActiveTab(currentTab => {
-      if (currentTab === 'chat') {
-        setUnreadFileCount(prev => prev + 1);
-      }
-      return currentTab;
-    });
   }, []);
 
   const onPeerConnected = useCallback((peerInfo?: { nickname?: string }) => {
@@ -403,8 +389,9 @@ export default function Room() {
     const messageData = { text, senderName: nickname || 'Anonymous' };
     console.log('Sending message:', messageData);
     sendMessage(messageData);
-    setMessages(prev => [...prev, {
-      id: Date.now().toString(),
+    setUnifiedMessages(prev => [...prev, {
+      id: `text-${Date.now()}-${Math.random()}`,
+      type: 'text',
       text,
       sender: 'me',
       timestamp: new Date(),
@@ -418,19 +405,22 @@ export default function Room() {
     try {
       await sendFile(file, { onProgress });
       
-      // Only add to transferredFiles after successful send
-      setTransferredFiles(prev => [...prev, {
-        name: file.name,
-        size: file.size,
-        url,
-        type: 'sent' as const,
+      setUnifiedMessages(prev => [...prev, {
+        id: `file-${Date.now()}-${Math.random()}`,
+        type: 'file',
+        sender: 'me',
         timestamp: new Date(),
         senderName: nickname || 'You',
+        file: {
+          name: file.name,
+          size: file.size,
+          url,
+          mimeType: file.type,
+        },
       }]);
     } catch (error) {
       console.error('Failed to send file:', error);
       toast.error(`Failed to send ${file.name}: Connection lost`);
-      // Clean up the blob URL since we won't be using it
       URL.revokeObjectURL(url);
     }
   };
@@ -502,8 +492,7 @@ export default function Room() {
     
     if (!isMicOn) {
       try {
-        const stream = await startVoiceChat();
-        setAudioStream(stream);
+        await startVoiceChat();
         setIsMicOn(true);
         toast.success('Microphone enabled');
         
@@ -524,7 +513,6 @@ export default function Room() {
       }
     } else {
       stopVoiceChat();
-      setAudioStream(null);
       setIsMicOn(false);
       toast.info('Microphone disabled');
     }
@@ -1037,62 +1025,14 @@ export default function Room() {
           </div>
         </div>
 
-        <div className="flex-1 md:max-w-md flex flex-col bg-card/30 backdrop-blur-sm mt-4 md:mt-0">
-          <div className="flex border-b border-white/10">
-            <button
-              onClick={() => setActiveTab('chat')}
-              className={`flex-1 py-4 text-sm font-bold font-mono border-b-2 transition-colors flex items-center justify-center gap-2 ${
-                activeTab === 'chat' 
-                  ? 'border-primary text-primary bg-primary/5' 
-                  : 'border-transparent text-muted-foreground hover:text-white'
-              }`}
-              data-testid="tab-chat"
-            >
-              <MessageSquare className="w-4 h-4" /> {t.chatTab}
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('files');
-                setUnreadFileCount(0);
-              }}
-              className={`flex-1 py-4 text-sm font-bold font-mono border-b-2 transition-colors flex items-center justify-center gap-2 relative ${
-                activeTab === 'files' 
-                  ? 'border-accent text-accent bg-accent/5' 
-                  : 'border-transparent text-muted-foreground hover:text-white'
-              }`}
-              data-testid="tab-files"
-            >
-              <FileText className="w-4 h-4" /> {t.fileTab}
-              {unreadFileCount > 0 && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 1 }}
-                  className="absolute -top-1 right-1/4 bg-accent text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg"
-                  data-testid="badge-unread-files"
-                >
-                  {unreadFileCount}
-                </motion.span>
-              )}
-            </button>
-          </div>
-
-          <div className="flex-1 p-4 overflow-hidden relative">
-            <div className={`absolute inset-0 p-4 ${activeTab === 'chat' ? 'block' : 'hidden'}`}>
-              <ChatInterface 
-                messages={messages} 
-                onSendMessage={handleSendMessage}
-                peerNickname={peerNickname}
-                connectionState={connectionState}
-              />
-            </div>
-            <div className={`absolute inset-0 p-4 ${activeTab === 'files' ? 'block' : 'hidden'}`}>
-              <FileTransfer 
-                onSendFile={handleSendFile}
-                transferredFiles={transferredFiles}
-              />
-            </div>
-          </div>
+        <div className="flex-1 md:max-w-md flex flex-col bg-card/30 backdrop-blur-sm mt-4 md:mt-0 p-4 min-h-0">
+          <UnifiedChat
+            messages={unifiedMessages}
+            onSendMessage={handleSendMessage}
+            onSendFile={handleSendFile}
+            peerNickname={peerNickname}
+            connectionState={connectionState}
+          />
         </div>
       </main>
       
