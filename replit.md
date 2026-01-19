@@ -115,3 +115,27 @@ The schema is designed for minimal persistent state, automatic cleanup via expir
 ## Icons and Assets
 - **lucide-react**: Icon component library.
 - Custom fonts (Inter, JetBrains Mono, Space Grotesk).
+
+# VM Deployment
+
+## Deployment Structure
+The `deploy/` directory contains all files needed for Ubuntu VM deployment:
+- `.env.template`: Environment configuration template
+- `install.sh`: Fresh installation script
+- `update.sh`: Update script (pulls latest, rebuilds, restarts)
+- `secure-webrtc-app.service`: Systemd service file
+- `README.md`: Deployment documentation
+
+## Key Configuration
+- **TURN_ENCRYPTION_KEY**: Must be set consistently. TURN credentials are encrypted at rest using this key. If changed, all TURN credentials must be re-entered.
+- **DATABASE_URL**: PostgreSQL connection string for the VM database.
+
+## GitHub Workflow
+1. Push changes from Replit to GitHub
+2. On VM: Run `deploy/update.sh` to pull, build, and restart
+3. TURN credentials are stored per-room in the database, encrypted with TURN_ENCRYPTION_KEY
+
+## Important Notes
+- The encryption key on VM must remain constant after initial setup
+- If encryption key differs between environments, TURN credentials won't decrypt correctly
+- Always use `deploy/update.sh` for updates to ensure proper build and service restart

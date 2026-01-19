@@ -1,0 +1,25 @@
+[Unit]
+Description=Secure WebRTC Application (SECURE.LINK)
+Documentation=https://github.com/m975261/securep2pconnect
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=webrtcapp
+Group=webrtcapp
+WorkingDirectory=/opt/securelink
+EnvironmentFile=/opt/securelink/.env.production
+ExecStart=/usr/bin/node /opt/securelink/dist/index.js
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=securelink
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
