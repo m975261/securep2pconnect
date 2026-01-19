@@ -1,0 +1,49 @@
+index-DPAapXvw.js:325 Room loaded TURN config from localStorage: true Array(1)
+index-DPAapXvw.js:324 [WebRTC] New session started: 06e68c18
+index-DPAapXvw.js:324 [WebRTC] attachPeerConnectionHandlers called
+index-DPAapXvw.js:324 [WS] Connected, joining room
+index-DPAapXvw.js:324 [WebRTC] Role assigned by server: controller
+index-DPAapXvw.js:325 User interacted with page - enabling audio
+index-DPAapXvw.js:324 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-DPAapXvw.js:324
+index-DPAapXvw.js:324 [WebRTC] Peer joined: 2
+index-DPAapXvw.js:324 [WebRTC] Stored remote peer sessionId: 8f915e21
+index-DPAapXvw.js:324 [WebRTC] Received offer
+index-DPAapXvw.js:324 [WebRTC] Answer sent
+index-DPAapXvw.js:324 [ICE-Gathering] gathering
+index-DPAapXvw.js:324 [ICE-REMOTE] addIceCandidate host udp
+index-DPAapXvw.js:324 [ICE-REMOTE] addIceCandidate host udp
+index-DPAapXvw.js:324 [ICE-CANDIDATE] host udp 3e9d1375-46ca-4ec6-82c1-950695da1df1.local
+index-DPAapXvw.js:324 [ICE-CANDIDATE] host udp 02fcf58a-8909-4f7b-aad6-4f686f96571c.local
+index-DPAapXvw.js:324 [ICE-CANDIDATE] relay udp 92.96.56.244
+index-DPAapXvw.js:324 [ICE-REMOTE] addIceCandidate relay udp
+index-DPAapXvw.js:324 [ICE-TRACE] Object
+index-DPAapXvw.js:324 [Connection] connecting
+index-DPAapXvw.js:324 [ICE-CANDIDATE] relay udp 92.96.56.244
+index-DPAapXvw.js:324 [ICE-Gathering] complete
+index-DPAapXvw.js:324 [ICE-TRACE] Object
+index-DPAapXvw.js:324 [ICE] disconnected - starting 12s grace window (initial connection)
+index-DPAapXvw.js:324 [Connection] failed
+index-DPAapXvw.js:324 [ICE] disconnected too long (12s) → fallback to relay (initial connection)
+index-DPAapXvw.js:324 [RELAY] createRelayConnection CALLED Object
+index-DPAapXvw.js:324 [RELAY] TURN config for fallback: Object
+index-DPAapXvw.js:324 [WebRTC] Creating relay-only connection
+index-DPAapXvw.js:324 [ICE-CONFIG] rebuildPeerConnection Object
+index-DPAapXvw.js:324 [WebRTC] attachPeerConnectionHandlers called
+index-DPAapXvw.js:324 [RELAY] handlers attached to relay PeerConnection
+index-DPAapXvw.js:324 [Relay] Offer sent
+index-DPAapXvw.js:324 [ICE-Gathering] gathering
+index-DPAapXvw.js:324 [ICE-CANDIDATE] relay udp 92.96.56.244
+index-DPAapXvw.js:324 [ICE-CANDIDATE] relay udp 92.96.56.244
+index-DPAapXvw.js:324 [ICE-Gathering] complete
+index-DPAapXvw.js:324 [ICE-REMOTE] addIceCandidate host udp
+index-DPAapXvw.js:324 [ICE-REMOTE] addIceCandidate host udp
+index-DPAapXvw.js:324 [ICE-REMOTE] addIceCandidate relay udp
+index-DPAapXvw.js:324 [ICE-TRACE] Object
+index-DPAapXvw.js:324 [WebRTC] connectionState ignored during relay: connecting
+index-DPAapXvw.js:324 [ICE-TRACE] Object
+index-DPAapXvw.js:324 [ICE] disconnected during relay - relay is final, ignoring
+index-DPAapXvw.js:324 [WebRTC] connectionState ignored during relay: failed
+index-DPAapXvw.js:324 [WebRTC] peer-left → hard reset (new session)
+index-DPAapXvw.js:324 [ICE-CONFIG] rebuildPeerConnection {iceTransportPolicy: 'all', iceServersCount: 2, iceServers: Array(2)}
+index-DPAapXvw.js:324 [WebRTC] attachPeerConnectionHandlers called

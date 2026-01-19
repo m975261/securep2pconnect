@@ -1,0 +1,55 @@
+m975261@securelink:~$ sudo systemctl status secure-webrtc-app
+○ secure-webrtc-app.service - Secure WebRTC Application (SECURE.LINK)
+     Loaded: loaded (/etc/systemd/system/secure-webrtc-app.service; enabled; preset: enabled)
+     Active: inactive (dead) since Mon 2026-01-19 07:04:29 UTC; 2min 1s ago
+   Duration: 8min 43.460s
+       Docs: https://github.com/your-repo
+   Main PID: 1045 (code=killed, signal=TERM)
+        CPU: 1.391s
+
+Jan 19 06:55:46 securelink secure-webrtc-app[1045]: designed for a production environment, as it wi>
+Jan 19 06:55:46 securelink secure-webrtc-app[1045]: memory, and will not scale past a single proces>
+Jan 19 06:55:46 securelink secure-webrtc-app[1045]: 6:55:46 AM [express] serving on port 5000
+Jan 19 07:02:06 securelink secure-webrtc-app[1045]: 7:02:06 AM [express] POST /api/rooms 200 in 28m>
+Jan 19 07:02:07 securelink secure-webrtc-app[1045]: [Join] Room 99554 - TURN config: urls=1, stunUr>
+Jan 19 07:02:07 securelink secure-webrtc-app[1045]: 7:02:07 AM [express] POST /api/rooms/99554/join>
+Jan 19 07:04:29 securelink systemd[1]: Stopping secure-webrtc-app.service - Secure WebRTC Applicati>
+Jan 19 07:04:29 securelink systemd[1]: secure-webrtc-app.service: Deactivated successfully.
+Jan 19 07:04:29 securelink systemd[1]: Stopped secure-webrtc-app.service - Secure WebRTC Applicatio>
+Jan 19 07:04:29 securelink systemd[1]: secure-webrtc-app.service: Consumed 1.391s CPU time, 96.1M m>
+...skipping...
+○ secure-webrtc-app.service - Secure WebRTC Application (SECURE.LINK)
+     Loaded: loaded (/etc/systemd/system/secure-webrtc-app.service; enabled; preset: enabled)
+     Active: inactive (dead) since Mon 2026-01-19 07:04:29 UTC; 2min 1s ago
+   Duration: 8min 43.460s
+       Docs: https://github.com/your-repo
+   Main PID: 1045 (code=killed, signal=TERM)
+        CPU: 1.391s
+
+Jan 19 06:55:46 securelink secure-webrtc-app[1045]: designed for a production environment, as it wi>
+Jan 19 06:55:46 securelink secure-webrtc-app[1045]: memory, and will not scale past a single proces>
+Jan 19 06:55:46 securelink secure-webrtc-app[1045]: 6:55:46 AM [express] serving on port 5000
+Jan 19 07:02:06 securelink secure-webrtc-app[1045]: 7:02:06 AM [express] POST /api/rooms 200 in 28m>
+Jan 19 07:02:07 securelink secure-webrtc-app[1045]: [Join] Room 99554 - TURN config: urls=1, stunUr>
+Jan 19 07:02:07 securelink secure-webrtc-app[1045]: 7:02:07 AM [express] POST /api/rooms/99554/join>
+Jan 19 07:04:29 securelink systemd[1]: Stopping secure-webrtc-app.service - Secure WebRTC Applicati>
+Jan 19 07:04:29 securelink systemd[1]: secure-webrtc-app.service: Deactivated successfully.
+Jan 19 07:04:29 securelink systemd[1]: Stopped secure-webrtc-app.service - Secure WebRTC Applicatio>
+Jan 19 07:04:29 securelink systemd[1]: secure-webrtc-app.service: Consumed 1.391s CPU time, 96.1M m>
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+log file: udo systemctl status secure-webrtc-app

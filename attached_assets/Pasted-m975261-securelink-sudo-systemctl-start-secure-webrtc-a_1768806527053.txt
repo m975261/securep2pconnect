@@ -1,0 +1,38 @@
+m975261@securelink:~$ sudo systemctl start secure-webrtc-app
+sudo systemctl status secure-webrtc-appJob for secure-webrtc-app.service failed because of unavailable resources or another system error.
+See "systemctl status secure-webrtc-app.service" and "journalctl -xeu secure-webrtc-app.service" for details.
+m975261@securelink:~$ sudo journalctl -xeu secure-webrtc-app.service -n 50
+░░ Support: http://www.ubuntu.com/support
+░░
+░░ The unit secure-webrtc-app.service has entered the 'failed' state with result 'resources'.
+Jan 19 07:08:19 securelink systemd[1]: Failed to start secure-webrtc-app.service - Secure WebRTC Ap>
+░░ Subject: A start job for unit secure-webrtc-app.service has failed
+░░ Defined-By: systemd
+░░ Support: http://www.ubuntu.com/support
+░░
+░░ A start job for unit secure-webrtc-app.service has finished with a failure.
+░░
+░░ The job identifier is 1396 and the job result is failed.
+Jan 19 07:08:24 securelink systemd[1]: secure-webrtc-app.service: Scheduled restart job, restart co>
+░░ Subject: Automatic restarting of a unit has been scheduled
+░░ Defined-By: systemd
+░░ Support: http://www.ubuntu.com/support
+░░
+░░ Automatic restarting of the unit secure-webrtc-app.service has been scheduled, as the result for
+░░ the configured Restart= setting for the unit.
+Jan 19 07:08:24 securelink systemd[1]: secure-webrtc-app.service: Failed to load environment files:>
+Jan 19 07:08:24 securelink systemd[1]: secure-webrtc-app.service: Failed to spawn 'start' task: No >
+Jan 19 07:08:24 securelink systemd[1]: secure-webrtc-app.service: Failed with result 'resources'.
+░░ Subject: Unit failed
+░░ Defined-By: systemd
+░░ Support: http://www.ubuntu.com/support
+░░
+░░ The unit secure-webrtc-app.service has entered the 'failed' state with result 'resources'.
+Jan 19 07:08:24 securelink systemd[1]: Failed to start secure-webrtc-app.service - Secure WebRTC Ap>
+░░ Subject: A start job for unit secure-webrtc-app.service has failed
+░░ Defined-By: systemd
+░░ Support: http://www.ubuntu.com/support
+░░
+░░ A start job for unit secure-webrtc-app.service has finished with a failure.
+░░
+░░ The job identifier is 1504 and the job result is failed.
